@@ -3,24 +3,18 @@
 namespace Fp\FullRoute\Services;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Collection;
-use ReflectionClass;
-use ReflectionProperty;
 
 class RouteService
 {
-    private static Collection $routes;
-    private FullRoute $newRoute;
     protected static string $filePath = '';
 
     public static function addRoute(
         FullRoute $route,
     ): void {
+        // Validar la ruta
+        RouteValidationService::validateRoute($route);
+
         $parentId = $route->getParentId();
-        if ($parentId === null) {
-            throw new \Exception("El ID del padre no puede ser nulo.");
-        }
         static::$filePath = base_path('config/fullroute_config.php');
         $file = file_get_contents(self::$filePath);
 
@@ -67,7 +61,7 @@ class RouteService
         } else {
             // Eliminar el cierre del array para insertar antes
             $contentInside = rtrim(rtrim($contentInside), ']');
-            
+
             $contentInside .= "\n" . self::indentBlock(trim(self::buildFullRouteString($route)), str_repeat(" ", 16)) . "\n            ]";
             $newMethod = "->setChildrens($contentInside)";
             $file = substr_replace($file, $newMethod, $setChildrenOffset, $currentPos - $setChildrenOffset);
@@ -90,18 +84,19 @@ class RouteService
     {
         $props = $route->getProperties();
         $id = $props['id'] ?? 'undefined';
-        $code = "FullRoute::make('{$id}')";
+        $code = "FullRoute::make('{$id}')\n";
 
         foreach ($props as $prop => $value) {
             if (
                 $prop === 'id' || $value === null ||
-                (is_array($value) && empty($value))
+                (is_array($value) && empty($value) && $prop !== 'childrens')
             ) continue;
 
             $method = "->set" . ucfirst($prop);
 
             if (is_string($value)) {
                 $code .= "$method('{$value}')";
+                # valida si es arreglo y ademas debe ser distinto de Childrens para no entrar en un bucle infinito
             } elseif (is_array($value)) {
                 $exported = self::exportArray($value);
                 $code .= "$method({$exported})";
@@ -110,6 +105,8 @@ class RouteService
             } elseif (is_numeric($value)) {
                 $code .= "$method({$value})";
             }
+
+            $code .= "\n";
         }
 
         return $code . ",\n";

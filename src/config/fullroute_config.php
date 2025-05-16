@@ -2,4 +2,6 @@
 
 use Fp\FullRoute\Clases\FullRoute;
 
-return [];
+return [
+    'enable' => true,
+];

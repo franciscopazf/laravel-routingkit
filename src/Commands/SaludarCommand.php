@@ -15,20 +15,23 @@ class SaludarCommand extends Command
 
     public function handle()
     {
-        RouteService::addRoute(
-            route: FullRoute::Make(id: "13")
-                ->setParentId('12')
-                ->setPermission('admin')
-                ->setTitle('Dashboard3')
-                ->setDescription('Dashboard de la aplicacion')
-                ->setKeywords('dashboard, fp-full-route')
-                ->setIcon('fa-solid fa-house')
-                ->setUrl('/dashboard3')
-                ->setUrlName('dashboard3')
-                ->setUrlMethod('GET')
-                ->setUrlController('App\Http\Controllers\DashboardController')
-                ->setUrlAction('index')
-        );
+        FullRoute::Make(id: "dashboard3")
+            ->setParentId('dashboard')
+            ->setPermission('admin')
+            ->setTitle('Dashboard3')
+            ->setDescription('Dashboard de la aplicacion')
+            ->setKeywords('dashboard, fp-full-route')
+            ->setIcon('fa-solid fa-house')
+            ->setUrl('/dashboard3')
+            ->setUrlName('dashboard3')
+            ->setUrlMethod('GET')
+            ->setUrlController('App\Http\Controllers\DashboardController')
+            ->setUrlAction('index')
+            ->setRoles(['admin', 'user'])
+            ->setChildrens([])
+            ->save();
+
+
         $this->info('¡Hola desde tu paquete FullRoute!');
     }
 }

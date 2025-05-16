@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route as LaravelRoute;
 use Illuminate\Routing\Route as RealRoute;
 use Fp\FullRoute\Clases\Navbar;
 use Fp\FullRoute\Traits\HasDynamicAccessors;
+use Fp\FullRoute\Services\RouteService;
+
 
 class FullRoute
 {
@@ -49,5 +51,10 @@ class FullRoute
         return new FullRoute($id);
     }
 
-    
+
+    public function save(): self
+    {
+        RouteService::addRoute($this);
+        return $this;
+    }
 }

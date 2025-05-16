@@ -20,6 +20,6 @@ class FullRouteServiceProvider extends ServiceProvider
             ]);
         }
 
-    $this->loadRoutesFrom(__DIR__.'/routes/FullRoutesLoader.php');
+        $this->loadRoutesFrom(__DIR__ . '/routes/FullRoutesLoader.php');
     }
 }
