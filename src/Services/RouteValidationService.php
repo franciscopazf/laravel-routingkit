@@ -7,6 +7,12 @@ use Illuminate\Support\Collection;
 
 class RouteValidationService
 {
+    /**
+     * Validar la ruta
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
     public static function validateRoute(FullRoute $route): void
     {
         self::validateIdIsNotEmpty($route);
@@ -15,6 +21,52 @@ class RouteValidationService
         self::validateMethodIsValid($route);
     }
 
+    /**
+     * Validar la ruta para inserción
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
+    public static function validateInsertRoute(FullRoute $route): void
+    {
+        self::validateIdIsNotEmpty($route);
+        self::validateRouteIsNotEmpty($route);
+        self::validateMethodIsValid($route);
+    }
+
+    /**
+     * Validar la eliminación de la ruta
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
+    public static function validateDeleteRoute(FullRoute $route): void
+    {
+        self::validateIdIsNotEmpty($route);
+        self::validateRouteIsNotEmpty($route);
+        self::validateMethodIsValid($route);
+    }
+
+    /**
+     * Validar el movimiento de la ruta
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
+    public static function validateMoveRoute(FullRoute $route): void
+    {
+        self::validateIdIsNotEmpty($route);
+        self::validateRouteIsNotEmpty($route);
+        self::validateMethodIsValid($route);
+    }
+
+
+    /**
+     * Validar que el ID de la ruta no esté vacío
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
     protected static function validateIdIsNotEmpty(FullRoute $route): void
     {
         if (empty($route->getId())) {
@@ -22,11 +74,15 @@ class RouteValidationService
         }
     }
 
+    /**
+     * Validar que el ID de la ruta sea único
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
     protected static function validateIdIsUnique(FullRoute $route): void
     {
-        $allRoutes = collect(config('fullroute_config'));
-
-        $flattened = self::flattenRoutes($allRoutes);
+        $flattened = FullRoute::allFlattened();
 
         $ids = $flattened->pluck('id');
 
@@ -34,15 +90,14 @@ class RouteValidationService
             throw new \Exception("El ID '{$route->getId()}' ya existe.");
         }
     }
-    protected static function flattenRoutes(Collection $routes): Collection
-    {
-        return $routes->flatMap(function (FullRoute $route) {
-            $children = collect($route->getChildrens());
-            return collect([$route])->merge(self::flattenRoutes($children));
-        });
-    }
 
 
+    /**
+     * Validar que la ruta no esté vacía
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
     protected static function validateRouteIsNotEmpty(FullRoute $route): void
     {
         if (empty($route->getUrl())) {
@@ -50,6 +105,12 @@ class RouteValidationService
         }
     }
 
+    /**
+     * Validar que el método de la ruta sea válido
+     *
+     * @param FullRoute $route
+     * @throws \Exception
+     */
     protected static function validateMethodIsValid(FullRoute $route): void
     {
         $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];

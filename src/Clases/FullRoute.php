@@ -8,6 +8,8 @@ use Fp\FullRoute\Clases\Navbar;
 use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteService;
 
+use Illuminate\Support\Collection;
+
 
 class FullRoute
 {
@@ -17,6 +19,7 @@ class FullRoute
     public string $id;
     public string $type;
     public string $permission;
+    public string $endBlock;
 
     public string $title;
     public string $description;
@@ -40,21 +43,88 @@ class FullRoute
     # public RealRoute $route;
     public RealRoute $laravelRoute;
     public Navbar $navbar;
+    public FullRoute $parent;
 
     public function __construct(string $id)
     {
         $this->id = $id;
     }
 
+    /**
+     * @param string $id
+     * @return FullRoute
+     */
     public static function Make(string $id): FullRoute
     {
         return new FullRoute($id);
     }
 
-
-    public function save(): self
+    /**
+     * @param string $id
+     * @return FullRoute
+     */
+    public function save(string|FullRoute $parent): self
     {
+        if (is_string($parent))
+            $parent = RouteService::findRoute($parent);
+        $this->parent = $parent;
         RouteService::addRoute($this);
         return $this;
+    }
+
+    /**
+     * @param string $id
+     * @return FullRoute
+     */
+    public function delete(): self
+    {
+        RouteService::removeRoute($this->id);
+        return $this;
+    }
+
+    /**
+     * @param string $id
+     * @return FullRoute
+     */
+    public function moveTo(string|FullRoute $parent): self
+    {
+        // si la variable pasada es un string entonces se debe buscar la route con el metodo find
+        if (is_string($parent))
+            $parent = RouteService::findRoute($parent);
+        RouteService::moveRoute($this, $parent);
+        return $this;
+    }
+
+    /**
+     * @param string $id
+     * @return FullRoute|null
+     */
+    public static function find(string $id): ?FullRoute
+    {
+        return RouteService::findRoute($id);
+    }
+
+    /**
+     * @param string $id
+     * @return FullRoute|null
+     */
+    public function getParentRoute(): ?FullRoute
+    {
+        return $this->parent;
+    }
+
+    /**
+     * @param string $id
+     * @return FullRoute|null
+     */
+    public static function all(): Collection
+    {
+        return RouteService::getAllRoutes();
+    }
+
+
+    public static function allFlattened(): Collection
+    {
+        return RouteService::getAllFlattenedRoutes(self::all());
     }
 }

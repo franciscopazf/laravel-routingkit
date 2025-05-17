@@ -7,6 +7,17 @@ use ReflectionClass;
 
 trait HasDynamicAccessors
 {
+
+    /**
+     * Permite el acceso dinámico a los métodos de configuración de la ruta.
+     * recibe el nombre del método y los argumentos como parámetros.
+     * Si el método comienza con "set", se considera un setter.
+     * Si el método comienza con "get", se considera un getter.
+     * @param string $method
+     * @param array $arguments
+     * @return static|mixed
+     * @throws \BadMethodCallException
+     */
     public function __call(string $method, array $arguments)
     {
         if (str_starts_with($method, 'set')) {

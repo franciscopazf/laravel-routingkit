@@ -3,7 +3,7 @@
 namespace Fp\FullRoute;
 
 use Illuminate\Support\ServiceProvider;
-use Fp\FullRoute\Commands\SaludarCommand;
+use Fp\FullRoute\Commands\FpRouteCommand;
 
 class FullRouteServiceProvider extends ServiceProvider
 {
@@ -16,7 +16,7 @@ class FullRouteServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                SaludarCommand::class,
+                FpRouteCommand::class,
             ]);
         }
 
