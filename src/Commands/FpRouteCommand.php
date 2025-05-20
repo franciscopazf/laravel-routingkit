@@ -3,15 +3,26 @@
 namespace Fp\FullRoute\Commands;
 
 use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Services\FullRouteInteractive;
 use Fp\FullRoute\Services\RouteService;
 
 use Laravel\Prompts\prompt;
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\text;
 
+use function Laravel\Prompts\multiselect;
+use function Laravel\Prompts\textarea;
+use function Laravel\Prompts\password;
+use function Laravel\Prompts\checkbox;
+use function Laravel\Prompts\radio;
+use function Laravel\Prompts\autocomplete;
 use Illuminate\Console\Command;
 
 class FpRouteCommand extends Command
 {
+    // variables necesarias (opcionales)
     protected $signature = 'fp:route 
                             {--delete : Eliminar una ruta existente} 
                             {--new : Crear una nueva ruta (futuro)} 
@@ -21,45 +32,31 @@ class FpRouteCommand extends Command
 
     protected $description = 'Comando para gestionar rutas FpFullRoute';
 
+    protected FullRouteInteractive $interactive;
+
     public function handle()
     {
-        FullRoute::find('test2')
-            ->moveTo('dashboard');
-        //->delete(); // <- elimina la ruta
-
-        FullRoute::make('test2')
-            ->setPermission(fn() => 'admin')
-            ->setTitle('Dashboard3')
-            ->setDescription('Dashboard de la aplicacion')
-            ->setKeywords('dashboard, fp-full-route')
-            ->setIcon('fa-solid fa-house')
-            ->setUrl('/dashboard3')
-            ->setUrlName('dashboard3')
-            ->setUrlMethod('GET')
-            ->setUrlController('App\Http\Controllers\DashboardController')
-            ->setUrlAction('index')
-            ->setRoles(['admin', 'user'])
-            ->setChildrens([])
-            ->setEndBlock('test2');
-        //->save(parent: 'test');
-
+        $this->interactive = new FullRouteInteractive();
+        // si se pasa alguna de las siguientes flags entonces se debe ignorar el menu interactivo
+        // y ejecutar la opción correspondiente
+        // --delete, --new, --move
         if ($this->option('delete')) {
-            $routeId = $this->option('id');
+            $this->interactive->eliminar($this->option('id'));
+            return;
+        }
 
-            if (!$routeId) {
-                $this->info("No se proporcionó un ID. Entrando al modo navegación para seleccionar la ruta a eliminar...");
-                $routeId = RouteService::navigate(); // <- obtén el ID navegando
-            }
+        if ($this->option('new')) {
+            // id 
+            $data['id'] = $this->option('id');
+            // parentId
+            $data['parentId'] = $this->option('parentId');
+            $this->interactive->crear($data);
+            return;
+        }
 
-            if ($routeId) {
-                FullRoute::find($routeId)
-                    ->delete(); // <- elimina la ruta
-                $this->info("Ruta con ID {$routeId} eliminada correctamente.");
-            } else {
-                $this->error("No se pudo obtener un ID de ruta válido.");
-            }
-
-            return; // <- finaliza si fue delete
+        if ($this->option('move')) {
+            $this->interactive->mover($this->option('id'), $this->option('parentId'));
+            return;
         }
 
         $this->menuInteractivo();
@@ -80,9 +77,9 @@ class FpRouteCommand extends Command
         );
 
         match ($opcion) {
-            'nueva' => $this->info('Creando nueva ruta...'),
-            'mover' => $this->info('Moviendo ruta existente...'),
-            'eliminar' => $this->info('Eliminando ruta existente...'),
+            'nueva' => $this->interactive->crear(),
+            'mover' => $this->interactive->mover(),
+            'eliminar' => $this->interactive->eliminar(),
             'salir' => $this->info('Saliendo...'),
         };
     }

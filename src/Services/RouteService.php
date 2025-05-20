@@ -65,10 +65,13 @@ class RouteService
         return $foundRoute ?: null;
     }
 
-
-
-
-
+    /**
+     * Mueve una ruta de una ubicación a otra en el archivo de configuración.
+     *
+     * @param FullRoute $fromRoute
+     * @param FullRoute $toRoute
+     * @throws \Exception
+     */
     public static function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
     {
         RouteValidationService::validateMoveRoute($fromRoute);
@@ -78,7 +81,8 @@ class RouteService
         $fromRouteId = $fromRoute->getId();
 
         // Extraer el bloque de la ruta
-        $pattern = '/FullRoute::make\(\s*[\'"]' . preg_quote($fromRouteId, '/') . '[\'"]\)(.*?)?->setEndBlock\(\s*[\'"]' . preg_quote($fromRouteId, '/') . '[\'"]\)/s';
+        $pattern = '/FullRoute::make\(\s*[\'"]' . preg_quote($fromRouteId, '/') .
+            '[\'"]\)(.*?)?->setEndBlock\(\s*[\'"]' . preg_quote($fromRouteId, '/') . '[\'"]\)/s';
         if (!preg_match($pattern, $file, $matches)) {
             throw new \Exception("No se encontró la ruta con ID {$fromRouteId}");
         }
@@ -101,8 +105,10 @@ class RouteService
      * @throws \Exception
      */
     public static function removeRoute(string $routeId): void
-    {   
-        RouteValidationService::validateDeleteRoute($routeId);
+    {
+        RouteValidationService::validateDeleteRoute(
+            self::findRoute($routeId)
+        );
         static::$filePath = base_path('config/fullroute_config.php');
         $file = file_get_contents(static::$filePath);
 
@@ -210,6 +216,12 @@ class RouteService
             $children = collect($route->getChildrens());
             return collect([$route])->merge(self::getAllFlattenedRoutes($children));
         });
+    }
+
+
+    public static function exists(string $routeId): bool
+    {
+        return self::findRoute($routeId) !== null;
     }
 
     /**

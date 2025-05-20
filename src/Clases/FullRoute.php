@@ -9,6 +9,7 @@ use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteService;
 
 use Illuminate\Support\Collection;
+use Fp\FullRoute\Helpers\CollectionSelector;
 
 
 class FullRoute
@@ -44,6 +45,8 @@ class FullRoute
     public RealRoute $laravelRoute;
     public Navbar $navbar;
     public FullRoute $parent;
+
+
 
     public function __construct(string $id)
     {
@@ -113,6 +116,23 @@ class FullRoute
         return $this->parent;
     }
 
+    // validar si una ruta es hijo o subhija (contenida en hijos de hijos de una ruta)
+    // de otra ruta recursivamente
+    public function routeIsChild(string $id): bool
+    {
+        if ($this->id === $id) {
+            return true;
+        }
+
+        foreach ($this->childrens as $child) {
+            if ($child->routeIsChild($id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @param string $id
      * @return FullRoute|null
@@ -126,5 +146,18 @@ class FullRoute
     public static function allFlattened(): Collection
     {
         return RouteService::getAllFlattenedRoutes(self::all());
+    }
+
+    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): string
+    {
+        //dd(self::all());
+        return CollectionSelector::navegar(self::all(),omitId: $omitId);
+    }
+
+
+
+    public static function exists(string $id): bool
+    {
+        return RouteService::exists($id);
     }
 }
