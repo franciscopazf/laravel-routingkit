@@ -1,9 +1,8 @@
 <?php
 namespace Fp\FullRoute\Clases;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
-class FullRoute
+class Route
 {
     public string $url;
     public string $urlMethod;

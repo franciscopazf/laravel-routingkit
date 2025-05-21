@@ -8,6 +8,14 @@ return [
      * 
      * @var string
      */
+    'support_app' => 'file', // | DB
+
+
+    /*
+     * Define the path for the routes
+     * 
+     * @var string
+     */
     'livewire_support' => true,
 
     /*
@@ -16,16 +24,24 @@ return [
      * @var string
      */
     'controllers_path' => [
-        'controllers' => base_path('app/Http/Controllers'),
-        'livewire' => base_path('app/Livewire'),
+        'app/Http/Controllers' => 'Controladores',
+        'app/Livewire'    => 'Livewire',
     ],
+
+    /*
+     * Define what is the model to use
+     * 
+     * @var string
+     */
+    'model_ussage' => \Fp\FullRoute\Clases\FullRoute::class,
+
 
     /*
      * Define the path for the routes
      * 
      * @var string
      */
-    'model_route' =>  \Fp\FullRoute\Clases\WebRoute::class,
+    'model_route' =>  \Fp\FullRoute\Clases\Route::class,
 
 
     /*
@@ -34,14 +50,6 @@ return [
      * @var string
      */
     'model_navbar' => \Fp\FullRoute\Clases\Navbar::class,
-
-
-    /*
-     * Define what is the model to use
-     * 
-     * @var string
-     */
-    'model_ussage' => \Fp\FullRoute\Clases\FullRoute::class,
 
     /*
      * Route usage

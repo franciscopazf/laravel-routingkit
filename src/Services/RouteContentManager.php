@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services;
 
-class RouteFileManager
+class RouteContentManager
 {
     protected string $filePath;
 

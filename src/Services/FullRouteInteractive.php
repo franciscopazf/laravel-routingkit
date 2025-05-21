@@ -50,7 +50,7 @@ class FullRouteInteractive
             ->setUrlMethod($datos['method'] ?? select('📥 Método HTTP', ['GET', 'POST', 'PUT', 'DELETE']))
             ->setUrlController($datos['controller'] ?? text('🏗️ Controlador de la ruta'))
             ->setUrlAction($datos['action'] ?? text('⚙️ Acción del controlador'))
-            ->setRoles($datos['roles'] ?? multiselect('👥 Roles permitidos', ['admin', 'user']))
+            ->setRoles($datos['roles'] ?? multiselect('👥 Roles permitidos', config('fproute.roles')))
             ->setChildrens([])
             ->setEndBlock($id);
 

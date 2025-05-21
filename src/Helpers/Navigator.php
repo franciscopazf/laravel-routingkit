@@ -205,16 +205,14 @@ class Navigator
     {
         $basePath = select(
             label: '📂 Selecciona la carpeta del controlador',
-            options: [
-                'app/Http/Controllers' => 'Controladores',
-                'app/Livewire'    => 'Livewire',
-            ]
+            options: config('fproute.controllers_path')
+                
         );
 
         $navigator = self::make($basePath);
         $class = $navigator->selectFileInfo();
 
-        $method = $basePath === 'app/Http/Livewire'
+        $method = $basePath === 'app/Livewire'
             ? 'livewire'
             : $navigator->selectFunction();
 

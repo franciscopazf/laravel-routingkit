@@ -7,115 +7,121 @@ use Illuminate\Support\Collection;
 
 class RouteValidationService
 {
+    protected Collection $routes;
+    protected FullRoute $route;
+
     /**
-     * Validar la ruta
-     *
-     * @param FullRoute $route
-     * @throws \Exception
+     * Constructor privado para obligar el uso de make()
      */
-    public static function validateRoute(FullRoute $route): void
+    private function __construct() {}
+
+    /**
+     * Método estático para crear la instancia
+     */
+    public static function make(): self
     {
-        self::validateIdIsNotEmpty($route);
-        self::validateIdIsUnique($route);
-        self::validateRouteIsNotEmpty($route);
-        self::validateMethodIsValid($route);
+        return new self();
     }
 
     /**
-     * Validar la ruta para inserción
+     * Validar la ruta (completa)
      *
-     * @param FullRoute $route
      * @throws \Exception
      */
-    public static function validateInsertRoute(FullRoute $route): void
+    public function validateRoute(FullRoute $route, Collection $routes): void
     {
-        self::validateIdIsNotEmpty($route);
-        self::validateRouteIsNotEmpty($route);
-        self::validateMethodIsValid($route);
+        $this->route = $route;
+        $this->routes = $routes;
+
+        $this->validateIdIsNotEmpty();
+        $this->validateIdIsUnique();
+        $this->validateRouteIsNotEmpty();
+        $this->validateMethodIsValid();
     }
 
     /**
-     * Validar la eliminación de la ruta
+     * Validar para insertar
      *
-     * @param FullRoute $route
      * @throws \Exception
      */
-    public static function validateDeleteRoute(FullRoute $route): void
+    public function validateInsertRoute(FullRoute $route): void
     {
-        self::validateIdIsNotEmpty($route);
-        self::validateRouteIsNotEmpty($route);
-        self::validateMethodIsValid($route);
+        $this->route = $route;
+
+        $this->validateIdIsNotEmpty();
+        $this->validateRouteIsNotEmpty();
+        $this->validateMethodIsValid();
     }
 
     /**
-     * Validar el movimiento de la ruta
+     * Validar para eliminar
      *
-     * @param FullRoute $route
      * @throws \Exception
      */
-    public static function validateMoveRoute(FullRoute $route): void
+    public function validateDeleteRoute(FullRoute $route): void
     {
-        self::validateIdIsNotEmpty($route);
-        self::validateRouteIsNotEmpty($route);
-        self::validateMethodIsValid($route);
+        $this->route = $route;
+        $this->validateIdIsNotEmpty();
+        $this->validateRouteIsNotEmpty();
+        $this->validateMethodIsValid();
     }
 
-
     /**
-     * Validar que el ID de la ruta no esté vacío
+     * Validar para mover
      *
-     * @param FullRoute $route
      * @throws \Exception
      */
-    protected static function validateIdIsNotEmpty(FullRoute $route): void
+    public function validateMoveRoute(FullRoute $route, Collection $routes): void
     {
-        if (empty($route->getId())) {
+        $this->route = $route;
+        $this->routes = $routes;
+
+        $this->validateIdIsNotEmpty();
+        $this->validateRouteIsNotEmpty();
+        $this->validateMethodIsValid();
+    }
+
+    /**
+     * Validar que el ID no esté vacío
+     */
+    protected function validateIdIsNotEmpty(): void
+    {
+        if (empty($this->route->getId())) {
             throw new \Exception("El ID no puede estar vacío.");
         }
     }
 
     /**
-     * Validar que el ID de la ruta sea único
-     *
-     * @param FullRoute $route
-     * @throws \Exception
+     * Validar que el ID sea único
      */
-    protected static function validateIdIsUnique(FullRoute $route): void
+    protected function validateIdIsUnique(): void
     {
-        $flattened = FullRoute::allFlattened();
-
+        $flattened = $this->routes->flatten(1);
         $ids = $flattened->pluck('id');
 
-        if ($ids->contains($route->getId())) {
-            throw new \Exception("El ID '{$route->getId()}' ya existe.");
+        if ($ids->contains($this->route->getId())) {
+            throw new \Exception("El ID '{$this->route->getId()}' ya existe.");
         }
     }
 
-
     /**
      * Validar que la ruta no esté vacía
-     *
-     * @param FullRoute $route
-     * @throws \Exception
      */
-    protected static function validateRouteIsNotEmpty(FullRoute $route): void
+    protected function validateRouteIsNotEmpty(): void
     {
-        if (empty($route->getUrl())) {
+        if (empty($this->route->getUrl())) {
             throw new \Exception("La ruta no puede estar vacía.");
         }
     }
 
     /**
-     * Validar que el método de la ruta sea válido
-     *
-     * @param FullRoute $route
-     * @throws \Exception
+     * Validar método HTTP
      */
-    protected static function validateMethodIsValid(FullRoute $route): void
+    protected function validateMethodIsValid(): void
     {
         $validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
-        if (!in_array($route->getUrlMethod(), $validMethods)) {
-            throw new \Exception("El método '{$route->getUrlMethod()}' no es válido.");
+        if (!in_array($this->route->getUrlMethod(), $validMethods)) {
+            throw new \Exception("El método '{$this->route->getUrlMethod()}' no es válido.");
         }
     }
 }
