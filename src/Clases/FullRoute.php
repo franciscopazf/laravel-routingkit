@@ -2,14 +2,16 @@
 
 namespace Fp\FullRoute\Clases;
 
-use Illuminate\Support\Facades\Route as LaravelRoute;
-use Illuminate\Routing\Route as RealRoute;
 use Fp\FullRoute\Clases\Navbar;
 use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteService;
-
-use Illuminate\Support\Collection;
 use Fp\FullRoute\Helpers\CollectionSelector;
+use Fp\FullRoute\Helpers\RegisterRouter;
+
+use Illuminate\Support\Facades\Route as LaravelRoute;
+use Illuminate\Routing\Route as RealRoute;
+use Illuminate\Support\Collection;
+
 
 
 class FullRoute
@@ -151,7 +153,7 @@ class FullRoute
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): string
     {
         //dd(self::all());
-        return CollectionSelector::navegar(self::all(),omitId: $omitId);
+        return CollectionSelector::navegar(self::all(), omitId: $omitId);
     }
 
 
@@ -159,5 +161,10 @@ class FullRoute
     public static function exists(string $id): bool
     {
         return RouteService::exists($id);
+    }
+
+    public static function RegisterRoutes() 
+    {
+        RegisterRouter::registerRoutes();
     }
 }

@@ -5,7 +5,10 @@ namespace Fp\FullRoute\Services;
 use function Laravel\Prompts\Text;
 use function Laravel\Prompts\Select;
 use function Laravel\Prompts\Multiselect;
+use function Laravel\Prompts\Confirm;
+
 use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Helpers\Navigator;
 
 class FullRouteInteractive
 {
@@ -26,6 +29,15 @@ class FullRouteInteractive
             }
         } while (FullRoute::exists($id));
 
+        // si $datos['controller'] es null entonces se debe obtener de la ruta actual
+        if (!isset($datos['controller']) ) {
+        
+            $dataControlador = Navigator::getControllerRouteParams();
+            $datos['controller'] =   $dataControlador->controller;
+            $datos['action'] =  $dataControlador->action;
+            
+        }
+
         // Crear ruta
         $ruta = FullRoute::make($id)
             ->setPermission($datos['permission'] ?? text('🔐 Permiso de la ruta'))
@@ -42,11 +54,13 @@ class FullRouteInteractive
             ->setChildrens([])
             ->setEndBlock($id);
 
-        $parent = $datos['parent'] ?? FullRoute::seleccionar(label:'📁 Selecciona la ruta padre');
+        $parent = $datos['parent'] ?? FullRoute::seleccionar(label: '📁 Selecciona la ruta padre');
+        $this->confirmar("⚠️ ¿Estás seguro de que deseas crear la ruta con ID '{$id}'?");
         $ruta->save(parent: $parent);
-
         $this->info("✅ Ruta con ID '{$id}' creada correctamente.");
     }
+
+
 
     public function mover(?string $idRuta = null, ?string $nuevoPadreId = null)
     {
@@ -61,21 +75,37 @@ class FullRouteInteractive
         if ($ruta->routeIsChild($nuevoPadreId)) {
             return $this->error("❌ No se puede mover la ruta '{$idRuta}' a sí misma o a una de sus rutas hijas.");
         }
+
+        // confirmar la acción
+        $this->confirmar("⚠️ ¿Estás seguro de que deseas mover la ruta con ID '{$idRuta}' a la ruta padre '{$nuevoPadreId}'?");
         $ruta->moveTo($nuevoPadreId);
-        $this->info("🔀 Ruta con ID '{$idRuta}' movida correctamente a '{$nuevoPadreId}'.");
     }
 
     public function eliminar(?string $id = null)
     {
-        $id = $id ?? FullRoute::seleccionar(label:'🗑️ Selecciona la ruta a eliminar');
+        $id = $id ?? FullRoute::seleccionar(label: '🗑️ Selecciona la ruta a eliminar');
         $ruta = FullRoute::find($id);
 
         if (!$ruta) {
             return $this->error("❌ No se encontró la ruta con ID '{$id}'.");
         }
 
+        $this->confirmar("⚠️ ¿Estás seguro de que deseas eliminar la ruta con ID '{$id}'? Esta acción no se puede deshacer.");
         $ruta->delete();
-        $this->info("✅ Ruta con ID '{$id}' eliminada correctamente.");
+    }
+
+    protected function confirmar(
+        string $mensaje,
+        string $messageYes = 'Opción Aceptada',
+        string $messageNo = 'Opción Cancelada',
+    ): mixed {
+        $confirmacion = confirm($mensaje, default: false);
+        if (!$confirmacion) {
+            $this->error($messageNo);
+            die();
+        }
+        $this->info($messageYes);
+        return $confirmacion;
     }
 
     // Métodos auxiliares de salida

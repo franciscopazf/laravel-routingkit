@@ -2,23 +2,12 @@
 
 namespace Fp\FullRoute\Commands;
 
-use Fp\FullRoute\Clases\FullRoute;
 use Fp\FullRoute\Services\FullRouteInteractive;
-use Fp\FullRoute\Services\RouteService;
-
-use Laravel\Prompts\prompt;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\table;
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\text;
-
-use function Laravel\Prompts\multiselect;
-use function Laravel\Prompts\textarea;
-use function Laravel\Prompts\password;
-use function Laravel\Prompts\checkbox;
-use function Laravel\Prompts\radio;
-use function Laravel\Prompts\autocomplete;
 use Illuminate\Console\Command;
+use function Laravel\Prompts\select;
+
+use Fp\FullRoute\Helpers\Navigator;
+
 
 class FpRouteCommand extends Command
 {
@@ -37,8 +26,7 @@ class FpRouteCommand extends Command
     public function handle()
     {
         $this->interactive = new FullRouteInteractive();
-        // si se pasa alguna de las siguientes flags entonces se debe ignorar el menu interactivo
-        // y ejecutar la opción correspondiente
+
         // --delete, --new, --move
         if ($this->option('delete')) {
             $this->interactive->eliminar($this->option('id'));
