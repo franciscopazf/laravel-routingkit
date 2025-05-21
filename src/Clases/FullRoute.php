@@ -79,10 +79,17 @@ class FullRoute //implements RouteEntityInterface
             $parent = self::getRouteContext()
                 ->findRoute($parent);
         $this->parent = $parent;
+
+        
         self::getRouteContext()
-            ->addRoute($this);
+            ->addRoute($this, $parent);
         return $this;
     }
+
+    public function parent (string|FullRoute $parent): FullRoute
+    {
+        return $this->parent;
+    } 
 
     /**
      * @param string $id

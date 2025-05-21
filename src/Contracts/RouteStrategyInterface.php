@@ -11,7 +11,7 @@ interface RouteStrategyInterface
         \Fp\FullRoute\Services\RouteContentManager $fileManager
     ): self;
 
-    public function addRoute(FullRoute $route): void;
+    public function addRoute(FullRoute $route, string|FullRoute $parent): void;
 
     public function getAllRoutes(): Collection;
 

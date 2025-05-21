@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Tests\Unit;
 
-use Fp\FullRoute\Services\RouteFileManager;
+use Fp\FullRoute\Services\RouteContentManager;
 use Orchestra\Testbench\TestCase;
 
 class RouteFileManagerTest extends TestCase
@@ -32,7 +32,7 @@ class RouteFileManagerTest extends TestCase
 
     public function testGetContentsReturnsArray()
     {
-        $manager = new RouteFileManager($this->tempFile);
+        $manager = new RouteContentManager($this->tempFile);
         $contents = $manager->getContents();
 
         $this->assertIsArray($contents);
@@ -42,7 +42,7 @@ class RouteFileManagerTest extends TestCase
 
     public function testGetContentsStringReturnsFileContents()
     {
-        $manager = new RouteFileManager($this->tempFile);
+        $manager = new RouteContentManager($this->tempFile);
         $contentsString = $manager->getContentsString();
 
         $this->assertStringContainsString('route1', $contentsString);
@@ -51,7 +51,7 @@ class RouteFileManagerTest extends TestCase
 
     public function testPutContentsWritesFile()
     {
-        $manager = new RouteFileManager($this->tempFile);
+        $manager = new RouteContentManager($this->tempFile);
 
         $newContent = "<?php return ['newroute' => 'newvalue'];";
         $manager->putContents($newContent);

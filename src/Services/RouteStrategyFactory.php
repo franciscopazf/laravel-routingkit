@@ -11,20 +11,21 @@ use Fp\FullRoute\Services\RouteContext;
 
 class RouteStrategyFactory
 {
-    public static function make(string $type): RouteContext
+    public static function make(string $type, ?string $filePath = null): RouteContext
     {
         return match ($type) {
-            'file' => self::makeFileStrategy(),
+            'file' => self::makeFileStrategy($filePath),
             'database' => self::makeDatabaseStrategy(),
             default => throw new \InvalidArgumentException("Estrategia no válida: $type"),
         };
     }
 
     // si el caso es un tipo de estrategia file orquestarlo en esta funcion
-    public static function makeFileStrategy(): RouteContext
+    public static function makeFileStrategy(?string $filePath = null ): RouteContext
     {
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
-        $routeContentManager = new RouteContentManager(); // se usa el path por defacto
+        $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
+        // pero para test se puede pasar el path de test        
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
         $routeStrategy = new RouteStrategyFile($routeContentManager);
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente

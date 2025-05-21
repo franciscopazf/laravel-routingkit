@@ -30,16 +30,19 @@ class RouteStrategyFile implements RouteStrategyInterface
      * @param FullRoute $route La ruta a agregar.
      * @throws \Exception Si la ruta no es válida o si ocurre un error al insertar la ruta.
      */
-    public function addRoute(FullRoute $route): void
+    public function addRoute(FullRoute $route, string|FullRoute $parent): void
     {
+        // Si el padre es un string, buscar la ruta correspondiente
+        if (is_string($parent)) {
+            $parent = $this->findRoute($parent);
+        }
 
         RouteValidationService::make()
             ->validateRoute($route, $this->getAllRoutes());
 
         $bloque = self::buildFullRouteString($route);
-        $parentRoute = $route->getParentRoute();
 
-        $this->insertRouteContent($parentRoute, $bloque);
+        $this->insertRouteContent($parent, $bloque);
     }
 
     /**
