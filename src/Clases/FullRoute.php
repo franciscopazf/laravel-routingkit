@@ -7,7 +7,7 @@ use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteService;
 use Fp\FullRoute\Helpers\CollectionSelector;
 use Fp\FullRoute\Helpers\RegisterRouter;
-
+use Fp\FullRoute\Services\RouteFileManager;
 use Illuminate\Support\Facades\Route as LaravelRoute;
 use Illuminate\Routing\Route as RealRoute;
 use Illuminate\Support\Collection;
@@ -48,6 +48,8 @@ class FullRoute
     public Navbar $navbar;
     public FullRoute $parent;
 
+    private RouteFileManager $fileManager;
+
 
 
     public function __construct(string $id)
@@ -71,9 +73,11 @@ class FullRoute
     public function save(string|FullRoute $parent): self
     {
         if (is_string($parent))
-            $parent = RouteService::findRoute($parent);
+            $parent = self::getRouteService()
+                ->findRoute($parent);
         $this->parent = $parent;
-        RouteService::addRoute($this);
+        self::getRouteService()
+            ->addRoute($this);
         return $this;
     }
 
@@ -83,7 +87,8 @@ class FullRoute
      */
     public function delete(): self
     {
-        RouteService::removeRoute($this->id);
+        self::getRouteService()
+            ->removeRoute($this->id);
         return $this;
     }
 
@@ -95,8 +100,9 @@ class FullRoute
     {
         // si la variable pasada es un string entonces se debe buscar la route con el metodo find
         if (is_string($parent))
-            $parent = RouteService::findRoute($parent);
-        RouteService::moveRoute($this, $parent);
+            $parent = self::getRouteService()->findRoute($parent);
+        self::getRouteService()
+            ->moveRoute($this, $parent);
         return $this;
     }
 
@@ -106,7 +112,8 @@ class FullRoute
      */
     public static function find(string $id): ?FullRoute
     {
-        return RouteService::findRoute($id);
+        return self::getRouteService()
+            ->findRoute($id);
     }
 
     /**
@@ -141,13 +148,16 @@ class FullRoute
      */
     public static function all(): Collection
     {
-        return RouteService::getAllRoutes();
+        
+        return self::getRouteService()
+            ->getAllRoutes();
     }
 
 
     public static function allFlattened(): Collection
     {
-        return RouteService::getAllFlattenedRoutes(self::all());
+        return self::getRouteService()
+            ->getAllFlattenedRoutes(self::all());
     }
 
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): string
@@ -160,11 +170,23 @@ class FullRoute
 
     public static function exists(string $id): bool
     {
-        return RouteService::exists($id);
+        return self::getRouteService()
+            ->exists($id);
     }
 
-    public static function RegisterRoutes() 
+    public static function RegisterRoutes()
     {
         RegisterRouter::registerRoutes();
+    }
+
+
+    public static function getRouteService(): RouteService
+    {
+        return new RouteService(self::getFileManager());
+    }
+
+    public static function getFileManager(string $filePath = null): RouteFileManager
+    {
+        return new RouteFileManager($filePath);
     }
 }

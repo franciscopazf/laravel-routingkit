@@ -3,156 +3,123 @@
 namespace Fp\FullRoute\Services;
 
 use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Services\RouteValidationService;
+use Fp\FullRoute\Services\RouteFileManager;
+
 use Illuminate\Support\Collection;
 
 class RouteService
 {
-    protected static string $filePath = '';
+    protected RouteFileManager $fileManager;
 
-    /**
-     * Agrega una ruta al archivo de configuración.
-     *
-     * @param FullRoute $route
-     * @throws \Exception
-     */
-    public static function addRoute(FullRoute $route): void
+    public function __construct(RouteFileManager $fileManager)
+    {
+        $this->fileManager = $fileManager;
+    }
+
+    public static function make(RouteFileManager $fileManager): self
+    {
+        return new self($fileManager);
+    }
+
+    public function addRoute(FullRoute $route): void
     {
         RouteValidationService::validateInsertRoute($route);
         $bloque = self::buildFullRouteString($route);
         $parentRoute = $route->getParentRoute();
-        self::insertRouteContent($parentRoute, $bloque);
+        $this->insertRouteContent($parentRoute, $bloque);
     }
 
-
-    // funcion para obtener todas las rutas mapearlas y los hijos establecer el parentId
-    // con el id de la ruta actual
-    public static function getAllRoutes(): Collection
+    public function getAllRoutes(): Collection
     {
-        $routes = config('fullroute_config');
-
-        // función recursiva para establecer parentId y referencia al objeto padre
+        $routes = $this->fileManager
+            ->getContents();
         $setParentRefs = function ($node, $parent = null) use (&$setParentRefs) {
             if ($parent !== null) {
                 $node->setParentId($parent->getId());
-                $node->setParent($parent); // ← Aquí guardas el objeto padre por referencia
+                $node->setParent($parent);
             }
-
             foreach ($node->getChildrens() as $child) {
                 $setParentRefs($child, $node);
             }
-
             return $node;
         };
 
-        $updated = collect($routes)->map(function ($route) use ($setParentRefs) {
-            return $setParentRefs($route);
-        });
 
-        return $updated;
+        return collect($routes)->map(fn($route) => $setParentRefs($route));
     }
 
-    // implementar una funcion que busque una ruta dado un id y lo retorne
-    // pasando el arreglo que esta en config como una colleccion de FullRoute
-    public static function findRoute(string $routeId): ?FullRoute
+    public function findRoute(string $routeId): ?FullRoute
     {
-        //  dd( RouteValidationService::flattenRoutes(
-        //      collect(config('fullroute_config'))));
-        $foundRoute = self::getAllFlattenedRoutes(
-            self::getAllRoutes()
-        )->first(function (FullRoute $route) use ($routeId) {
-            return $route->getId() === $routeId;
-        });
-        return $foundRoute ?: null;
+        return $this->getAllFlattenedRoutes($this->getAllRoutes())
+            ->first(fn(FullRoute $route) => $route->getId() === $routeId);
     }
 
-    /**
-     * Mueve una ruta de una ubicación a otra en el archivo de configuración.
-     *
-     * @param FullRoute $fromRoute
-     * @param FullRoute $toRoute
-     * @throws \Exception
-     */
-    public static function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
+    public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
     {
         RouteValidationService::validateMoveRoute($fromRoute);
-        static::$filePath = base_path('config/fullroute_config.php');
-        $file = file_get_contents(self::$filePath);
 
+        $file = $this->fileManager->getContentsString();
         $fromRouteId = $fromRoute->getId();
 
-        // Extraer el bloque de la ruta
         $pattern = '/FullRoute::make\(\s*[\'"]' . preg_quote($fromRouteId, '/') .
             '[\'"]\)(.*?)?->setEndBlock\(\s*[\'"]' . preg_quote($fromRouteId, '/') . '[\'"]\)/s';
+
         if (!preg_match($pattern, $file, $matches)) {
             throw new \Exception("No se encontró la ruta con ID {$fromRouteId}");
         }
 
         $bloque = $matches[0];
-
-        // Eliminar la ruta original
-        self::removeRoute($fromRouteId);
-
-
-        // Insertar el bloque modificado en la nueva posición
-        self::insertRouteContent($toRoute, $bloque);
+        $this->removeRoute($fromRouteId);
+        $this->insertRouteContent($toRoute, $bloque);
     }
 
-
-    /**
-     * Elimina una ruta del archivo de configuración.
-     *
-     * @param string $routeId
-     * @throws \Exception
-     */
-    public static function removeRoute(string $routeId): void
+    public function removeRoute(string $routeId): void
     {
-        RouteValidationService::validateDeleteRoute(
-            self::findRoute($routeId)
-        );
-        static::$filePath = base_path('config/fullroute_config.php');
-        $file = file_get_contents(static::$filePath);
+        $route = $this->findRoute($routeId);
+        RouteValidationService::validateDeleteRoute($route);
+
+        $file = $this->fileManager->getContentsString();
 
         // Crear patrón regex para buscar desde FullRoute::make('id') hasta ->setEndBlock('id')
-        $pattern = '/(,?\s*)?FullRoute::make\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\)(.*?)?->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)(,?\s*)/s';
+        $pattern = '/
+            (,)?\s*                                             # Grupo 1: coma inicial si existe
+            FullRoute::make\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)  # FullRoute::make()
+            .*?                                                # cualquier cosa entre medio (lazy)
+            ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)    # ->setEndBlock()
+            (,)?                                               # Grupo 2: coma final si existe
+            (?=(\r?\n|\r))                                     # Lookahead: conserva salto de línea (no se elimina)
+        /sx';
+
 
         // Aplicar la eliminación
-        $newFile = preg_replace($pattern, '', $file, 1);
+        $newFile = preg_replace($pattern, '$1', $file, 1);
+
 
         if ($newFile === $file) {
             throw new \Exception("No se pudo encontrar el bloque para eliminar con ID: {$routeId}");
         }
 
-        file_put_contents(static::$filePath, $newFile);
+        $this->fileManager->putContents($newFile);
     }
 
-
-    /**
-     * Inserta el bloque de ruta en el archivo de configuración.
-     *
-     * @param FullRoute $route
-     * @param string $nuevoBloque
-     * @throws \Exception
-     */
-    protected static function insertRouteContent(FullRoute $parentRoute, string $nuevoBloque): void
+    protected function insertRouteContent(FullRoute $parentRoute, string $nuevoBloque): void
     {
-        static::$filePath = base_path('config/fullroute_config.php');
-        $file = file_get_contents(self::$filePath);
-
+        $file = $this->fileManager->getContentsString();
         $parentId = $parentRoute->getId();
+
         if ($parentId === null) {
             preg_match('/return\s+\[.*?\];/s', $file, $match, PREG_OFFSET_CAPTURE);
             if (!$match) {
-                throw new \Exception("No se encontró el array principal en el archivo de configuración.");
+                throw new \Exception("No se encontró el array principal.");
             }
 
             $arrayStart = $match[0][1];
-            $arrayContent = $match[0][0];
-
-            $arrayContent = rtrim($arrayContent, "];") . "\n" .
+            $arrayContent = rtrim($match[0][0], "];") . "\n" .
                 self::indentBlock(trim($nuevoBloque) . ',', str_repeat(" ", 4)) . "\n];";
 
             $file = substr_replace($file, $arrayContent, $arrayStart, strlen($match[0][0]));
-            file_put_contents(self::$filePath, $file);
+            $this->fileManager->putContents($file);
             return;
         }
 
@@ -169,10 +136,9 @@ class RouteService
 
         $openParenPos = strpos($file, '(', $setChildrenOffset);
         $currentPos = $openParenPos + 1;
-        $length = strlen($file);
         $parenCount = 1;
-
-        while ($parenCount > 0 && $currentPos < $length) {
+        
+        while ($parenCount > 0 && $currentPos < strlen($file)) {
             if ($file[$currentPos] === '(') $parenCount++;
             elseif ($file[$currentPos] === ')') $parenCount--;
             $currentPos++;
@@ -200,36 +166,22 @@ class RouteService
 
         $nuevoMetodo = "->setChildrens($contentInside)";
         $file = substr_replace($file, $nuevoMetodo, $setChildrenOffset, $currentPos - $setChildrenOffset);
-        file_put_contents(self::$filePath, $file);
+
+        $this->fileManager->putContents($file);
     }
 
-
-    /**
-     * Aplanar la colección de rutas
-     *
-     * @param Collection $routes
-     * @return Collection
-     */
-    public static function getAllFlattenedRoutes(Collection $routes): Collection
+    public function getAllFlattenedRoutes(Collection $routes): Collection
     {
         return $routes->flatMap(function (FullRoute $route) {
-            $children = collect($route->getChildrens());
-            return collect([$route])->merge(self::getAllFlattenedRoutes($children));
+            return collect([$route])->merge($this->getAllFlattenedRoutes(collect($route->getChildrens())));
         });
     }
 
-
-    public static function exists(string $routeId): bool
+    public function exists(string $routeId): bool
     {
-        return self::findRoute($routeId) !== null;
+        return $this->findRoute($routeId) !== null;
     }
 
-    /**
-     * Genera una cadena de texto que representa la ruta completa.
-     *
-     * @param FullRoute $route
-     * @return string
-     */
     protected static function buildFullRouteString(FullRoute $route): string
     {
         $props = $route->getProperties();
@@ -265,55 +217,15 @@ class RouteService
         return $code;
     }
 
-    /**
-     * Indenta un bloque de texto con el indentador dado.
-     *
-     * @param string $block
-     * @param string $indent
-     * @return string
-     */
+    protected static function exportArray(array $array): string
+    {
+        return '[' . implode(', ', array_map(function ($v) {
+            return is_string($v) ? "'$v'" : $v;
+        }, $array)) . ']';
+    }
+
     protected static function indentBlock(string $block, string $indent): string
     {
         return implode("\n", array_map(fn($line) => $indent . $line, explode("\n", $block)));
-    }
-
-    /**
-     * Exporta un array a una cadena de texto.
-     *
-     * @param array $array
-     * @return string
-     */
-    protected static function exportArray(array $array): string
-    {
-        $exported = '[';
-        $indexed = array_keys($array) === range(0, count($array) - 1);
-
-        foreach ($array as $key => $value) {
-            $exported .= $indexed ? '' : "'$key' => ";
-            if (is_string($value)) {
-                $exported .= "'$value', ";
-            } elseif (is_bool($value)) {
-                $exported .= $value ? 'true, ' : 'false, ';
-            } elseif (is_array($value)) {
-                $exported .= self::exportArray($value) . ", ";
-            } else {
-                $exported .= "{$value}, ";
-            }
-        }
-
-        return rtrim($exported, ', ') . ']';
-    }
-
-    /**
-     * Limpia los marcadores de posición en el archivo de configuración.
-     *
-     * @throws \Exception
-     */
-    public static function cleanPlaceholders(): void
-    {
-        static::$filePath = base_path('config/fullroute_config.php');
-        $file = file_get_contents(self::$filePath);
-        $file = str_replace('{{ nuevo_valor }}', '', $file);
-        file_put_contents(self::$filePath, $file);
     }
 }
