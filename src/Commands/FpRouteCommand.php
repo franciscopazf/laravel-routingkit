@@ -8,7 +8,9 @@ use function Laravel\Prompts\select;
 
 use Fp\FullRoute\Helpers\Navigator;
 use Fp\FullRoute\Clases\FullRoute;
-
+use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\RouteContext;
+use Fp\FullRoute\Services\Transformer;
 
 class FpRouteCommand extends Command
 {
@@ -26,6 +28,16 @@ class FpRouteCommand extends Command
 
     public function handle()
     {
+
+        // para usar el Transformer se usa el routeContentManager
+        // para obtener el contenido de la ruta
+        $contentManager = RouteContentManager::make();
+        $collection = FullRoute::all();
+        // dd($collection);
+
+        $transformer = Transformer::make($contentManager, $collection)
+                                    ->reWriteContent();
+        //dd($transformer->rebuildBlockRecursively( FullRoute::find('DEMOGRAFIA')));
         // dd(FullRoute::all());
         //  dd(FullRoute::all());
         $ranID = rand(1, 1000);

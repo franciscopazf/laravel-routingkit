@@ -11,6 +11,11 @@ class RouteContentManager
         $this->filePath = $filePath ?? config('fproute.routes_fyle_path.web');
     }
 
+    public static function make(string $filePath = null): self
+    {
+        return new self($filePath);
+    }
+
     public function getContents(): array
     {
         /** @var array $routes */
