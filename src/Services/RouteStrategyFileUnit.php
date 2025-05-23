@@ -7,17 +7,14 @@ use Fp\FullRoute\Services\RouteValidationService;
 use Fp\FullRoute\Services\RouteContentManager;
 
 use Illuminate\Support\Collection;
-
 use Fp\FullRoute\Contracts\RouteStrategyInterface;
 use Fp\FullRoute\Traits\AuxiliarFilesTrait;
 
-
-class RouteStrategyFile implements RouteStrategyInterface
+class RouteStrategyFileUnit implements RouteStrategyInterface
 {
     use AuxiliarFilesTrait;
 
     protected RouteContentManager $fileManager;
-
 
     /**
      * Constructor de la clase RouteStrategyFile.
@@ -40,7 +37,6 @@ class RouteStrategyFile implements RouteStrategyInterface
         return new self($fileManager);
     }
 
-
     /**
      * Agrega una ruta al archivo de rutas.
      *
@@ -53,13 +49,19 @@ class RouteStrategyFile implements RouteStrategyInterface
         if (is_string($parent)) {
             $parent = $this->findRoute($parent);
         }
+        if ($parent instanceof FullRoute) {
+
+            $route->setParentId($parent->getId());
+        }
+
 
         RouteValidationService::make()
             ->validateRoute($route, $this->getAllRoutes());
 
-        $bloque = self::buildFullRouteString($route);
-
-        $this->insertRouteContent($parent, $bloque);
+        $bloque = self::buildFullRouteString($route, true);
+        // dd($bloque);
+        $level =  0;
+        $this->insertRouteContent(parentRoute: null, nuevoBloque: $bloque, level: $level);
     }
 
     /**
@@ -69,34 +71,45 @@ class RouteStrategyFile implements RouteStrategyInterface
      */
     public function getAllRoutes(): Collection
     {
-        $routes = $this->fileManager->getContents();
-        // dd($routes);
-        $setParentRefs = function ($node, $parent = null, $prefixName = '', $prefixUrl = '', $level = 0) use (&$setParentRefs) {
-            if ($parent !== null) {
-                $node->setParentId($parent->getId());
-                $node->setParent($parent);
-            }
+        $routes = $this->getAllFlattenedRoutes();
 
-            // Concatenar jerárquicamente
-            $currentName = trim($prefixName . '.' . $node->getUrlName(), '.');
-            $currentUrl  = rtrim($prefixUrl . '/' . ltrim($node->getUrl(), '/'), '/');
+        // Paso 1: Índice por ID
+        $itemsById = $routes->keyBy(fn($item) => $item->getId());
+        //dd("itemsById", $itemsById);
+        // Paso 2: Contenedor de nodos raíz
+        $tree = [];
 
-            // Asignar valores completos
-            $node->fullUrlName = $currentName;
-            $node->fullUrl     = '/' . ltrim($currentUrl, '/');
-            $node->setLevel($level);
-
-            foreach ($node->getChildrens() as $child) {
-                $setParentRefs($child, $node, $currentName, $currentUrl, $level + 1);
-            }
-
-            return $node;
-        };
-
-        return collect($routes)->map(fn($route) => $setParentRefs($route));
+        foreach ($itemsById as $item) {
+            if (isset($item->parentId) && $item->parentId !== '')
+                // Si tiene padre, se agrega a sus hijos
+                $itemsById[$item->parentId]->addChild($item);
+            else
+                // Si no tiene padre, es un nodo raíz
+                $tree[] = $item;
+        }
+        // dd($tree);
+        $tree = collect($tree);
+        // Establecer fullUrlName y fullUrl recursivamente
+        $this->setFullUrls($tree);
+        //dd($tree);
+        return $tree;
     }
 
+    private function setFullUrls(Collection $routes, string $parentFullName = '', string $parentFullUrl = '', int $level = 0): void
+    {
+        foreach ($routes as $route) {
+            $fullName = $parentFullName ? $parentFullName . '.' . $route->getUrlName() : $route->getUrlName();
+            $fullUrl = $parentFullUrl ? $parentFullUrl . '/' . $route->getUrl() : $route->getUrl();
 
+            $route->setFullUrlName($fullName);
+            $route->setFullUrl($fullUrl);
+            $route->setLevel($level);
+
+            if (!empty($route->getChildrens())) {
+                $this->setFullUrls(collect($route->getChildrens()), $fullName, $fullUrl, $level + 1);
+            }
+        }
+    }
 
     /**
      * Busca una ruta por su ID.
@@ -106,7 +119,7 @@ class RouteStrategyFile implements RouteStrategyInterface
      */
     public function findRoute(string $routeId): ?FullRoute
     {
-        return $this->getAllFlattenedRoutes($this->getAllRoutes())
+        return $this->getAllFlattenedRoutes()
             ->first(fn(FullRoute $route) => $route->getId() === $routeId);
     }
 
@@ -120,8 +133,12 @@ class RouteStrategyFile implements RouteStrategyInterface
 
     public function findByParamName(string $paramName, string $value): ?Collection
     {
-        return $this->getAllFlattenedRoutes($this->getAllRoutes())
-            ->filter(fn(FullRoute $route) => $route->getParam($paramName) === $value);
+        // se hace una busqueda de arbol de rutas
+        $routes = $this->getAllRoutes();
+        // se busca la ruta por el nombre del parametro y su valor
+        $routes = $routes->filter(function (FullRoute $route) use ($paramName, $value) {
+            return $route->getParam($paramName) === $value;
+        });
     }
 
     /**
@@ -132,8 +149,8 @@ class RouteStrategyFile implements RouteStrategyInterface
      */
     public function findByRouteName(string $routeName): ?FullRoute
     {
-        return $this->getAllFlattenedRoutes($this->getAllRoutes())
-            ->first(fn(FullRoute $route) => $route->getFullUrlName() === $routeName);
+        return $this->getAllFlattenedRoutes()
+            ->first(fn(FullRoute $route) => $route->getUrlName() === $routeName);
     }
 
 
@@ -143,12 +160,37 @@ class RouteStrategyFile implements RouteStrategyInterface
      * @param Collection $routes Colección de rutas.
      * @return Collection Colección de rutas aplanadas.
      */
-    public function getAllFlattenedRoutes(Collection $routes): Collection
+    public function getAllFlattenedRoutes(?Collection $routes = null): Collection
     {
-        return $routes->flatMap(function (FullRoute $route) {
-            return collect([$route])->merge($this->getAllFlattenedRoutes(collect($route->getChildrens())));
-        });
+        return $routes ?? collect($this->fileManager->getContents());
     }
+
+
+    public function getBreadcrumbs(string|FullRoute $routeId): Collection
+    {
+        if ($routeId instanceof FullRoute) {
+            $routeId = $routeId->getId();
+        }
+
+        $flattened = $this->getAllFlattenedRoutes();
+        $byId = $flattened->keyBy(fn($route) => $route->getId());
+
+        $breadcrumb = [];
+
+        $flag = false;
+        while (!$flag) {
+            $route = $byId[$routeId];
+            array_unshift($breadcrumb, $route); // prepend to breadcrumb
+            if ($route->getParentId() === null) {
+                $flag = true;
+            } else {
+                $routeId = $route->getParentId();
+            }
+        }
+
+        return collect($breadcrumb);
+    }
+
 
     /**
      * Verifica si una ruta existe por su ID.
@@ -160,6 +202,8 @@ class RouteStrategyFile implements RouteStrategyInterface
     {
         return $this->findRoute($routeId) !== null;
     }
+
+
 
     /**
      * Mueve una ruta de un lugar a otro.
@@ -188,7 +232,7 @@ class RouteStrategyFile implements RouteStrategyInterface
         $bloque = preg_replace('/^\s+/m', '', $bloque);
         // quitar si existe una coma al inicio
         $bloque = preg_replace('/^,/', '', $bloque);
-        $bloque = "\n". $bloque . "\n";   
+        $bloque = "\n" . $bloque . "\n";
 
         $this->removeRoute($fromRouteId);
 
@@ -233,25 +277,4 @@ class RouteStrategyFile implements RouteStrategyInterface
 
         $this->fileManager->putContents($newFile);
     }
-
-    public function getBreadcrumbs(string|FullRoute $routeId): Collection
-    {
-        $route = is_string($routeId) ? $this->findRoute($routeId) : $routeId;
-
-        if ($route === null) {
-            return collect();
-        }
-
-        $breadcrumb = collect([$route]);
-
-        while ($route->getParent() !== null) {
-            $route = $route->getParent();
-            $breadcrumb->prepend($route);
-        }
-
-        return $breadcrumb;
-    
-    }
-
-
 }

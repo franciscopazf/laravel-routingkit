@@ -36,7 +36,7 @@ class RegisterRouter
         // Ruta simple
         Route::match([$method],$url,
             $isLivewire ? $route->urlController : [$route->urlController, $route->urlAction]
-        )->name($route->fullUrlName)
+        )->name($route->urlName)
             ->middleware($middleware);
 
 

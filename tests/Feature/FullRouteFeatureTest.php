@@ -107,6 +107,7 @@ PHP
             ->setUrlMethod('GET')
             ->setUrlName('name')
             ->setUrl('/from');
+
         $routeTo   = FullRoute::make('route-2')
             ->setTitle('To')
             ->setUrlMethod('GET')
@@ -116,11 +117,12 @@ PHP
         $context->addRoute($routeFrom, 'test');
         $context->addRoute($routeTo, 'test');
 
-        $context->moveRoute($routeFrom, $routeTo);
+        $context->moveRoute($context->findRoute('route-1'), $context->findRoute('route-2'));
 
-        // Validación básica para asegurarse que ambos existen
-        $this->assertTrue($context->exists('route-1'));
-        $this->assertTrue($context->exists('route-2'));
+
+        // Validar que la ruta 1 es un hijo de la ruta 2
+        $this->assertTrue($context->findRoute('route-2')
+            ->routeIsChild('route-1'));
     }
 
     /** @test */

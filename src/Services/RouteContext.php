@@ -24,9 +24,14 @@ class RouteContext
         return new self($strategy);
     }
 
-    public function addRoute(FullRoute $route, string|FullRoute $parent): void
+    public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
     {
         $this->strategy->addRoute($route, $parent);
+    }
+
+    public function getBreadcrumbs(string|FullRoute $routeId): Collection
+    {
+        return $this->strategy->getBreadcrumbs($routeId);
     }
 
     public function getAllRoutes(): Collection

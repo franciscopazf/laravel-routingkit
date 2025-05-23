@@ -26,6 +26,7 @@ class FpRouteCommand extends Command
 
     public function handle()
     {
+        // dd(FullRoute::all());
         //  dd(FullRoute::all());
         $ranID = rand(1, 1000);
         FullRoute::make('random' . $ranID)
@@ -43,7 +44,7 @@ class FpRouteCommand extends Command
             ->setRoles(['admin', 'user'])
             ->setChildrens([])
             ->setEndBlock('random' . $ranID)
-        ;//->save("dashboard");
+            ;//->save();
 
 
         $this->interactive = new FullRouteInteractive();

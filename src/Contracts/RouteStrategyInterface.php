@@ -11,7 +11,7 @@ interface RouteStrategyInterface
         \Fp\FullRoute\Services\RouteContentManager $fileManager
     ): self;
 
-    public function addRoute(FullRoute $route, string|FullRoute $parent): void;
+    public function addRoute(FullRoute $route, string|FullRoute|null $parent): void;
 
     public function getAllRoutes(): Collection;
 
@@ -28,5 +28,6 @@ interface RouteStrategyInterface
     public function findByRouteName(string $routeName): ?FullRoute;
     
     public function findByParamName(string $paramName, string $value): ?Collection;
-    
+   
+    public function getBreadcrumbs(string|FullRoute $routeId): Collection;
 }

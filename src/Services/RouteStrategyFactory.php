@@ -6,6 +6,7 @@ use Fp\FullRoute\Contracts\RouteStrategyInterface;
 
 use Fp\FullRoute\Services\RouteFileManager;
 use Fp\FullRoute\Services\RouteStrategyFile;
+use Fp\FullRoute\Services\RouteStrategyFileUnit;
 use Fp\FullRoute\Services\RouteValidatonService;
 use Fp\FullRoute\Services\RouteContext;
 
@@ -15,6 +16,7 @@ class RouteStrategyFactory
     {
         return match ($type) {
             'file' => self::makeFileStrategy($filePath),
+            'file_unit' => self::makeFileUnitStrategy($filePath),
             'database' => self::makeDatabaseStrategy(),
             default => throw new \InvalidArgumentException("Estrategia no válida: $type"),
         };
@@ -29,6 +31,17 @@ class RouteStrategyFactory
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
         $routeStrategy = new RouteStrategyFile($routeContentManager);
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
+        return RouteContext::make($routeStrategy);
+    }
+
+    public static function makeFileUnitStrategy(?string $filePath = null): RouteContext
+    {
+        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
+        $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
+        // pero para test se puede pasar el path de test        
+        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
+        $routeStrategy = new RouteStrategyFileUnit($routeContentManager);
+        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         return RouteContext::make($routeStrategy);
     }
 

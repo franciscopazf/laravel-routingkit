@@ -20,11 +20,11 @@ class FullRoute // implements RouteEntityInterface
 {
     use HasDynamicAccessors;
 
-    public string $parentId;
+    public ?string $parentId = null;
     public string $id;
     public string $type;
     public string $permission;
-    
+
     public string $title;
     public string $description;
     public string $keywords;
@@ -43,7 +43,7 @@ class FullRoute // implements RouteEntityInterface
     // this values are because of the route
     public string $fullUrlName;
     public string $fullUrl;
-    
+
     public array $permissions = [];
     public array $roles = [];
 
@@ -64,6 +64,7 @@ class FullRoute // implements RouteEntityInterface
     public function __construct(string $id)
     {
         $this->id = $id;
+        $this->urlName = $id;
     }
 
     /**
@@ -79,13 +80,11 @@ class FullRoute // implements RouteEntityInterface
      * @param string $id
      * @return FullRoute
      */
-    public function save(string|FullRoute $parent): self
+    public function save(string|FullRoute|null $parent = null): self
     {
         if (is_string($parent))
             $parent = self::getRouteContext()
                 ->findRoute($parent);
-        $this->parent = $parent;
-
 
         self::getRouteContext()
             ->addRoute($this, $parent);
@@ -107,6 +106,20 @@ class FullRoute // implements RouteEntityInterface
             ->removeRoute($this->id);
         return $this;
     }
+
+
+
+    /**
+     * @param string $id
+     * @return FullRoute
+     */
+    public function getBreadcrumbs(): Collection
+    {
+        return self::getRouteContext()
+            ->getBreadcrumbs($this);
+    }
+
+
 
     /**
      * @param string $id
@@ -162,6 +175,12 @@ class FullRoute // implements RouteEntityInterface
     public function getParentRoute(): ?FullRoute
     {
         return $this->parent;
+    }
+
+    public function addChild(FullRoute $child): self
+    {
+        $this->childrens[] = $child;
+        return $this;
     }
 
     // validar si una ruta es hijo o subhija (contenida en hijos de hijos de una ruta)
