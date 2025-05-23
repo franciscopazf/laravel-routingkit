@@ -24,4 +24,9 @@ interface RouteStrategyInterface
     public function getAllFlattenedRoutes(Collection $routes): Collection;
 
     public function exists(string $routeId): bool;
+
+    public function findByRouteName(string $routeName): ?FullRoute;
+    
+    public function findByParamName(string $paramName, string $value): ?Collection;
+    
 }

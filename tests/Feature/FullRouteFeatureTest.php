@@ -103,13 +103,15 @@ PHP
         $context = RouteStrategyFactory::make('file', $this->tempFile);
 
         $routeFrom = FullRoute::make('route-1')
-                        ->setTitle('From')
-                        ->setUrlMethod('GET')
-                        ->setUrl('/from');
+            ->setTitle('From')
+            ->setUrlMethod('GET')
+            ->setUrlName('name')
+            ->setUrl('/from');
         $routeTo   = FullRoute::make('route-2')
-                        ->setTitle('To')
-                        ->setUrlMethod('GET')
-                        ->setUrl('/to');
+            ->setTitle('To')
+            ->setUrlMethod('GET')
+            ->setUrlName('name2')
+            ->setUrl('/to');
 
         $context->addRoute($routeFrom, 'test');
         $context->addRoute($routeTo, 'test');
@@ -127,10 +129,11 @@ PHP
         $context = RouteStrategyFactory::make('file', $this->tempFile);
 
         $route = FullRoute::make('route-delete')
-                        ->setPermission('admin')
-                        ->setUrlMethod('GET')
-                        ->setTitle('Eliminar')
-                        ->setUrl('/delete');
+            ->setPermission('admin')
+            ->setUrlMethod('GET')
+            ->setTitle('Eliminar')
+            ->setUrlName('name')
+            ->setUrl('/delete');
         $context->addRoute($route, 'test');
 
         $this->assertTrue($context->exists('route-delete'));

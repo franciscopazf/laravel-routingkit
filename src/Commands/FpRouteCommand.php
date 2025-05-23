@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use function Laravel\Prompts\select;
 
 use Fp\FullRoute\Helpers\Navigator;
+use Fp\FullRoute\Clases\FullRoute;
 
 
 class FpRouteCommand extends Command
@@ -25,6 +26,26 @@ class FpRouteCommand extends Command
 
     public function handle()
     {
+        //  dd(FullRoute::all());
+        $ranID = rand(1, 1000);
+        FullRoute::make('random' . $ranID)
+            ->setPermission('permission: ' . $ranID)
+            ->setTitle('Dashboard' . $ranID)
+            ->setDescription('Dashboard de la aplicacion ' . $ranID)
+            ->setKeywords('keywords, fp-full-route ' . $ranID)
+            ->setIcon('icon ' . $ranID)
+            ->setUrl('/dashboard' . $ranID)
+            ->setUrlName('dashboard' . $ranID)
+            ->setUrlMethod('GET')
+            ->setUrlController('App\Http\Controllers\DashboardController')
+            ->setPermissions(['admin', 'user'])
+            ->setUrlAction('index')
+            ->setRoles(['admin', 'user'])
+            ->setChildrens([])
+            ->setEndBlock('random' . $ranID)
+        ;//->save("dashboard");
+
+
         $this->interactive = new FullRouteInteractive();
 
         // --delete, --new, --move

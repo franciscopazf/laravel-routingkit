@@ -24,52 +24,31 @@ class RegisterRouter
             }
         });
     }
-    
-    public static function registerFullRoute(
-        FullRoute $route,
-        $prefix = '',
-        $name = '',
-        $parentName = '',
-        array $parentMiddleware = []
-    ) {
-        $fullUrl = trim($route->url, '/');
-        $fullName = $route->urlName;
-        $middleware = array_merge($parentMiddleware, $route->urlMiddleware ?? []);
+
+    public static function registerFullRoute(FullRoute $route)
+    {
         $hasChildren = !empty($route->childrens);
-
         $method = strtolower($route->urlMethod);
+        $isLivewire = $route->urlAction === 'livewire';
+        $url = '/' . ltrim($route->getFullUrl(), '/');
+        $middleware = $route->urlMiddleware ?? [];
 
-        // Detectar si es un componente Livewire (ruta directa a clase)
-        if ($route->urlAction === 'livewire') {
-            Route::match([$method], '/' . $fullUrl, $route->urlController)
-                ->name($fullName)
-                ->middleware($middleware);
-        } else {
-            Route::match([$method], '/' . $fullUrl, [
-                $route->urlController,
-                $route->urlAction
-            ])
-                ->name($fullName)
-                ->middleware($middleware);
-        }
+        // Ruta simple
+        Route::match([$method],$url,
+            $isLivewire ? $route->urlController : [$route->urlController, $route->urlAction]
+        )->name($route->fullUrlName)
+            ->middleware($middleware);
 
-        // Registrar rutas hijas si existen
+
+        // Registrar rutas hijas dentro del grupo con middleware del padre
         if ($hasChildren) {
-            Route::prefix($fullUrl)
-                ->middleware($route->urlMiddleware ?? [])
-                ->name($fullName)
-                ->group(function () use ($route, $fullUrl, $fullName, $middleware) {
-                    foreach ($route->childrens as $childRoute) {
-                        if ($childRoute instanceof FullRoute) {
-                            static::registerFullRoute(
-                                $childRoute,
-                                '/' . $fullUrl,
-                                $fullName,
-                                $middleware
-                            );
-                        }
+            Route::middleware($middleware)->group(function () use ($route) {
+                foreach ($route->childrens as $childRoute) {
+                    if ($childRoute instanceof FullRoute) {
+                        static::registerFullRoute($childRoute);
                     }
-                });
+                }
+            });
         }
     }
 }

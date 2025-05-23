@@ -7,8 +7,7 @@ use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteContext;
 use Fp\FullRoute\Helpers\CollectionSelector;
 use Fp\FullRoute\Helpers\RegisterRouter;
-use Fp\FullRoute\Services\RouteFileManager;
-use Fp\FullRoute\Contracts\RouteEntityInterface;
+//use Fp\FullRoute\Contracts\RouteEntityInterface;
 use Fp\FullRoute\Services\RouteStrategyFactory;
 
 
@@ -17,7 +16,7 @@ use Illuminate\Support\Facades\Route as LaravelRoute;
 use Illuminate\Routing\Route as RealRoute;
 use Illuminate\Support\Collection;
 
-class FullRoute //implements RouteEntityInterface
+class FullRoute // implements RouteEntityInterface
 {
     use HasDynamicAccessors;
 
@@ -25,8 +24,7 @@ class FullRoute //implements RouteEntityInterface
     public string $id;
     public string $type;
     public string $permission;
-    public string $endBlock;
-
+    
     public string $title;
     public string $description;
     public string $keywords;
@@ -42,17 +40,25 @@ class FullRoute //implements RouteEntityInterface
     public string $urlAction;
     public string $urlMiddleware;
 
+    // this values are because of the route
+    public string $fullUrlName;
+    public string $fullUrl;
+    
     public array $permissions = [];
     public array $roles = [];
-    public array $childrens = [];
 
+
+    public int $level;
+
+    # public string $routeName;
     # public RealRoute $route;
     public RealRoute $laravelRoute;
     public Navbar $navbar;
     public FullRoute $parent;
 
-    private RouteFileManager $fileManager;
 
+    public array $childrens = [];
+    public string $endBlock;
 
 
     public function __construct(string $id)
@@ -80,16 +86,16 @@ class FullRoute //implements RouteEntityInterface
                 ->findRoute($parent);
         $this->parent = $parent;
 
-        
+
         self::getRouteContext()
             ->addRoute($this, $parent);
         return $this;
     }
 
-    public function parent (string|FullRoute $parent): FullRoute
+    public function parent(string|FullRoute $parent): FullRoute
     {
         return $this->parent;
-    } 
+    }
 
     /**
      * @param string $id
@@ -110,7 +116,8 @@ class FullRoute //implements RouteEntityInterface
     {
         // si la variable pasada es un string entonces se debe buscar la route con el metodo find
         if (is_string($parent))
-            $parent = self::getRouteContext()->findRoute($parent);
+            $parent = self::getRouteContext()
+                ->findRoute($parent);
         self::getRouteContext()
             ->moveRoute($this, $parent);
         return $this;
@@ -127,6 +134,28 @@ class FullRoute //implements RouteEntityInterface
     }
 
     /**
+     * @param string $routeName
+     * @return FullRoute|null
+     */
+    public static function findByRouteName(string $routeName): ?FullRoute
+    {
+
+        return self::getRouteContext()
+            ->findByRouteName($routeName);
+    }
+
+    /**
+     * @param string $paramName
+     * @param string $value
+     * @return Collection|null
+     */
+    public static function findByParamName(string $paramName, string $value): ?Collection
+    {
+        return self::getRouteContext()
+            ->findByParamName($paramName, $value);
+    }
+
+    /**
      * @param string $id
      * @return FullRoute|null
      */
@@ -139,15 +168,11 @@ class FullRoute //implements RouteEntityInterface
     // de otra ruta recursivamente
     public function routeIsChild(string $id): bool
     {
-        if ($this->id === $id) {
+        if ($this->id === $id)
             return true;
-        }
 
-        foreach ($this->childrens as $child) {
-            if ($child->routeIsChild($id)) {
-                return true;
-            }
-        }
+        foreach ($this->childrens as $child)
+            return $child->routeIsChild($id);
 
         return false;
     }
@@ -193,10 +218,5 @@ class FullRoute //implements RouteEntityInterface
     public static function getRouteContext(): RouteContext
     {
         return RouteStrategyFactory::make(config('fproute.support_app'));
-    }
-
-    public static function getFileManager(string $filePath = null): RouteFileManager
-    {
-        return new RouteFileManager($filePath);
     }
 }

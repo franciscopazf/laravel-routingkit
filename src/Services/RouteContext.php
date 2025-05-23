@@ -39,6 +39,16 @@ class RouteContext
         return $this->strategy->findRoute($routeId);
     }
 
+    public function findByRouteName(string $routeName): ?FullRoute
+    {
+        return $this->strategy->findByRouteName($routeName);
+    }
+
+    public function findByParamName(string $paramName, string $value): Collection
+    {
+        return $this->strategy->findByParamName($paramName, $value);
+    }
+
     public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
     {
         $this->strategy->moveRoute($fromRoute, $toRoute);
