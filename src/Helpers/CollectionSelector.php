@@ -22,13 +22,17 @@ class CollectionSelector
         ?FullRoute $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
-    ): string {
-        $rutas = collect($rutas);
-        $opciones = [];
+    ): ?string {
 
+        // Asegurarse de que $rutas es una colección
+        $rutas = is_array($rutas) ? collect($rutas) : $rutas;
+        $opciones = [];
         if ($nodoActual) {
-            // Mostrar hijos del nodo actual
-            foreach ($nodoActual->getChildrens() as $child) {
+            // Obtener hijos como colección (compatibilidad array o colección)
+            $hijos = $nodoActual->getChildrens();
+            $hijos = is_array($hijos) ? collect($hijos) : $hijos;
+
+            foreach ($hijos as $child) {
                 if ($child->id === $omitId) continue;
                 $opciones[$child->id] = '📁 ' . $child->title;
             }
@@ -45,12 +49,12 @@ class CollectionSelector
                 $opciones[$ruta->id] = '📁 ' . $ruta->title;
             }
 
+            $opciones['__seleccionar__'] = '✅ Seleccionar una ruta raíz';
             $opciones['__salir__'] = '🚪 Salir';
         }
 
-        // Construir breadcrumb de la navegación
+        // Construir breadcrumb
         $breadcrumb = collect($pila)
-            ->filter()
             ->pluck('title')
             ->push(optional($nodoActual)->title)
             ->filter()
@@ -61,20 +65,20 @@ class CollectionSelector
             options: $opciones
         );
 
-        // Control de la opción seleccionada
         return match ($seleccion) {
             '__salir__' => exit("🚪 Saliendo del navegador de rutas.\n"),
-            '__seleccionar__' => $nodoActual->id,
+            '__seleccionar__' => $nodoActual?->id ?? null,
             '__atras__' => self::navegar($rutas, array_pop($pila), $pila, $omitId),
             default => self::navegar(
                 $rutas,
-                ($nodoActual ? collect($nodoActual->getChildrens()) : $rutas)->firstWhere(fn($r) => $r->id === $seleccion),
+                // Buscar siguiente nodo en hijos o rutas raíz
+                ($nodoActual
+                    ? collect($nodoActual->getChildrens())
+                    : $rutas
+                )->firstWhere(fn($r) => $r->id === $seleccion),
                 array_merge($pila, [$nodoActual]),
                 $omitId
             ),
         };
     }
-
-
-    
 }

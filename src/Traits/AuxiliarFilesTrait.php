@@ -104,7 +104,7 @@ trait AuxiliarFilesTrait
     }
 
     /**
-     * Obtiene todas las rutas aplanadas.
+     * Obtiene el bloque de código de una ruta.
      *
      * @param Collection $routes Colección de rutas.
      * @return Collection Colección de rutas aplanadas.

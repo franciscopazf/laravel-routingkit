@@ -45,23 +45,20 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
      */
     public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
     {
-        // Si el padre es un string, buscar la ruta correspondiente
-        if (is_string($parent)) {
-            $parent = $this->findRoute($parent);
+        $routes = $this->getAllRoutes();
+        if ($parent instanceof FullRoute)
+            $parentId = $parent->getId();
+
+
+        if ($parentId ?? null) {
+            $updatedRoutes = $this->addRouteRecursive($routes, $route, $parentId);
+        } else {
+            $routes->push($route); // Agrega al nivel raíz si no se especifica padre
+            $updatedRoutes = $routes;
         }
-        if ($parent instanceof FullRoute) {
 
-            $route->setParentId($parent->getId());
-        }
-
-
-        RouteValidationService::make()
-            ->validateRoute($route, $this->getAllRoutes());
-
-        $bloque = self::buildFullRouteString($route, true);
-        // dd($bloque);
-        $level =  0;
-        $this->insertRouteContent(parentRoute: null, nuevoBloque: $bloque, level: $level);
+        Transformer::make($this->fileManager, $updatedRoutes)
+            ->reWriteContent();
     }
 
     /**
@@ -239,17 +236,6 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
         $this->insertRouteContent($toRoute, $bloque);
     }
 
-    private function getPattern(string $routeId): string
-    {
-        return $pattern = '/
-            (,)?\s*                                             # Grupo 1: coma inicial si existe
-            FullRoute::make\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)  # FullRoute::make()
-            .*?                                                # cualquier cosa entre medio (lazy)
-            ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)    # ->setEndBlock()
-            (,)?                                               # Grupo 2: coma final si existe
-            (?=(\r?\n|\r))                                     # Lookahead: conserva salto de línea (no se elimina)
-        /sx';
-    }
 
     /**
      * Elimina una ruta por su ID.
@@ -259,22 +245,53 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
      */
     public function removeRoute(string $routeId): void
     {
-        $route = $this->findRoute($routeId);
+        $routes = $this->getAllRoutes();
+        $removeRoutes = $this->removeRouteRecursive($routes, $routeId);
 
-        RouteValidationService::make()
-            ->validateDeleteRoute($route);
+        Transformer::make($this->fileManager, $removeRoutes)
+            ->reWriteContent();
+    }
 
-        $file = $this->fileManager->getContentsString();
-        $pattern = $this->getPattern($routeId);
+    private function addRouteRecursive(Collection $routes, FullRoute $newRoute, string $parentId): Collection
+    {
+        return $routes->map(function ($route) use ($newRoute, $parentId) {
+            if ($route->id === $parentId) {
+                $route->childrens = array_merge(
+                    $route->childrens ?? [],
+                    [$newRoute]
+                );
+            }
 
-        // Aplicar la eliminación
-        $newFile = preg_replace($pattern, '$1', $file, 1);
+            if (!empty($route->childrens)) {
+                $route->childrens = $this->addRouteRecursive(collect($route->childrens), $newRoute, $parentId)->toArray();
+            }
+
+            return $route;
+        });
+    }
 
 
-        if ($newFile === $file) {
-            throw new \Exception("No se pudo encontrar el bloque para eliminar con ID: {$routeId}");
+    private function removeRouteRecursive(collection $routes, string $routeId): Collection
+    {
+
+        $result = [];
+
+        foreach ($routes as $route) {
+
+            if ($route->id === $routeId) {
+                // Saltamos este nodo, lo eliminamos con todos sus hijos
+                continue;
+            }
+
+
+            // Si el nodo tiene hijos, procesarlos recursivamente
+            if (!empty($route->childrens)) {
+                $route->childrens = $this->removeRouteRecursive(collect($route->childrens), $routeId)->toArray();
+            }
+
+            $result[] = $route;
         }
 
-        $this->fileManager->putContents($newFile);
+        return collect($result);
     }
 }

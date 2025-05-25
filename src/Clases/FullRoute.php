@@ -65,6 +65,8 @@ class FullRoute // implements RouteEntityInterface
     {
         $this->id = $id;
         $this->urlName = $id;
+        $this->parentId = null;
+        $this->level = 0;
     }
 
     /**
@@ -86,6 +88,8 @@ class FullRoute // implements RouteEntityInterface
             $parent = self::getRouteContext()
                 ->findRoute($parent);
 
+        $this->parentId = $parent ? $parent->id : null;
+      
         self::getRouteContext()
             ->addRoute($this, $parent);
         return $this;
@@ -214,7 +218,7 @@ class FullRoute // implements RouteEntityInterface
             ->getAllFlattenedRoutes(self::all());
     }
 
-    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): string
+    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
         //dd(self::all());
         return CollectionSelector::navegar(self::all(), omitId: $omitId);
