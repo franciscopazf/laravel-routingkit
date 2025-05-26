@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services\Transformer;
 
-use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 use Illuminate\Support\Collection;
 
 class TransformerContext

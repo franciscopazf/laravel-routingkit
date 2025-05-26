@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Commands;
 
-use Fp\FullRoute\Services\FullRouteInteractive;
+use Fp\FullRoute\Services\Route\FullRouteInteractive;
 use Illuminate\Console\Command;
 use function Laravel\Prompts\select;
 
@@ -28,7 +28,6 @@ class FpRouteCommand extends Command
 
     public function handle()
     {
-
 
         //  dd();
         //dd($transformer->rebuildBlockRecursively( FullRoute::find('DEMOGRAFIA')));

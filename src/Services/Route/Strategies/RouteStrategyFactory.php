@@ -1,11 +1,12 @@
 <?php
 
-namespace Fp\FullRoute\Services;
+namespace Fp\FullRoute\Services\Route\Strategies;
 
-use Fp\FullRoute\Services\ArrayFileRouteStrategy;
-use Fp\FullRoute\Services\TreeFileRouteStrategy;
-use Fp\FullRoute\Services\RouteContext;
-use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\Route\RouteContext;
+use Fp\FullRoute\Services\Route\Strategies\ArrayFileRouteStrategy;
+use Fp\FullRoute\Services\Route\Strategies\TreeFileRouteStrategy;
+use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+
 
 class RouteStrategyFactory
 {
@@ -58,13 +59,13 @@ class RouteStrategyFactory
      */
     public static function makeFileTreeStrategy(?string $filePath = null): RouteContext
     {
+       
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
         
         // pero para test se puede pasar el path de test        
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         $routeStrategy = new TreeFileRouteStrategy($routeContentManager);
-
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         return RouteContext::make($routeStrategy);
     }

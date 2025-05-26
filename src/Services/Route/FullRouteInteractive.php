@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services;
+namespace Fp\FullRoute\Services\Route;
 
 use function Laravel\Prompts\Text;
 use function Laravel\Prompts\Select;
@@ -8,7 +8,7 @@ use function Laravel\Prompts\Multiselect;
 use function Laravel\Prompts\Confirm;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Helpers\Navigator;
+use Fp\FullRoute\Services\Navigator\Navigator;
 
 class FullRouteInteractive
 {
@@ -32,7 +32,8 @@ class FullRouteInteractive
         // si $datos['controller'] es null entonces se debe obtener de la ruta actual
         if (!isset($datos['controller']) ) {
         
-            $dataControlador = Navigator::getControllerRouteParams();
+            $dataControlador = Navigator::make()
+                ->getControllerRouteParams();
             $datos['controller'] =   $dataControlador->controller;
             $datos['action'] =  $dataControlador->action;
             

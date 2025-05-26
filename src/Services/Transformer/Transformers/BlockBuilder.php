@@ -3,7 +3,7 @@
 namespace Fp\FullRoute\Services\Transformer\Transformers;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 use Illuminate\Support\Str;
 
 class BlockBuilder

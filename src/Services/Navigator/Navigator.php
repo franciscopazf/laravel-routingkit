@@ -33,14 +33,14 @@ class Navigator
 
     public function selectFolderInfo(string $basePath): object
     {
-       // dd("Seleccionando carpeta en: " . $basePath);
+        // dd("Seleccionando carpeta en: " . $basePath);
         $fullBasePath = base_path() . DIRECTORY_SEPARATOR . $basePath;
 
         $folder = $this->fileBrowser->browseFolder($fullBasePath);
-       // dd("Folder seleccionado: " . $folder);
+        // dd("Folder seleccionado: " . $folder);
         $namespace = $this->namespaceResolver->getBaseNamespace($folder);
 
-        
+
         return (object)[
             'path'      => $folder,
             'namespace' => $namespace,
@@ -77,9 +77,33 @@ class Navigator
         ?FullRoute $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
-    ): ?string 
-    {
+    ): ?string {
         return TreeNavigator::make()
             ->navegar($rutas, $nodoActual, $pila, $omitId);
+    }
+
+
+
+    public  function getControllerRouteParams(): object
+    {
+        $basePath = select(
+            label: '📂 Selecciona la carpeta del controlador',
+            options: config('fproute.controllers_path')
+
+        );
+
+        $class = self::make()
+            ->selectFileInfo($basePath)
+            ->full;
+
+        $method = $basePath === 'app/Livewire'
+            ? 'livewire'
+            : self::make()
+            ->selectMethod($class);
+
+        return (object) [
+            'controller' => $class,
+            'action'     => $method,
+        ];
     }
 }

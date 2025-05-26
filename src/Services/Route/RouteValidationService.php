@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services;
+namespace Fp\FullRoute\Services\Route;
 
 use Fp\FullRoute\Clases\FullRoute;
 use Illuminate\Support\Collection;

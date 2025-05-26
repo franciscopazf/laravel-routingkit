@@ -1,14 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Services;
-
-use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\RouteValidationService;
-use Fp\FullRoute\Services\RouteContentManager;
+namespace Fp\FullRoute\Services\Route\Strategies;
 
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Services\Transformer\TransformerContext;
 
 class ArrayFileRouteStrategy extends BaseRouteStrategy
 {

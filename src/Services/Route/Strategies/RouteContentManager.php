@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services;
+namespace Fp\FullRoute\Services\Route\Strategies;
 
 class RouteContentManager
 {

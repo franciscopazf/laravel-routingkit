@@ -4,12 +4,12 @@ namespace Fp\FullRoute\Clases;
 
 use Fp\FullRoute\Clases\Navbar;
 use Fp\FullRoute\Traits\HasDynamicAccessors;
-use Fp\FullRoute\Services\RouteContext;
+use Fp\FullRoute\Services\Route\RouteContext;
 use Fp\FullRoute\Helpers\CollectionSelector;
 use Fp\FullRoute\Services\Navigator\Navigator;
 use Fp\FullRoute\Helpers\RegisterRouter;
 //use Fp\FullRoute\Contracts\RouteEntityInterface;
-use Fp\FullRoute\Services\RouteStrategyFactory;
+use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
 
 
 

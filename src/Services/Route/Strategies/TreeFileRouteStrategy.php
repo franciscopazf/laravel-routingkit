@@ -1,14 +1,9 @@
 <?php
 
-namespace Fp\FullRoute\Services;
+namespace Fp\FullRoute\Services\Route\Strategies;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Services\RouteContentManager;
-use Fp\FullRoute\Services\RouteValidationService;
-use Fp\FullRoute\Services\Transformer\TransformerContext;
 use Illuminate\Support\Collection;
-
 
 class TreeFileRouteStrategy extends BaseRouteStrategy
 {
