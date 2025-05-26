@@ -14,23 +14,37 @@ use Fp\FullRoute\Traits\AuxiliarFilesTrait;
 * ADEMAS DE "PARSEARLA" A UN ARRAY PLANO O A FORMATO DE ARBOL
 *
 */
-
 class Transformer
 {
     use AuxiliarFilesTrait;
 
     private string $typeOfSave = "array"; // por defecto se guarda como array
+    private bool $onlyStringSupport;  // por defecto se soporta solo string
 
     public function __construct(
         private RouteContentManager $routeContentManager,
         private Collection $fullRouteCollection,
-    ) {}
+    ) {
+        $this->onlyStringSupport = config('fproute.only_string_support', true);
+    }
 
     public static function make(
         RouteContentManager $routeContentManager,
         Collection $fullRouteCollection
     ): self {
+
         return new self($routeContentManager, $fullRouteCollection);
+    }
+
+    public function setonlyStringSupport(bool $onlyStringSupport): self
+    {
+        $this->onlyStringSupport = $onlyStringSupport;
+        return $this;
+    }
+
+    public function getonlyStringSupport(): bool
+    {
+        return $this->onlyStringSupport;
     }
 
     public function setTypeOfSave(string $type): self
@@ -79,6 +93,17 @@ class Transformer
         return $content;
     }
 
+
+    private function getHeaderBlock(): string
+    {
+        $file = $this->routeContentManager->getContentsString();
+        if (!preg_match($this->getHeaderPatterns(), $file, $matches)) {
+
+            throw new \Exception("No se encontró el bloque de encabezado");
+        }
+        return $matches[0] . "\n";
+    }
+
     private function getContentBlock(): string
     {
         $functionOfSave = $this->getFunctionOfSave();
@@ -107,7 +132,7 @@ class Transformer
 
     // recorre un arbol y en lugar de concatenar las rutas dentro de las rutas
     // padres las concatena en un array plano ese es el nuevo contenido :)
-    public function prepareContentForArray(FullRoute $route): string
+    private function prepareContentForArray(FullRoute $route): string
     {
         // Obtener el bloque actual y limpiar hijos
         $block = $this->getBlock($route);
@@ -133,10 +158,11 @@ class Transformer
         return $content;
     }
 
-    public function getLevelIdent(FullRoute $route): int
+    private function getLevelIdent(FullRoute $route): int
     {
         $pluss = match ($route->getLevel()) {
             0 => 1,
+            // 2(X) 1
             default => (2 * $route->getLevel()) + 1
         };
 
@@ -144,7 +170,7 @@ class Transformer
         return $levelIdent;
     }
 
-    public function prepareContentForTree(FullRoute $route): string
+    private function prepareContentForTree(FullRoute $route): string
     {
 
         $levelIdent = $this->getLevelIdent($route);
@@ -244,16 +270,26 @@ class Transformer
         }
     }
 
-    public function getSpacesByLevel(int $level): string
+    private function getSpacesByLevel(int $level): string
     {
         return str_repeat("    ", $level);
     }
 
-
-
-    public function getBlock(FullRoute $route): string
+    private function getBlock(FullRoute $route): string
     {
+        // funciona como punto de redireccion para obtener el bloque de un 
+        // archivo o ir a formarlo de nuevo
+        if ($this->onlyStringSupport)
+            return $this->rebuildRouteContent($route);
+        else
+            return $this->getBlockFromFile($route);
+    }
 
+
+    // BLOCKS SECTIONS
+
+    private function getBlockFromFile(FullRoute $route): string
+    {
         $file = $this->routeContentManager->getContentsString();
         $fromRouteId = $route->getId();
 
@@ -261,8 +297,8 @@ class Transformer
 
         if (!preg_match($pattern, $file, $matches)) {
             // si no se encuentra el bloque entonces se llama a reconstruir
+            // porque es nuevo :)
             return $this->rebuildRouteContent($route);
-
             throw new \Exception("No se encontró la ruta con ID {$fromRouteId}");
         }
         $newBlock = "\n    " . $matches[0];
@@ -270,38 +306,11 @@ class Transformer
         return $newBlock;
     }
 
-
-    private function getHeaderBlock(): string
-    {
-        $file = $this->routeContentManager->getContentsString();
-        if (!preg_match($this->getHeaderPatterns(), $file, $matches)) {
-
-            throw new \Exception("No se encontró el bloque de encabezado");
-        }
-        return $matches[0] . "\n";
-    }
-
-    private function sanitizeBlock(string $block): string
-    {
-        // Elimina espacios y tabs de líneas vacías, pero conserva los saltos de línea
-        $block = preg_replace('/^[ \t]+(?=\r?\n)/m', '', $block);
-
-        // Reemplaza dos o más saltos de línea seguidos por uno solo
-        $block = preg_replace("/(\r?\n){2,}/", "\n\n", $block);
-
-        return $block;
-    }
-
-
-
-
-
-
     private function rebuildRouteContent(FullRoute $route, bool $setParent = false): string
     {
         $props = collect($route->getProperties());
         $id = $props->get('id', 'undefined');
-
+        //dd($props);
         $code = "\nFullRoute::make('{$id}')\n";
 
         // Filtrar las propiedades que no deben procesarse
@@ -309,7 +318,7 @@ class Transformer
             return $key === 'id'
                 || $value === null
                 || (is_array($value) && empty($value) && $key !== 'childrens')
-                || in_array($key, ['endBlock', 'level', 'parent']);
+                || in_array($key, ['endBlock', 'level', 'parent', 'childrens']);
             #  || ($key === 'parentId' && $setParent);
         });
 
@@ -329,11 +338,22 @@ class Transformer
         }
 
         // Agregar setEndBlock al final
+        $code .= "->setChildrens([])\n";
         $code .= "->setEndBlock('{$id}')";
 
         return $code;
     }
 
+    private function sanitizeBlock(string $block): string
+    {
+        // Elimina espacios y tabs de líneas vacías, pero conserva los saltos de línea
+        $block = preg_replace('/^[ \t]+(?=\r?\n)/m', '', $block);
+
+        // Reemplaza dos o más saltos de línea seguidos por uno solo
+        $block = preg_replace("/(\r?\n){2,}/", "\n\n", $block);
+
+        return $block;
+    }
 
     private function exportArray(array $array): string
     {
@@ -342,9 +362,21 @@ class Transformer
         }, $array)) . ']';
     }
 
+    // PATERNS SECTION
 
+    private function getHeaderPatterns(): string
+    {
+        return $pattern = '/<\?php.*?return\s*\[/sx';
+    }
 
-    // paterns 
+    private function getChildrenPattern(string $routeId): string
+    {
+        return '/
+        ->setChildrens\((.*?)\)                     # Grupo 1: contenido dentro del setChildrens(...)
+        \s*                                         # posibles espacios o saltos de línea
+        ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
+        /sx'; // ⚠️ 's' para que el punto incluya saltos de línea, 'x' para comentarios legibles
+    }
 
     // funcion que recive un parametro un string y retorna el patron que permite buscar rutas
     // en el archivo de rutas.
@@ -355,20 +387,5 @@ class Transformer
             .*?                                                # cualquier cosa entre medio (lazy)
             ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)    # ->setEndBlock()
            /sx';
-    }
-
-    private function getHeaderPatterns(): string
-    {
-        return $pattern = '/<\?php.*?return\s*\[/sx';
-    }
-
-
-    private function getChildrenPattern(string $routeId): string
-    {
-        return '/
-        ->setChildrens\((.*?)\)                     # Grupo 1: contenido dentro del setChildrens(...)
-        \s*                                         # posibles espacios o saltos de línea
-        ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
-        /sx'; // ⚠️ 's' para que el punto incluya saltos de línea, 'x' para comentarios legibles
     }
 }

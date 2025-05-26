@@ -3,13 +3,13 @@
 namespace Fp\FullRoute\Contracts;
 
 use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\Transformer\TransformerContext;
 use Illuminate\Support\Collection;
 
 interface RouteStrategyInterface
 {
-    public static function make(
-        \Fp\FullRoute\Services\RouteContentManager $fileManager
-    ): self;
+    public static function make(RouteContentManager $fileManager, ?TransformerContext $transformer = null): self;
 
     public function addRoute(FullRoute $route, string|FullRoute|null $parent): void;
 
@@ -26,8 +26,8 @@ interface RouteStrategyInterface
     public function exists(string $routeId): bool;
 
     public function findByRouteName(string $routeName): ?FullRoute;
-    
+
     public function findByParamName(string $paramName, string $value): ?Collection;
-   
+
     public function getBreadcrumbs(string|FullRoute $routeId): Collection;
 }

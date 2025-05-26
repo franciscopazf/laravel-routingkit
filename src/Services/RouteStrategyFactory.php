@@ -2,50 +2,78 @@
 
 namespace Fp\FullRoute\Services;
 
-use Fp\FullRoute\Contracts\RouteStrategyInterface;
-
-use Fp\FullRoute\Services\RouteFileManager;
-use Fp\FullRoute\Services\RouteStrategyFile;
-use Fp\FullRoute\Services\RouteStrategyFileUnit;
-use Fp\FullRoute\Services\RouteValidatonService;
+use Fp\FullRoute\Services\ArrayFileRouteStrategy;
+use Fp\FullRoute\Services\TreeFileRouteStrategy;
 use Fp\FullRoute\Services\RouteContext;
+use Fp\FullRoute\Services\RouteContentManager;
 
 class RouteStrategyFactory
 {
+    private function __construct()
+    {
+        // Constructor privado para evitar instanciación directa
+    }
+    /**
+     * Crea una instancia de RouteContext según el tipo de estrategia.
+     *
+     * @param string $type El tipo de estrategia ('file_array', 'file_tree', 'database').
+     * @param string|null $filePath La ruta del archivo, si es necesario.
+     * @return RouteContext
+     * @throws \InvalidArgumentException Si el tipo de estrategia no es válido.
+     */
     public static function make(string $type, ?string $filePath = null): RouteContext
     {
         return match ($type) {
-            'file' => self::makeFileStrategy($filePath),
-            'file_unit' => self::makeFileUnitStrategy($filePath),
+            'file_array' => self::makeFileArrayStrategy($filePath),
+            'file_tree' => self::makeFileTreeStrategy($filePath),
             'database' => self::makeDatabaseStrategy(),
             default => throw new \InvalidArgumentException("Estrategia no válida: $type"),
         };
     }
 
-    // si el caso es un tipo de estrategia file orquestarlo en esta funcion
-    public static function makeFileStrategy(?string $filePath = null ): RouteContext
+
+    /**
+     * Crea una instancia de RouteContext con la estrategia de archivo tipo array.
+     *
+     * @param string|null $filePath La ruta del archivo, si es necesario.
+     * @return RouteContext
+     */
+    public static function makeFileArrayStrategy(?string $filePath = null): RouteContext
     {
+
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
         $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
         // pero para test se puede pasar el path de test        
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
-        $routeStrategy = new RouteStrategyFile($routeContentManager);
+        $routeStrategy = new ArrayFileRouteStrategy($routeContentManager);
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
         return RouteContext::make($routeStrategy);
     }
 
-    public static function makeFileUnitStrategy(?string $filePath = null): RouteContext
+    /**
+     * Crea una instancia de RouteContext con la estrategia de archivo tipo árbol.
+     *
+     * @param string|null $filePath La ruta del archivo, si es necesario.
+     * @return RouteContext
+     */
+    public static function makeFileTreeStrategy(?string $filePath = null): RouteContext
     {
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
+        
         // pero para test se puede pasar el path de test        
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
-        $routeStrategy = new RouteStrategyFileUnit($routeContentManager);
+        $routeStrategy = new TreeFileRouteStrategy($routeContentManager);
+
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         return RouteContext::make($routeStrategy);
     }
 
-    // aun no esta el soporte para la estrategia de base de datos pero se puede hacer la funcion
+    /**
+     * Crea una instancia de RouteContext con la estrategia de base de datos.
+     *
+     * @return RouteContext
+     */
     public static function makeDatabaseStrategy(): RouteContext
     {
         dd("Estrategia de base de datos no soportada... por ahora");

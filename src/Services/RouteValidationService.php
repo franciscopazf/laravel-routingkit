@@ -99,9 +99,9 @@ class RouteValidationService
         $flattened = $this->routes->flatten(1);
         $ids = $flattened->pluck('id');
 
-        if ($ids->contains($this->route->getId())) {
+        if ($ids->contains($this->route->getId())) 
             throw new \Exception("El ID '{$this->route->getId()}' ya existe.");
-        }
+        
     }
 
     /**

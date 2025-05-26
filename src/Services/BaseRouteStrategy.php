@@ -3,27 +3,36 @@
 namespace Fp\FullRoute\Services;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\RouteValidationService;
-use Fp\FullRoute\Services\RouteContentManager;
-
-use Illuminate\Support\Collection;
 use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Traits\AuxiliarFilesTrait;
+use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\RouteValidationService;
+use Fp\FullRoute\Services\Transformer\TransformerContext;
+use Illuminate\Support\Collection;
 
-class RouteStrategyFileUnit implements RouteStrategyInterface
+/**
+ * Clase abstracta BaseRouteStrategy que implementa la interfaz RouteStrategyInterface.
+ * Proporciona una base para las estrategias de rutas que manejan el contenido de las rutas.
+ */
+abstract class BaseRouteStrategy implements RouteStrategyInterface
 {
-    use AuxiliarFilesTrait;
-
     protected RouteContentManager $fileManager;
+    protected ?TransformerContext $transformer;
 
     /**
      * Constructor de la clase RouteStrategyFile.
      *
      * @param RouteContentManager $fileManager El gestor de contenido de rutas.
      */
-    public function __construct(RouteContentManager $fileManager)
-    {
+
+    public function __construct(
+        RouteContentManager $fileManager,
+        ?TransformerContext $transformer = null
+    ) {
         $this->fileManager = $fileManager;
+        $this->transformer = $transformer ?? TransformerContext::make(
+            contentManager: $fileManager,
+            type: $this->getTransformerType()
+        );
     }
 
     /**
@@ -32,10 +41,19 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
      * @param RouteContentManager $fileManager El gestor de contenido de rutas.
      * @return self La nueva instancia de RouteStrategyFile.
      */
-    public static function make(RouteContentManager $fileManager): self
-    {
-        return new self($fileManager);
+    public static function make(
+        RouteContentManager $fileManager,
+        ?TransformerContext $transformer = null
+    ): self {
+        return new self($fileManager, $transformer);
     }
+
+    abstract protected function getTransformerType(): string;
+
+    // MÉTODOS QUE DEPENDEN DEL TIPO DE ESTRUCTURA
+    abstract public function getAllRoutes(): Collection;
+    abstract public function getAllFlattenedRoutes(?Collection $routes = null): Collection;
+
 
     /**
      * Agrega una ruta al archivo de rutas.
@@ -46,10 +64,9 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
     public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
     {
         $routes = $this->getAllRoutes();
-        if ($parent instanceof FullRoute)
+        if ($parent instanceof FullRoute) {
             $parentId = $parent->getId();
-
-
+        }
         if ($parentId ?? null) {
             $updatedRoutes = $this->addRouteRecursive($routes, $route, $parentId);
         } else {
@@ -57,42 +74,36 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
             $updatedRoutes = $routes;
         }
 
-        Transformer::make($this->fileManager, $updatedRoutes)
-            ->reWriteContent();
+        $this->transformer
+            ->setCollectionRoutes($updatedRoutes)
+            ->transformAndWrite();
     }
+
+    /**
+     * Elimina una ruta por su ID.
+     *
+     * @param string $routeId El ID de la ruta a eliminar.
+     * @throws \Exception Si la ruta no es válida o si ocurre un error al eliminar la ruta.
+     */
+    public function removeRoute(string $routeId): void
+    {
+        $routes = $this->getAllRoutes();
+        $removeRoutes = $this->removeRouteRecursive($routes, $routeId);
+
+        $this->transformer
+            ->setCollectionRoutes($removeRoutes)
+            ->setType('file_tree')
+            ->transformAndWrite();
+    }
+
+
 
     /**
      * Obtiene todas las rutas del archivo de rutas.
      *
      * @return Collection Colección de rutas.
      */
-    public function getAllRoutes(): Collection
-    {
-        $routes = $this->getAllFlattenedRoutes();
-
-        // Paso 1: Índice por ID
-        $itemsById = $routes->keyBy(fn($item) => $item->getId());
-        //dd("itemsById", $itemsById);
-        // Paso 2: Contenedor de nodos raíz
-        $tree = [];
-
-        foreach ($itemsById as $item) {
-            if (isset($item->parentId) && $item->parentId !== '')
-                // Si tiene padre, se agrega a sus hijos
-                $itemsById[$item->parentId]->addChild($item);
-            else
-                // Si no tiene padre, es un nodo raíz
-                $tree[] = $item;
-        }
-        // dd($tree);
-        $tree = collect($tree);
-        // Establecer fullUrlName y fullUrl recursivamente
-        $this->setFullUrls($tree);
-        //dd($tree);
-        return $tree;
-    }
-
-    private function setFullUrls(Collection $routes, string $parentFullName = '', string $parentFullUrl = '', int $level = 0): void
+    protected function setFullUrls(Collection $routes, string $parentFullName = '', string $parentFullUrl = '', int $level = 0): void
     {
         foreach ($routes as $route) {
             $fullName = $parentFullName ? $parentFullName . '.' . $route->getUrlName() : $route->getUrlName();
@@ -136,6 +147,21 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
         $routes = $routes->filter(function (FullRoute $route) use ($paramName, $value) {
             return $route->getParam($paramName) === $value;
         });
+
+        if ($routes->isEmpty()) {
+            return null; // No se encontraron rutas
+        }
+        // Si se encontraron rutas, se transforman a una colección de FullRoute
+        return $routes->map(function ($route) {
+            return new FullRoute(
+                id: $route->getId(),
+                urlName: $route->getUrlName(),
+                url: $route->getUrl(),
+                params: $route->getParams(),
+                parentId: $route->getParentId(),
+                childrens: $route->getChildrens()
+            );
+        });
     }
 
     /**
@@ -148,18 +174,6 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
     {
         return $this->getAllFlattenedRoutes()
             ->first(fn(FullRoute $route) => $route->getUrlName() === $routeName);
-    }
-
-
-    /**
-     * Obtiene todas las rutas aplanadas. (OPTIMIZAR O MODIFICAR LA LOGICA DE BUSQUEDA ACTUALMENTE ES DEMASIADO COStoso)
-     *
-     * @param Collection $routes Colección de rutas.
-     * @return Collection Colección de rutas aplanadas.
-     */
-    public function getAllFlattenedRoutes(?Collection $routes = null): Collection
-    {
-        return $routes ?? collect($this->fileManager->getContents());
     }
 
 
@@ -178,11 +192,10 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
         while (!$flag) {
             $route = $byId[$routeId];
             array_unshift($breadcrumb, $route); // prepend to breadcrumb
-            if ($route->getParentId() === null) {
+            if ($route->getParentId() === null)
                 $flag = true;
-            } else {
+            else
                 $routeId = $route->getParentId();
-            }
         }
 
         return collect($breadcrumb);
@@ -209,53 +222,15 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
      * @param FullRoute $toRoute La ruta de destino.
      * @throws \Exception Si la ruta no es válida o si ocurre un error al mover la ruta.
      */
-    public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
-    {
-        RouteValidationService::make()
-            ->validateMoveRoute($fromRoute, $this->getAllRoutes());
-
-        $file = $this->fileManager->getContentsString();
-        $fromRouteId = $fromRoute->getId();
-
-        $pattern = $this->getPattern($fromRouteId);
-
-        if (!preg_match($pattern, $file, $matches)) {
-            throw new \Exception("No se encontró la ruta con ID {$fromRouteId}");
-        }
-
-        $bloque = $matches[0];
-        // eliminar los espacios del inicio del bloque
-        // asignar el espacion al final del bloqu
-        $bloque = preg_replace('/^\s+/m', '', $bloque);
-        // quitar si existe una coma al inicio
-        $bloque = preg_replace('/^,/', '', $bloque);
-        $bloque = "\n" . $bloque . "\n";
-
-        $this->removeRoute($fromRouteId);
-
-        $this->insertRouteContent($toRoute, $bloque);
-    }
+    public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void {}
 
 
-    /**
-     * Elimina una ruta por su ID.
-     *
-     * @param string $routeId El ID de la ruta a eliminar.
-     * @throws \Exception Si la ruta no es válida o si ocurre un error al eliminar la ruta.
-     */
-    public function removeRoute(string $routeId): void
-    {
-        $routes = $this->getAllRoutes();
-        $removeRoutes = $this->removeRouteRecursive($routes, $routeId);
 
-        Transformer::make($this->fileManager, $removeRoutes)
-            ->reWriteContent();
-    }
-
-    private function addRouteRecursive(Collection $routes, FullRoute $newRoute, string $parentId): Collection
+    protected function addRouteRecursive(Collection $routes, FullRoute $newRoute, string $parentId): Collection
     {
         return $routes->map(function ($route) use ($newRoute, $parentId) {
             if ($route->id === $parentId) {
+                $newRoute->setLevel($route->getLevel() + 1);
                 $route->childrens = array_merge(
                     $route->childrens ?? [],
                     [$newRoute]
@@ -271,7 +246,7 @@ class RouteStrategyFileUnit implements RouteStrategyInterface
     }
 
 
-    private function removeRouteRecursive(collection $routes, string $routeId): Collection
+    protected function removeRouteRecursive(collection $routes, string $routeId): Collection
     {
 
         $result = [];

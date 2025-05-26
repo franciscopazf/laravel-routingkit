@@ -11,6 +11,7 @@ use Fp\FullRoute\Clases\FullRoute;
 use Fp\FullRoute\Services\RouteContentManager;
 use Fp\FullRoute\Services\RouteContext;
 use Fp\FullRoute\Services\Transformer;
+use Fp\FullRoute\Services\Transformer\TransformerContext;
 
 class FpRouteCommand extends Command
 {
@@ -29,16 +30,7 @@ class FpRouteCommand extends Command
     public function handle()
     {
 
-        // para usar el Transformer se usa el routeContentManager
-        // para obtener el contenido de la ruta
-        $contentManager = RouteContentManager::make();
-        $collection = FullRoute::all();
-        # dd($collection);
-
-
-        $transformer = Transformer::make($contentManager, $collection)
-            ->setTypeOfSave("array")
-            ->reWriteContent();
+        
         //  dd();
         //dd($transformer->rebuildBlockRecursively( FullRoute::find('DEMOGRAFIA')));
         // dd(FullRoute::all());
@@ -59,7 +51,7 @@ class FpRouteCommand extends Command
             ->setRoles(['admin', 'user'])
             ->setChildrens([])
             ->setEndBlock($ranID)
-           ;// ->save();
+        ; // ->save();
 
 
         $this->interactive = new FullRouteInteractive();
