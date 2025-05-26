@@ -6,6 +6,7 @@ use Fp\FullRoute\Clases\Navbar;
 use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Services\RouteContext;
 use Fp\FullRoute\Helpers\CollectionSelector;
+use Fp\FullRoute\Services\Navigator\Navigator;
 use Fp\FullRoute\Helpers\RegisterRouter;
 //use Fp\FullRoute\Contracts\RouteEntityInterface;
 use Fp\FullRoute\Services\RouteStrategyFactory;
@@ -89,7 +90,7 @@ class FullRoute // implements RouteEntityInterface
                 ->findRoute($parent);
 
         $this->parentId = $parent ? $parent->id : null;
-      
+
         self::getRouteContext()
             ->addRoute($this, $parent);
         return $this;
@@ -221,7 +222,8 @@ class FullRoute // implements RouteEntityInterface
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
         //dd(self::all());
-        return CollectionSelector::navegar(self::all(), omitId: $omitId);
+        return Navigator::make()
+            ->treeNavigator(self::all(), null, [], $omitId, $label);
     }
 
 

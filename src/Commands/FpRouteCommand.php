@@ -8,10 +8,9 @@ use function Laravel\Prompts\select;
 
 use Fp\FullRoute\Helpers\Navigator;
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\RouteContentManager;
-use Fp\FullRoute\Services\RouteContext;
-use Fp\FullRoute\Services\Transformer;
-use Fp\FullRoute\Services\Transformer\TransformerContext;
+use Fp\FullRoute\Services\Navigator\Navigator as NNavigator;
+
+
 
 class FpRouteCommand extends Command
 {
@@ -30,7 +29,7 @@ class FpRouteCommand extends Command
     public function handle()
     {
 
-        
+
         //  dd();
         //dd($transformer->rebuildBlockRecursively( FullRoute::find('DEMOGRAFIA')));
         // dd(FullRoute::all());
