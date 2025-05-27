@@ -5,6 +5,7 @@ namespace Fp\FullRoute\Services\Route\Strategies;
 class RouteContentManager
 {
     protected string $filePath;
+    
 
     public function __construct(string $filePath = null)
     {

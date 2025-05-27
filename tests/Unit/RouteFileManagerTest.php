@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Tests\Unit;
 
-use Fp\FullRoute\Services\RouteContentManager;
+use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 use Orchestra\Testbench\TestCase;
 
 class RouteFileManagerTest extends TestCase

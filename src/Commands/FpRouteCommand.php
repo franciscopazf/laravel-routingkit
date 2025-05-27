@@ -49,7 +49,7 @@ class FpRouteCommand extends Command
             ->setRoles(['admin', 'user'])
             ->setChildrens([])
             ->setEndBlock($ranID)
-        ; // ->save();
+            ->save("NOVA2");
 
 
         $this->interactive = new FullRouteInteractive();

@@ -9,7 +9,7 @@ use Fp\FullRoute\Helpers\CollectionSelector;
 use Fp\FullRoute\Services\Navigator\Navigator;
 use Fp\FullRoute\Helpers\RegisterRouter;
 //use Fp\FullRoute\Contracts\RouteEntityInterface;
-use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Fp\FullRoute\Services\Route\RouteOrchestrator;
 
 
 
@@ -85,12 +85,6 @@ class FullRoute // implements RouteEntityInterface
      */
     public function save(string|FullRoute|null $parent = null): self
     {
-        if (is_string($parent))
-            $parent = self::getRouteContext()
-                ->findRoute($parent);
-
-        $this->parentId = $parent ? $parent->id : null;
-
         self::getRouteContext()
             ->addRoute($this, $parent);
         return $this;
@@ -109,6 +103,7 @@ class FullRoute // implements RouteEntityInterface
     {
         self::getRouteContext()
             ->removeRoute($this->id);
+
         return $this;
     }
 
@@ -231,7 +226,7 @@ class FullRoute // implements RouteEntityInterface
     public static function exists(string $id): bool
     {
         return self::getRouteContext()
-            ->exists($id);
+            ->existsRoute($id);
     }
 
     public static function RegisterRoutes()
@@ -240,8 +235,8 @@ class FullRoute // implements RouteEntityInterface
     }
 
 
-    public static function getRouteContext(): RouteContext
+    public static function getRouteContext(): RouteOrchestrator
     {
-        return RouteStrategyFactory::make(config('fproute.support_app'));
+        return RouteOrchestrator::make();
     }
 }

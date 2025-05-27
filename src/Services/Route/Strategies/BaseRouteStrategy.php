@@ -63,15 +63,15 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
     {
         $routes = $this->getAllRoutes();
-        if ($parent instanceof FullRoute) {
-            $parentId = $parent->getId();
-        }
-        if ($parentId ?? null) {
+        $parentId = $parent instanceof FullRoute ? $parent->getId() : $parent;
+
+        if (is_string($parent))
             $updatedRoutes = $this->addRouteRecursive($routes, $route, $parentId);
-        } else {
+        else
             $routes->push($route); // Agrega al nivel raíz si no se especifica padre
-            $updatedRoutes = $routes;
-        }
+        $updatedRoutes = $routes;
+
+
 
         $this->transformer
             ->setCollectionRoutes($updatedRoutes)

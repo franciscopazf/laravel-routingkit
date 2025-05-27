@@ -15,9 +15,9 @@ class ArrayTransformerStrategy implements TransformerStrategyInterface
         private ?BlockBuilder $blockBuilder = null
     ) {
 
-        if (!$this->blockBuilder) {
+        if (!$this->blockBuilder) 
             $this->blockBuilder = BlockBuilder::make($this->contentManager);
-        }
+        
     }
 
 

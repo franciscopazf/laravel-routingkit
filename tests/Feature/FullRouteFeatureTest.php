@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\RouteStrategyFactory;
+use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
 use Illuminate\Support\Collection;
 use Orchestra\Testbench\TestCase;
 
@@ -57,7 +57,7 @@ PHP
     /** @test */
     public function it_can_add_a_route()
     {
-        $context = RouteStrategyFactory::make('file', $this->tempFile);
+        $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
         $newRoute = FullRoute::make('route-1')
             ->setPermission('admin')
@@ -78,7 +78,7 @@ PHP
     /** @test */
     public function it_can_get_all_routes()
     {
-        $context = RouteStrategyFactory::make('file', $this->tempFile);
+        $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
         $routes = $context->getAllRoutes();
 
@@ -89,7 +89,7 @@ PHP
     /** @test */
     public function it_can_find_a_specific_route()
     {
-        $context = RouteStrategyFactory::make('file', $this->tempFile);
+        $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
         $route = $context->findRoute('test');
 
@@ -100,7 +100,7 @@ PHP
     /** @test */
     public function it_can_move_a_route()
     {
-        $context = RouteStrategyFactory::make('file', $this->tempFile);
+        $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
         $routeFrom = FullRoute::make('route-1')
             ->setTitle('From')
@@ -128,7 +128,7 @@ PHP
     /** @test */
     public function it_can_remove_a_route()
     {
-        $context = RouteStrategyFactory::make('file', $this->tempFile);
+        $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
         $route = FullRoute::make('route-delete')
             ->setPermission('admin')

@@ -22,11 +22,14 @@ class RouteStrategyFactory
      * @return RouteContext
      * @throws \InvalidArgumentException Si el tipo de estrategia no es válido.
      */
-    public static function make(string $type, ?string $filePath = null): RouteContext
-    {
+    public static function make(
+        string $type,
+        ?string $filePath = null,
+        bool $onlyStringSupport = true,
+    ): RouteContext {
         return match ($type) {
-            'file_array' => self::makeFileArrayStrategy($filePath),
-            'file_tree' => self::makeFileTreeStrategy($filePath),
+            'file_array' => self::makeFileArrayStrategy($filePath, $onlyStringSupport),
+            'file_tree' => self::makeFileTreeStrategy($filePath, $onlyStringSupport),
             'database' => self::makeDatabaseStrategy(),
             default => throw new \InvalidArgumentException("Estrategia no válida: $type"),
         };
@@ -39,8 +42,10 @@ class RouteStrategyFactory
      * @param string|null $filePath La ruta del archivo, si es necesario.
      * @return RouteContext
      */
-    public static function makeFileArrayStrategy(?string $filePath = null): RouteContext
-    {
+    public static function makeFileArrayStrategy(
+        ?string $filePath = null,
+        bool $onlyStringSupport = true
+    ): RouteContext {
 
         // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
         $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
@@ -57,12 +62,14 @@ class RouteStrategyFactory
      * @param string|null $filePath La ruta del archivo, si es necesario.
      * @return RouteContext
      */
-    public static function makeFileTreeStrategy(?string $filePath = null): RouteContext
-    {
-       
+    public static function makeFileTreeStrategy(
+        ?string $filePath = null,
+        bool $onlyStringSupport = true
+    ): RouteContext {
+
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
-        
+
         // pero para test se puede pasar el path de test        
         // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
         $routeStrategy = new TreeFileRouteStrategy($routeContentManager);
