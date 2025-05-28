@@ -44,19 +44,46 @@ class TreeFileRouteStrategy extends BaseRouteStrategy
         };
         return collect($routes)->map(fn($route) => $setParentRefs($route));
     }
+
+
     /**
-     * Obtiene todas las rutas aplanadas. (OPTIMIZAR O MODIFICAR LA LOGICA DE BUSQUEDA ACTUALMENTE ES DEMASIADO COStoso)
+     * Obtiene todas las rutas aplanadas desde una jerarquía de rutas.
      *
-     * @param Collection $routes Colección de rutas.
+     * @param Collection|null $routes Colección de rutas (si no se especifica, se usan todas).
      * @return Collection Colección de rutas aplanadas.
      */
     public function getAllFlattenedRoutes(?Collection $routes = null): Collection
     {
-        if ($routes === null)
+        if ($routes === null) {
             $routes = $this->getAllRoutes();
+        }
 
-        return $routes->flatMap(function (FullRoute $route) {
-            return collect([$route])->merge($this->getAllFlattenedRoutes(collect($route->getChildrens())));
-        });
+        $flattened = collect();
+
+        $this->flattenRoutesRecursive($routes, $flattened);
+        //dd($flattened);
+        return $flattened;
+    }
+
+    /**
+     * Función auxiliar recursiva para aplanar el árbol de rutas.
+     *
+     * @param Collection $routes Rutas actuales a procesar.
+     * @param Collection $flattened Colección donde se almacenan las rutas aplanadas.
+     * @return void
+     */
+    private function flattenRoutesRecursive(Collection $routes, Collection &$flattened): void
+    {
+        foreach ($routes as $route) {
+            $flattened->push($route);
+
+            $children = collect($route->getChildrens());
+
+            if ($children->isNotEmpty()) {
+                $this->flattenRoutesRecursive($children, $flattened);
+            }
+            // una ves recorridos los hijos eliminarlos :)
+            $route->setChildrens([]);
+        }
     }
 }

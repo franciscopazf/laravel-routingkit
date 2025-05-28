@@ -30,4 +30,7 @@ interface RouteStrategyInterface
     public function findByParamName(string $paramName, string $value): ?Collection;
 
     public function getBreadcrumbs(string|FullRoute $routeId): Collection;
+
+    public function rewriteAllRoutes(?Collection $routes): void;
+    
 }

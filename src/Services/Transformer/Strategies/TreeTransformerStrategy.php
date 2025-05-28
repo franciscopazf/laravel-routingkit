@@ -91,7 +91,7 @@ class TreeTransformerStrategy implements TransformerStrategyInterface
             $block
         );
 
-        echo $block . "\n";
+        #echo $block . "\n";
         // 5. Finalmente, indentar el bloque completo del padre si lo vas a insertar en otro nivel
         // Pero solo si este bloque no es el raíz
         return $block;

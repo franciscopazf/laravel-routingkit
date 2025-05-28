@@ -70,6 +70,12 @@ class FullRoute // implements RouteEntityInterface
         $this->level = 0;
     }
 
+    public function setUrlName(string $urlName): self
+    {
+        $this->urlName = $this->id;
+        return $this;
+    }
+
     /**
      * @param string $id
      * @return FullRoute
@@ -142,6 +148,7 @@ class FullRoute // implements RouteEntityInterface
      */
     public static function find(string $id): ?FullRoute
     {
+
         return self::getRouteContext()
             ->findRoute($id);
     }
@@ -152,9 +159,8 @@ class FullRoute // implements RouteEntityInterface
      */
     public static function findByRouteName(string $routeName): ?FullRoute
     {
-
         return self::getRouteContext()
-            ->findByRouteName($routeName);
+            ->findRoute($routeName);
     }
 
     /**
@@ -202,11 +208,15 @@ class FullRoute // implements RouteEntityInterface
      */
     public static function all(): Collection
     {
+        return self::getRouteContext()
+            ->rebuildGlobalTree();
+    }
 
+    public static function getAllRoutesByFile(): Collection
+    {
         return self::getRouteContext()
             ->getAllRoutes();
     }
-
 
     public static function allFlattened(): Collection
     {
@@ -237,6 +247,7 @@ class FullRoute // implements RouteEntityInterface
 
     public static function getRouteContext(): RouteOrchestrator
     {
+
         return RouteOrchestrator::make();
     }
 }

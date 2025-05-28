@@ -34,6 +34,11 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         );
     }
 
+    public function setTransformerType(string $transformer): void
+    {
+        $this->transformer->setType($transformer);
+    }
+
     /**
      * Crea una nueva instancia de RouteStrategyFile.
      *
@@ -54,6 +59,16 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     abstract public function getAllFlattenedRoutes(?Collection $routes = null): Collection;
 
 
+    public function rewriteAllRoutes(?Collection $routes = null): void
+    {
+        if ($routes === null) 
+            $routes = $this->getAllRoutes();
+        
+        $this->transformer
+            ->setCollectionRoutes($routes)
+            ->transformAndWrite();
+    }
+
     /**
      * Agrega una ruta al archivo de rutas.
      *
@@ -70,8 +85,6 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         else
             $routes->push($route); // Agrega al nivel raíz si no se especifica padre
         $updatedRoutes = $routes;
-
-
 
         $this->transformer
             ->setCollectionRoutes($updatedRoutes)
@@ -151,16 +164,16 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             return null; // No se encontraron rutas
         }
         // Si se encontraron rutas, se transforman a una colección de FullRoute
-        return $routes->map(function ($route) {
-            return new FullRoute(
-                id: $route->getId(),
-                urlName: $route->getUrlName(),
-                url: $route->getUrl(),
-                params: $route->getParams(),
-                parentId: $route->getParentId(),
-                childrens: $route->getChildrens()
-            );
-        });
+        return $routes; //->map(function ($route) {
+        //    return new FullRoute(
+        //        id: $route->getId(),
+        //        urlName: $route->getUrlName(),
+        //        url: $route->getUrl(),
+        //        params: $route->getParams(),
+        //        parentId: $route->getParentId(),
+        //        childrens: $route->getChildrens()
+        //    );
+        //});
     }
 
     /**

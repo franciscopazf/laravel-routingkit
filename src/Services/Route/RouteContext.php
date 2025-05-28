@@ -24,6 +24,16 @@ class RouteContext
         return new self($strategy);
     }
 
+    public function setStrategy(RouteStrategyInterface $strategy): void
+    {
+        $this->strategy = $strategy;
+    }
+
+    public function getStrategy(): RouteStrategyInterface
+    {
+        return $this->strategy;
+    }
+
     public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
     {
         $this->strategy->addRoute($route, $parent);
@@ -64,7 +74,7 @@ class RouteContext
         $this->strategy->removeRoute($routeId);
     }
 
-    public function getAllFlattenedRoutes(Collection $routes): Collection
+    public function getAllFlattenedRoutes(?Collection $routes = null): Collection
     {
         return $this->strategy->getAllFlattenedRoutes($routes);
     }
@@ -72,5 +82,10 @@ class RouteContext
     public function exists(string $routeId): bool
     {
         return $this->strategy->exists($routeId);
+    }
+
+    public function rewriteAllRoutes(?Collection $routes= null ): void
+    {
+        $this->strategy->rewriteAllRoutes($routes);
     }
 }

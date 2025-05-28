@@ -28,12 +28,17 @@ class ArrayFileRouteStrategy extends BaseRouteStrategy
         $tree = [];
 
         foreach ($itemsById as $item) {
-            if (isset($item->parentId) && $item->parentId !== '')
+            if (
+                isset($item->parentId) && // si existe el parentId
+                $item->parentId !== '' &&
+                isset($itemsById[$item->parentId])
+            ) {
                 // Si tiene padre, se agrega a sus hijos
                 $itemsById[$item->parentId]->addChild($item);
-            else
+            } else {
                 // Si no tiene padre, es un nodo raíz
                 $tree[] = $item;
+            }
         }
         // dd($tree);
         $tree = collect($tree);

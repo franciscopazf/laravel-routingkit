@@ -2,88 +2,63 @@
 
 namespace Fp\FullRoute\Services\Route\Strategies;
 
+use Fp\FullRoute\Contracts\RouteStrategyInterface;
 use Fp\FullRoute\Services\Route\RouteContext;
 use Fp\FullRoute\Services\Route\Strategies\ArrayFileRouteStrategy;
 use Fp\FullRoute\Services\Route\Strategies\TreeFileRouteStrategy;
 use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 
-
 class RouteStrategyFactory
 {
-    private function __construct()
-    {
-        // Constructor privado para evitar instanciación directa
-    }
+    private function __construct() {} // Prevent instantiation
+
     /**
      * Crea una instancia de RouteContext según el tipo de estrategia.
-     *
-     * @param string $type El tipo de estrategia ('file_array', 'file_tree', 'database').
-     * @param string|null $filePath La ruta del archivo, si es necesario.
-     * @return RouteContext
-     * @throws \InvalidArgumentException Si el tipo de estrategia no es válido.
      */
     public static function make(
         string $type,
         ?string $filePath = null,
-        bool $onlyStringSupport = true,
+        bool $onlyStringSupport = true
     ): RouteContext {
+        $strategy = self::buildStrategy($type, $filePath, $onlyStringSupport);
+        return RouteContext::make($strategy);
+    }
+
+    /**
+     * Devuelve una estrategia individual sin envolver en un RouteContext.
+     */
+    public static function buildStrategy(
+        string $type,
+        ?string $filePath = null,
+        bool $onlyStringSupport = true
+    ): RouteStrategyInterface {
         return match ($type) {
-            'file_array' => self::makeFileArrayStrategy($filePath, $onlyStringSupport),
-            'file_tree' => self::makeFileTreeStrategy($filePath, $onlyStringSupport),
-            'database' => self::makeDatabaseStrategy(),
-            default => throw new \InvalidArgumentException("Estrategia no válida: $type"),
+            'file_array' => self::buildFileArrayStrategy($filePath, $onlyStringSupport),
+            'file_tree'  => self::buildFileTreeStrategy($filePath, $onlyStringSupport),
+            'database'   => self::buildDatabaseStrategy(),
+            default      => throw new \InvalidArgumentException("Estrategia no válida: $type"),
         };
     }
 
-
-    /**
-     * Crea una instancia de RouteContext con la estrategia de archivo tipo array.
-     *
-     * @param string|null $filePath La ruta del archivo, si es necesario.
-     * @return RouteContext
-     */
-    public static function makeFileArrayStrategy(
+    public static function buildFileArrayStrategy(
         ?string $filePath = null,
         bool $onlyStringSupport = true
-    ): RouteContext {
-
-        // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
-        $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
-        // pero para test se puede pasar el path de test        
-        // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
-        $routeStrategy = new ArrayFileRouteStrategy($routeContentManager);
-        // si la estrategia es tipo file entonces orquestar la estrategia correspondiente
-        return RouteContext::make($routeStrategy);
+    ): ArrayFileRouteStrategy {
+        $routeContentManager = new RouteContentManager($filePath);
+        return new ArrayFileRouteStrategy($routeContentManager);
     }
 
-    /**
-     * Crea una instancia de RouteContext con la estrategia de archivo tipo árbol.
-     *
-     * @param string|null $filePath La ruta del archivo, si es necesario.
-     * @return RouteContext
-     */
-    public static function makeFileTreeStrategy(
+    public static function buildFileTreeStrategy(
         ?string $filePath = null,
         bool $onlyStringSupport = true
-    ): RouteContext {
-
-        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
-        $routeContentManager = new RouteContentManager($filePath); // se usa el path por defacto
-
-        // pero para test se puede pasar el path de test        
-        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
-        $routeStrategy = new TreeFileRouteStrategy($routeContentManager);
-        // si la estrategia es tipo file_unit entonces orquestar la estrategia correspondiente
-        return RouteContext::make($routeStrategy);
+    ): TreeFileRouteStrategy {
+        $routeContentManager = new RouteContentManager($filePath);
+        return new TreeFileRouteStrategy($routeContentManager);
     }
 
-    /**
-     * Crea una instancia de RouteContext con la estrategia de base de datos.
-     *
-     * @return RouteContext
-     */
-    public static function makeDatabaseStrategy(): RouteContext
+    public static function buildDatabaseStrategy(): RouteStrategyInterface
     {
-        dd("Estrategia de base de datos no soportada... por ahora");
+        //W
+        throw new \RuntimeException("Estrategia de base de datos no implementada aún.");
     }
 }
