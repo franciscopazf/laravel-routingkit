@@ -2,14 +2,10 @@
 
 namespace Fp\FullRoute\Commands;
 
+use Fp\FullRoute\Entities\FpRoute;
 use Fp\FullRoute\Services\Route\FullRouteInteractive;
 use Illuminate\Console\Command;
 use function Laravel\Prompts\select;
-
-use Fp\FullRoute\Helpers\Navigator;
-use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\Navigator\Navigator as NNavigator;
-
 
 
 class FpRouteCommand extends Command
@@ -17,8 +13,8 @@ class FpRouteCommand extends Command
     // variables necesarias (opcionales)
     protected $signature = 'fp:route 
                             {--delete : Eliminar una ruta existente} 
-                            {--new : Crear una nueva ruta (futuro)} 
-                            {--move : Mover una ruta (futuro)} 
+                            {--rewrite : reescribe todos los archivos de rutas (futuro)}
+                            {--new : Crear una nueva ruta (futuro)}
                             {--id= : ID de la ruta a procesar} 
                             {--parentId= : ID del padre (opcional)}';
 
@@ -29,28 +25,16 @@ class FpRouteCommand extends Command
     public function handle()
     {
 
-        //  dd();
-        //dd($transformer->rebuildBlockRecursively( FullRoute::find('DEMOGRAFIA')));
-        // dd(FullRoute::all());
-        //  dd(FullRoute::all());
-        $ranID = rand(1, 1000);
-        FullRoute::make($ranID)
-            ->setPermission('permission: ' . $ranID)
-            ->setTitle('Dashboard' . $ranID)
-            ->setDescription('Dashboard de la aplicacion ' . $ranID)
-            ->setKeywords('keywords, fp-full-route ' . $ranID)
-            ->setIcon('icon ' . $ranID)
-            ->setUrl('/dashboard' . $ranID)
-            ->setUrlName('dashboard' . $ranID)
-            ->setUrlMethod('GET')
-            ->setUrlController('App\Http\Controllers\DashboardController')
-            ->setPermissions(['admin', 'user'])
-            ->setUrlAction('index')
-            ->setRoles(['admin', 'user'])
-            ->setChildrens([])
-            ->setEndBlock($ranID)
-            ->save("NOVA2");
+       
 
+        //$seleccion = FpRoute::seleccionar();
+
+        //dd($seleccion);
+
+
+        //$routes = FpRoute::all();
+
+        // dd($routes);
 
         $this->interactive = new FullRouteInteractive();
 
@@ -68,9 +52,8 @@ class FpRouteCommand extends Command
             $this->interactive->crear($data);
             return;
         }
-
-        if ($this->option('move')) {
-            $this->interactive->mover($this->option('id'), $this->option('parentId'));
+        if ($this->option('rewrite')) {
+            $this->interactive->reescribir();
             return;
         }
 
@@ -85,16 +68,16 @@ class FpRouteCommand extends Command
             label: 'Selecciona una opción',
             options: [
                 'nueva' => '🛠️ Crear nueva ruta',
-                'mover' => '🔁 Mover ruta existente',
                 'eliminar' => '🗑️ Eliminar ruta existente',
+                'reescribir' => '🔄 Reescribir rutas',
                 'salir' => '🚪 Salir',
             ]
         );
 
         match ($opcion) {
             'nueva' => $this->interactive->crear(),
-            'mover' => $this->interactive->mover(),
             'eliminar' => $this->interactive->eliminar(),
+            'reescribir' => $this->interactive->reescribir(),
             'salir' => $this->info('Saliendo...'),
         };
     }

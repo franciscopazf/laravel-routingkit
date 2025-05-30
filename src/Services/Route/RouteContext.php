@@ -3,7 +3,8 @@
 namespace Fp\FullRoute\Services\Route;
 
 use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface;
+
 use Illuminate\Support\Collection;
 
 /**
@@ -34,14 +35,14 @@ class RouteContext
         return $this->strategy;
     }
 
-    public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
+    public function addRoute(FpEntityInterface $entity, string|FpEntityInterface|null $parent): void
     {
-        $this->strategy->addRoute($route, $parent);
+        $this->strategy->addRoute($entity, $parent);
     }
 
-    public function getBreadcrumbs(string|FullRoute $routeId): Collection
+    public function getBreadcrumbs(string|FpEntityInterface $entityId): Collection
     {
-        return $this->strategy->getBreadcrumbs($routeId);
+        return $this->strategy->getBreadcrumbs($entityId);
     }
 
     public function getAllRoutes(): Collection
@@ -49,14 +50,14 @@ class RouteContext
         return $this->strategy->getAllRoutes();
     }
 
-    public function findRoute(string $routeId): ?FullRoute
+    public function findRoute(string $entityId): ?FpEntityInterface
     {
-        return $this->strategy->findRoute($routeId);
+        return $this->strategy->findRoute($entityId);
     }
 
-    public function findByRouteName(string $routeName): ?FullRoute
+    public function findByRouteName(string $entityName): ?FpEntityInterface
     {
-        return $this->strategy->findByRouteName($routeName);
+        return $this->strategy->findByRouteName($entityName);
     }
 
     public function findByParamName(string $paramName, string $value): Collection
@@ -64,28 +65,29 @@ class RouteContext
         return $this->strategy->findByParamName($paramName, $value);
     }
 
-    public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void
+    public function moveRoute(FpEntityInterface $fromRoute, FpEntityInterface $toRoute): void
     {
         $this->strategy->moveRoute($fromRoute, $toRoute);
     }
 
-    public function removeRoute(string $routeId): void
+    public function removeRoute(string|FpEntityInterface $entityId): void
     {
-        $this->strategy->removeRoute($routeId);
+        $this->strategy->removeRoute($entityId);
     }
 
-    public function getAllFlattenedRoutes(?Collection $routes = null): Collection
+    public function getAllFlattenedRoutes(?Collection $entitys = null): Collection
     {
-        return $this->strategy->getAllFlattenedRoutes($routes);
+        return $this->strategy->getAllFlattenedRoutes($entitys);
     }
 
-    public function exists(string $routeId): bool
+    public function exists(string $entityId): bool
     {
-        return $this->strategy->exists($routeId);
+        return $this->strategy->exists($entityId);
     }
 
-    public function rewriteAllRoutes(?Collection $routes= null ): void
+    public function rewriteAllRoutes(?Collection $entitys= null ): void
     {
-        $this->strategy->rewriteAllRoutes($routes);
+       
+        $this->strategy->rewriteAllRoutes($entitys);
     }
 }

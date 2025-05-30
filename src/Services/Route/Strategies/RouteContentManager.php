@@ -9,6 +9,7 @@ class RouteContentManager
 
     public function __construct(string $filePath = null)
     {
+        
         $this->filePath = $filePath ?? config('fproute.routes_fyle_path.web');
     }
 
@@ -19,6 +20,7 @@ class RouteContentManager
 
     public function getContents(): array
     {
+        # echo "SE HIZO UNA CARGA DE ARCHIVO \n";
         /** @var array $routes */
         $routes = include $this->filePath;
         return $routes;

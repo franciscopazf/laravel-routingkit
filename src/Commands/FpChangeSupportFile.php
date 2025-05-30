@@ -23,6 +23,7 @@ class FpChangeSupportFile extends Command
 
     public function handle()
     {
+        
 
         // si se pasa la bandera --force se llama al metodo 
         // forceRebuild() y se reconstruyen las rutas sin confirmación

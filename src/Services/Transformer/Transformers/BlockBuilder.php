@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services\Transformer\Transformers;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface;
 use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 use Illuminate\Support\Str;
 
@@ -11,7 +11,8 @@ class BlockBuilder
 
     public function __construct(
         private RouteContentManager $manager,
-        private bool $onlyStringSupport = true
+        private bool $onlyStringSupport = true,
+        private string $className = 'FpEntityInterface'
     ) {}
 
     public static function make(RouteContentManager $manager, bool $onlyStringSupport = true): self
@@ -19,11 +20,11 @@ class BlockBuilder
         return new self($manager, $onlyStringSupport);
     }
 
-    public function getBlock(FullRoute $route): string
+    public function getBlock(FpEntityInterface $entity): string
     {
         return $this->onlyStringSupport
-            ? $this->rebuildRouteContent($route)
-            : $this->getBlockFromFile($route);
+            ? $this->rebuildRouteContent($entity)
+            : $this->getBlockFromFile($entity);
     }
 
     public function indentBlock(string $block, int $level = 2): string
@@ -57,58 +58,60 @@ class BlockBuilder
         return str_repeat("    ", $level);
     }
 
-    public function getLevelIdent(FullRoute $route): int
+    public function getLevelIdent(FpEntityInterface $entity): int
     {
-        return match ($route->getLevel()) {
+        return match ($entity->getLevel()) {
             0 => 1,
-            default => (2 * $route->getLevel()) + 1
+            default => (2 * $entity->getLevel()) + 1
         };
     }
 
-    public function sanitizeForArray(string $block, FullRoute $route): string
+    public function sanitizeForArray(string $block, FpEntityInterface $entity): string
     {
         return preg_replace_callback(
-            $this->getChildrenPattern($route->getId()),
-            fn() => "->setChildrens([])\n->setEndBlock('{$route->getId()}')",
+            $this->getChildrenPattern($entity->getId()),
+            fn() => "->setChildrens([])\n->setEndBlock('{$entity->getId()}')",
             $block
         );
     }
 
-    public function insertChildren(string $block, string $children, FullRoute $route, int $level): string
+    public function insertChildren(string $block, string $children, FpEntityInterface $entity, int $level): string
     {
         $indent = str_repeat("    ", $level + 1);
 
         $children = trim($children)
             ? "->setChildrens([\n" . $children . "\n$indent])\n"
             : "->setChildrens([])\n";
-        $end = $indent . "->setEndBlock('{$route->getId()}')";
+        $end = $indent . "->setEndBlock('{$entity->getId()}')";
 
         return preg_replace_callback(
-            $this->getChildrenPattern($route->getId()),
+            $this->getChildrenPattern($entity->getId()),
             fn() => $children . $end,
             $block
         );
     }
 
-    private function getBlockFromFile(FullRoute $route): string
+    private function getBlockFromFile(FpEntityInterface $entity): string
     {
         $file = $this->manager->getContentsString();
-        $pattern = $this->getBlockPattern($route->getId());
+        $pattern = $this->getBlockPattern($entity);
 
         if (!preg_match($pattern, $file, $matches))
-            return $this->rebuildRouteContent($route);
+            return $this->rebuildRouteContent($entity);
 
         return $matches[0];
     }
 
 
 
-    private function rebuildRouteContent(FullRoute $route, bool $setParent = false): string
+    private function rebuildRouteContent(FpEntityInterface $entity, bool $setParent = false): string
     {
-        $props = collect($route->getProperties());
+        $props = collect($entity->getProperties());
         $id = $props->get('id', 'undefined');
+        $class = get_class($entity); // e.g. App\Entity\Customer
+        $classPattern =  (new \ReflectionClass($entity))->getShortName();
         //dd($props);
-        $code = "\nFullRoute::make('{$id}')\n";
+        $code = "\n$classPattern::make('{$id}')\n";
 
         // Filtrar las propiedades que no deben procesarse
         $filtered = $props->reject(function ($value, $key) use ($setParent) {
@@ -180,24 +183,28 @@ class BlockBuilder
     // funcion que recive un parametro un string y
     // retorna el patron que permite buscar rutas
     // en el archivo de rutas.
-    public function getChildrenPattern(string $routeId): string
+    public function getChildrenPattern(string $entityId): string
     {
         return '/
         ->setChildrens\((.*?)\)                     # Grupo 1: contenido dentro del setChildrens(...)
         \s*                                         # posibles espacios o saltos de línea
-        ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
+        ->setEndBlock\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
         /sx'; // ⚠️ 's' para que el punto incluya saltos de línea, 'x' para comentarios legibles
     }
 
     // funcion que recive un parametro un string y 
     // retorna el patron que permite buscar rutas
     // en el archivo de rutas.
-    private function getBlockPattern(string $routeId): string
+    private function getBlockPattern(FpEntityInterface $entity): string
     {
-        return $pattern = '/
-            FullRoute::make\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)  # FullRoute::make()
-            .*?                                                # cualquier cosa entre medio (lazy)
-            ->setEndBlock\(\s*[\'"]' . preg_quote($routeId, '/') . '[\'"]\s*\)    # ->setEndBlock()
-           /sx';
+
+        $entityId = $entity->getId();
+        $shortClass = (new \ReflectionClass($entity))->getShortName(); // Solo "FpRoute"
+
+        return '/
+        ' . preg_quote($shortClass, '/') . '::make\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)  # Class::make()
+        .*?
+        ->setEndBlock\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)
+    /sx';
     }
 }

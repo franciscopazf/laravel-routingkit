@@ -3,7 +3,7 @@
 namespace Fp\FullRoute\Helpers;
 
 use Illuminate\Support\Facades\Route;
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Entities\FpRoute;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -16,16 +16,16 @@ class RegisterRouter
     public static function registerRoutes(array|Collection|null $routes = null)
     {
         if (is_null($routes)) {
-            $routes = FullRoute::all();
+            $routes = FpRoute::all();
         }
         $routes->each(function ($route) {
-            if ($route instanceof FullRoute) {
+            if ($route instanceof FpRoute) {
                 static::registerFullRoute($route);
             }
         });
     }
 
-    public static function registerFullRoute(FullRoute $route)
+    public static function registerFullRoute(FpRoute $route)
     {
         $hasChildren = !empty($route->childrens);
         $method = strtolower($route->urlMethod);
@@ -44,7 +44,7 @@ class RegisterRouter
         if ($hasChildren) {
             Route::middleware($middleware)->group(function () use ($route) {
                 foreach ($route->childrens as $childRoute) {
-                    if ($childRoute instanceof FullRoute) {
+                    if ($childRoute instanceof FpRoute) {
                         static::registerFullRoute($childRoute);
                     }
                 }

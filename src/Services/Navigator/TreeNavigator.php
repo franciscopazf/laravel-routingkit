@@ -3,7 +3,7 @@
 namespace Fp\FullRoute\Services\Navigator;
 
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
 use function Laravel\Prompts\select;
 
 class TreeNavigator
@@ -41,11 +41,14 @@ class TreeNavigator
         array $pila = [],
         ?string $omitId = null
     ): ?string {
+
         $rutas = is_array($rutas) ? collect($rutas) : $rutas;
         $opciones = [];
 
         if ($nodoActual) {
-            $hijos = is_array($nodoActual->getChildrens()) ? collect($nodoActual->getChildrens()) : $nodoActual->getChildrens();
+            $hijos = is_array($nodoActual->getChildrens()) ?
+                collect($nodoActual->getChildrens()) :
+                $nodoActual->getChildrens();
 
             foreach ($hijos as $child) {
                 if ($child->id === $omitId) continue;
@@ -67,7 +70,11 @@ class TreeNavigator
             $opciones['__salir__'] = '🚪 Salir';
         }
 
-        $breadcrumb = collect($pila)->pluck('title')->push(optional($nodoActual)->title)->filter()->implode(' > ');
+        $breadcrumb = collect($pila)
+            ->pluck('title')
+            ->push(optional($nodoActual)->title)
+            ->filter()
+            ->implode(' > ');
 
         $seleccion = select(
             label: $breadcrumb ? "Ruta actual: {$breadcrumb}" : "Selecciona una ruta raíz",

@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services\Navigator;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
 use Fp\FullRoute\Services\Navigator\FileBrowser;
 use Fp\FullRoute\Services\Navigator\NamespaceResolver;
 use Fp\FullRoute\Services\Navigator\ClassInspector;

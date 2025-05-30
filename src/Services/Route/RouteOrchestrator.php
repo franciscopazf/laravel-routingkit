@@ -19,6 +19,7 @@ class RouteOrchestrator
 
     public function __construct()
     {
+        echo "Inicializando el Orquestador de Rutas...";
         $this->loadFromConfig();
     }
 
@@ -158,7 +159,7 @@ class RouteOrchestrator
     {
         if ($routeId instanceof FullRoute) {
             $routeId = $routeId->getId();
-        }
+        } 
 
         $flattened = $this->getAllFlattenedRoutesGlobal();
         $byId = $flattened->keyBy(fn($route) => $route->getId());

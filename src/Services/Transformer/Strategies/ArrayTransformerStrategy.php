@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services\Transformer\Strategies;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
 use Fp\FullRoute\Services\Transformer\TransformerStrategyInterface;
 use Fp\FullRoute\Services\Transformer\Transformers\BlockBuilder;
 use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;

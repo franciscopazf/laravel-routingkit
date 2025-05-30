@@ -2,7 +2,7 @@
 
 namespace Fp\FullRoute\Services\Route\Strategies;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Contracts\FpEntityInterface;
 use Fp\FullRoute\Contracts\RouteStrategyInterface;
 use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 use Fp\FullRoute\Services\Transformer\TransformerContext;
@@ -17,6 +17,10 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     protected RouteContentManager $fileManager;
     protected ?TransformerContext $transformer;
 
+    protected ?Collection $treeEntitys = null;
+    protected ?Collection $flattenedEntitys = null;
+
+
     /**
      * Constructor de la clase RouteStrategyFile.
      *
@@ -27,6 +31,8 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         RouteContentManager $fileManager,
         ?TransformerContext $transformer = null
     ) {
+        # echo static::class . "\n";
+
         $this->fileManager = $fileManager;
         $this->transformer = $transformer ?? TransformerContext::make(
             contentManager: $fileManager,
@@ -49,21 +55,22 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         RouteContentManager $fileManager,
         ?TransformerContext $transformer = null
     ): self {
-        return new self($fileManager, $transformer);
+
+        return new static($fileManager, $transformer);
     }
 
     abstract protected function getTransformerType(): string;
 
     // MÉTODOS QUE DEPENDEN DEL TIPO DE ESTRUCTURA
-    abstract public function getAllRoutes(): Collection;
-    abstract public function getAllFlattenedRoutes(?Collection $routes = null): Collection;
+    // abstract public function getAllRoutes(): Collection;
+    // abstract public function getAllFlattenedRoutes(?Collection $routes = null): Collection;
 
 
     public function rewriteAllRoutes(?Collection $routes = null): void
     {
-        if ($routes === null) 
+        if ($routes === null)
             $routes = $this->getAllRoutes();
-        
+        // dd("Reescribiendo todas las rutas...", $routes);
         $this->transformer
             ->setCollectionRoutes($routes)
             ->transformAndWrite();
@@ -72,13 +79,13 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     /**
      * Agrega una ruta al archivo de rutas.
      *
-     * @param FullRoute $route La ruta a agregar.
+     * @param FpEntityInterface $route La ruta a agregar.
      * @throws \Exception Si la ruta no es válida o si ocurre un error al insertar la ruta.
      */
-    public function addRoute(FullRoute $route, string|FullRoute|null $parent): void
+    public function addRoute(FpEntityInterface $route, string|FpEntityInterface|null $parent): void
     {
         $routes = $this->getAllRoutes();
-        $parentId = $parent instanceof FullRoute ? $parent->getId() : $parent;
+        $parentId = $parent instanceof FpEntityInterface ? $parent->getId() : $parent;
 
         if (is_string($parent))
             $updatedRoutes = $this->addRouteRecursive($routes, $route, $parentId);
@@ -97,8 +104,11 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
      * @param string $routeId El ID de la ruta a eliminar.
      * @throws \Exception Si la ruta no es válida o si ocurre un error al eliminar la ruta.
      */
-    public function removeRoute(string $routeId): void
+    public function removeRoute(string|FpEntityInterface $routeId): void
     {
+        if ($routeId instanceof FpEntityInterface) {
+            $routeId = $routeId->getId();
+        }
         $routes = $this->getAllRoutes();
         $removeRoutes = $this->removeRouteRecursive($routes, $routeId);
 
@@ -107,8 +117,6 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             ->setType('file_tree')
             ->transformAndWrite();
     }
-
-
 
     /**
      * Obtiene todas las rutas del archivo de rutas.
@@ -135,12 +143,12 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
      * Busca una ruta por su ID.
      *
      * @param string $routeId El ID de la ruta a buscar.
-     * @return FullRoute|null La ruta encontrada o null si no se encuentra.
+     * @return FpEntityInterface|null La ruta encontrada o null si no se encuentra.
      */
-    public function findRoute(string $routeId): ?FullRoute
+    public function findRoute(string $routeId): ?FpEntityInterface
     {
         return $this->getAllFlattenedRoutes()
-            ->first(fn(FullRoute $route) => $route->getId() === $routeId);
+            ->first(fn(FpEntityInterface $route) => $route->getId() === $routeId);
     }
 
 
@@ -156,16 +164,16 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         // se hace una busqueda de arbol de rutas
         $routes = $this->getAllRoutes();
         // se busca la ruta por el nombre del parametro y su valor
-        $routes = $routes->filter(function (FullRoute $route) use ($paramName, $value) {
+        $routes = $routes->filter(function (FpEntityInterface $route) use ($paramName, $value) {
             return $route->getParam($paramName) === $value;
         });
 
         if ($routes->isEmpty()) {
             return null; // No se encontraron rutas
         }
-        // Si se encontraron rutas, se transforman a una colección de FullRoute
+        // Si se encontraron rutas, se transforman a una colección de FpEntityInterface
         return $routes; //->map(function ($route) {
-        //    return new FullRoute(
+        //    return new FpEntityInterface(
         //        id: $route->getId(),
         //        urlName: $route->getUrlName(),
         //        url: $route->getUrl(),
@@ -180,18 +188,18 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
      * Busca una ruta por su nombre.
      *
      * @param string $routeName El nombre de la ruta a buscar.
-     * @return FullRoute|null La ruta encontrada o null si no se encuentra.
+     * @return FpEntityInterface|null La ruta encontrada o null si no se encuentra.
      */
-    public function findByRouteName(string $routeName): ?FullRoute
+    public function findByRouteName(string $routeName): ?FpEntityInterface
     {
         return $this->getAllFlattenedRoutes()
-            ->first(fn(FullRoute $route) => $route->getUrlName() === $routeName);
+            ->first(fn(FpEntityInterface $route) => $route->getUrlName() === $routeName);
     }
 
 
-    public function getBreadcrumbs(string|FullRoute $routeId): Collection
+    public function getBreadcrumbs(string|FpEntityInterface $routeId): Collection
     {
-        if ($routeId instanceof FullRoute) {
+        if ($routeId instanceof FpEntityInterface) {
             $routeId = $routeId->getId();
         }
 
@@ -224,21 +232,16 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     {
         return $this->findRoute($routeId) !== null;
     }
-
-
-
     /**
      * Mueve una ruta de un lugar a otro.
      *
-     * @param FullRoute $fromRoute La ruta de origen.
-     * @param FullRoute $toRoute La ruta de destino.
+     * @param FpEntityInterface $fromRoute La ruta de origen.
+     * @param FpEntityInterface $toRoute La ruta de destino.
      * @throws \Exception Si la ruta no es válida o si ocurre un error al mover la ruta.
      */
-    public function moveRoute(FullRoute $fromRoute, FullRoute $toRoute): void {}
+    public function moveRoute(FpEntityInterface $fromRoute, FpEntityInterface $toRoute): void {}
 
-
-
-    protected function addRouteRecursive(Collection $routes, FullRoute $newRoute, string $parentId): Collection
+    protected function addRouteRecursive(Collection $routes, FpEntityInterface $newRoute, string $parentId): Collection
     {
         return $routes->map(function ($route) use ($newRoute, $parentId) {
             if ($route->id === $parentId) {
@@ -256,7 +259,6 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             return $route;
         });
     }
-
 
     protected function removeRouteRecursive(collection $routes, string $routeId): Collection
     {
@@ -280,5 +282,126 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         }
 
         return collect($result);
+    }
+
+
+
+
+
+    /**
+     * Obtiene todas las rutas del archivo de rutas.
+     *
+     * @return Collection Colección de rutas.
+     */
+    public function getAllRoutes(): Collection
+    {
+        if ($this->treeEntitys === null) {
+
+            $this->treeEntitys = $this->buildTreeFromFlattened(
+                $this->getAllFlattenedRoutes()
+            );
+        }
+
+        //dd("Obteniendo todas las rutas del archivo de rutas...", $this->treeEntitys);
+        return $this->treeEntitys;
+    }
+
+    /**
+     * Obtiene todas las rutas aplanadas. (OPTIMIZAR O MODIFICAR LA LOGICA DE BUSQUEDA ACTUALMENTE ES DEMASIADO COStoso)
+     *
+     * @param Collection $routes Colección de rutas.
+     * @return Collection Colección de rutas aplanadas.
+     */
+    public function getAllFlattenedRoutes(?Collection $routes = null): Collection
+    {
+
+        if ($this->flattenedEntitys === null) {
+            echo "Obteniendo todas las rutas aplanadas...\n";
+            $routes =  $this->fileManager->getContents();
+            $this->flattenedEntitys = $this->flattenTreeRoutes(
+                collect($routes)
+            );
+        }
+        //dd("Obteniendo todas las rutas aplanadas...", $this->flattenedEntitys);
+        return $this->flattenedEntitys;
+    }
+
+    // cargar rutas de un arbol o de un array al mismo tiempo
+    // mapear todas las rutas y "Aplanarlas", se recorren los hijos de 
+    // de los hijos de la ruta, y se van agregando a una coleccion plana,
+    /// el set parent id de los hijos seria el padre para el momento de tener la coleccion plana
+    // que ademas serviria como un mapa key value para optimizacion de busqueda
+    // protected Collection $flattenedEntitys;
+    // una ves aplanado volver a reconstruir el arbol de rutas y asignarlo 
+    //  protected Collection $treeEntitys; a estre valor
+    // ademas validar en cada paso que 
+    // estas son las interfaces que obligan a tener un atributo id, parentId, childrens, 
+    // solmaente :)
+    // FpEntityInterface 
+    protected function flattenTreeRoutes(Collection $tree, ?string $parentId = null): Collection
+    {
+        # echo "||Flattening tree routes...\n";
+        //dd("Flattening tree routes...");
+        $flat = collect();
+
+        foreach ($tree as $entity) {
+            if (!$entity instanceof FpEntityInterface) {
+                continue;
+            }
+
+            // Asignar parentId si viene null y hay padre actual
+            if ($entity->getParentId() === null && $parentId !== null) {
+                $entity->setParentId($parentId);
+            }
+
+            $id = $entity->getId();
+
+            if ($id === null) {
+                throw new \Exception("Entidad sin ID no puede ser aplanada.");
+            }
+
+            // Validación: si el parentId está seteado pero no ha sido registrado todavía
+
+            // Guardar en colección clave-valor
+            $flat->put($id, $entity);
+
+            // Procesar hijos
+            $children = collect($entity->getChildrens() ?? []);
+            if ($children->isNotEmpty()) {
+                $flat = $flat->merge(
+                    $this->flattenTreeRoutes($children, $id)
+                );
+            }
+            $entity->setChildrens([]); // Limpiar hijos para evitar duplicados
+        }
+
+        return $flat;
+    }
+
+    protected function buildTreeFromFlattened(Collection $flat): Collection
+    {
+
+        // Mapa temporal de ID a copias de entidades
+        $cloned = collect();
+
+        // Primero clonamos todas las entidades
+        foreach ($flat as $entity) {
+            $cloned->put($entity->getId(), clone $entity);
+        }
+
+        $tree = collect();
+
+        foreach ($cloned as $id => $entity) {
+            $parentId = $entity->getParentId();
+
+            if ($parentId !== null && $cloned->has($parentId)) {
+                $parent = $cloned->get($parentId);
+                $parent->addChild($entity);
+            } else {
+                $tree->push($entity);
+            }
+        }
+
+        return $tree;
     }
 }

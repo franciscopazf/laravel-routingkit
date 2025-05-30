@@ -7,7 +7,7 @@ use function Laravel\Prompts\Select;
 use function Laravel\Prompts\Multiselect;
 use function Laravel\Prompts\Confirm;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\FullRoute\Entities\FpRoute as FullRoute;
 use Fp\FullRoute\Services\Navigator\Navigator;
 
 class FullRouteInteractive
@@ -62,37 +62,24 @@ class FullRouteInteractive
     }
 
 
-
-    public function mover(?string $idRuta = null, ?string $nuevoPadreId = null)
-    {
-        $idRuta = $idRuta ?? FullRoute::seleccionar(label: '📁 Selecciona la ruta a mover');
-        $nuevoPadreId = $nuevoPadreId ?? FullRoute::seleccionar(omitId: $idRuta, label: '📁 Selecciona la nueva ruta padre');
-
-        $ruta = FullRoute::find($idRuta);
-        if (!$ruta) {
-            return $this->error("❌ No se encontró la ruta con ID '{$idRuta}'.");
-        }
-        // validar primero que la ruta no sea padre de la nueva ruta
-        if ($ruta->routeIsChild($nuevoPadreId)) {
-            return $this->error("❌ No se puede mover la ruta '{$idRuta}' a sí misma o a una de sus rutas hijas.");
-        }
-
-        // confirmar la acción
-        $this->confirmar("⚠️ ¿Estás seguro de que deseas mover la ruta con ID '{$idRuta}' a la ruta padre '{$nuevoPadreId}'?");
-        $ruta->moveTo($nuevoPadreId);
-    }
-
     public function eliminar(?string $id = null)
     {
         $id = $id ?? FullRoute::seleccionar(label: '🗑️ Selecciona la ruta a eliminar');
-        $ruta = FullRoute::find($id);
-
+        $ruta = FullRoute::findById($id);
+      
         if (!$ruta) {
             return $this->error("❌ No se encontró la ruta con ID '{$id}'.");
         }
 
         $this->confirmar("⚠️ ¿Estás seguro de que deseas eliminar la ruta con ID '{$id}'? Esta acción no se puede deshacer.");
         $ruta->delete();
+    }
+
+    public function reescribir()
+    {
+        $this->confirmar("🔄 ¿Estás seguro de que deseas reescribir las rutas? Esto actualizará todas las rutas existentes.");
+        FullRoute::rewriteAllContext();
+        $this->info("✅ Rutas reescritas correctamente.");
     }
 
     protected function confirmar(
