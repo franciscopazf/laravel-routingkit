@@ -22,9 +22,11 @@ class BlockBuilder
 
     public function getBlock(FpEntityInterface $entity): string
     {
-        return $this->onlyStringSupport
+        $block =  $this->manager->onlyStringSupport
             ? $this->rebuildRouteContent($entity)
             : $this->getBlockFromFile($entity);
+
+        return "\n" . $block;
     }
 
     public function indentBlock(string $block, int $level = 2): string
@@ -111,7 +113,7 @@ class BlockBuilder
         $class = get_class($entity); // e.g. App\Entity\Customer
         $classPattern =  (new \ReflectionClass($entity))->getShortName();
         //dd($props);
-        $code = "\n$classPattern::make('{$id}')\n";
+        $code = "$classPattern::make('{$id}')\n";
 
         // Filtrar las propiedades que no deben procesarse
         $filtered = $props->reject(function ($value, $key) use ($setParent) {
@@ -157,9 +159,22 @@ class BlockBuilder
 
     private function exportArray(array $array): string
     {
-        return '[' . implode(', ', array_map(function ($v) {
-            return is_string($v) ? "'$v'" : $v;
-        }, $array)) . ']';
+        $isAssoc = array_keys($array) !== range(0, count($array) - 1);
+
+        $items = array_map(function ($key, $value) {
+            // Si el valor es un arreglo, aplicar recursivamente
+            $exportedValue = is_array($value) ? $this->exportArray($value) : (is_string($value) ? "'$value'" : $value);
+
+            // Si la clave es numérica, no incluirla (arreglo indexado)
+            if (is_int($key)) {
+                return $exportedValue;
+            }
+
+            // Si es clave no numérica, incluir la clave => valor
+            return "'$key' => $exportedValue";
+        }, array_keys($array), $array);
+
+        return '[' . implode(', ', $items) . ']';
     }
 
 

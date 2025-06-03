@@ -27,7 +27,8 @@ class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterfac
         // Crear un nuevo contexto con la estrategia adecuada
         $context = RouteStrategyFactory::make(
             $contextData['support_file'],
-            $contextData['path']
+            $contextData['path'],
+            $contextData['only_string_support'] ?? true
         );
 
         // Devolver el contexto creado
@@ -37,7 +38,7 @@ class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterfac
     public function getDefaultContext(): ?RouteContext
     {
         // Retorna el primer contexto si existe, o null si no hay contextos
-        $position = config('fproute.defaul_file_path_position', 0);
+        $position = config('fproute.routes_file_path.defaul_file_path_position', 0);
         return $this->contexts[$position] ?? null;
     }
 
@@ -45,7 +46,7 @@ class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterfac
     {
 
         # dd("Cargando rutas desde la configuración...");
-        $configs = config('fproute.routes_file_path');
+        $configs = config('fproute.routes_file_path.items');
         //dd($this->contexts);
 
         #dd($configs);

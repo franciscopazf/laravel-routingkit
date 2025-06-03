@@ -69,8 +69,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     abstract public static function getOrchestrator(): OrchestratorInterface;
 
-    //abstract public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string;
-
+ 
 
     public function setId(string $id): static
     {

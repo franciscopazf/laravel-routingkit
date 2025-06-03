@@ -5,17 +5,17 @@ namespace Fp\FullRoute\Services\Route\Strategies;
 class RouteContentManager
 {
     protected string $filePath;
-    
+    public bool $onlyStringSupport = true;
 
-    public function __construct(string $filePath = null)
+    public function __construct(string $filePath = null, bool $onlyStringSupport = true)
     {
-        
+        $this->onlyStringSupport = $onlyStringSupport;
         $this->filePath = $filePath ?? config('fproute.routes_fyle_path.web');
     }
 
-    public static function make(string $filePath = null): self
+    public static function make(string $filePath = null, bool $onlyStringSupport = true): self
     {
-        return new self($filePath);
+        return new self($filePath, $onlyStringSupport);
     }
 
     public function getContents(): array

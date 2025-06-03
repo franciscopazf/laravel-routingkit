@@ -13,6 +13,8 @@ class FpRoute extends FpBaseEntity
 {
     use HasDynamicAccessors;
 
+    public ?string $parentId = null;
+
     public $permission;
     public $title;
     public $description;
@@ -23,12 +25,47 @@ class FpRoute extends FpBaseEntity
     public $urlMethod;
     public $urlController;
     public $urlAction;
-    public $fullUrlName;
+    public string $fullUrlName = '';
     public $fullUrl;
+
+    public $urlMiddleware = [];
     public $permissions = [];
     public $roles = [];
     public array|Collection $childrens = [];
     public $endBlock;
+
+    public static function make(string $id): static
+    {
+        $instance = new static($id);
+        $instance->id = $id;
+        $instance->url = '/' . ltrim($id, '/');
+        $instance->urlName = str_replace('/', '.', $id);
+
+        return $instance;
+    }
+
+    public function setPermission($permission): self
+    {
+        // Si es un Closure, lo ejecutamos para obtener el string
+        if ($permission instanceof \Closure) {
+            $permission = $permission();
+        }
+        // Ahora $permission es un string
+        $this->permission = $permission;
+        // $this->permissions[] = $permission;
+        //$this->urlMiddleware[] = 'permission:' . $permission;
+
+        return $this;
+    }
+
+    public function getAllPermissions(): array
+    {
+        return array_filter(
+            array_merge([$this->permission], $this->permissions),
+            fn($permission) => trim($permission) !== ''
+        );
+    }
+
 
     public static function getOrchestrator(): OrchestratorInterface
     {

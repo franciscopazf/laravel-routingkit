@@ -19,8 +19,7 @@ class ArrayTransformerStrategy implements TransformerStrategyInterface
             $this->blockBuilder = BlockBuilder::make($this->contentManager);
         
     }
-
-
+    
     public function getFinalContent(Collection $routes): string
     {
         $content =  $this->blockBuilder->getHeaderBlock() .

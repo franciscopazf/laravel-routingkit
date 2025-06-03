@@ -2,9 +2,12 @@
 
 namespace Fp\FullRoute\Commands;
 
+use Fp\FullRoute\Entities\FpNavigation;
+use Fp\FullRoute\Services\DevelopmentSetup\DevelopmentSetup;
 use Fp\FullRoute\Entities\FpRoute;
 use Fp\FullRoute\Services\Route\FullRouteInteractive;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use function Laravel\Prompts\select;
 
 
@@ -25,7 +28,12 @@ class FpRouteCommand extends Command
     public function handle()
     {
 
-       
+        $randomId = Str::random(10);
+        $dd = FpNavigation::all();
+
+        //dd($dd[0]->childrens[5]->getEntity());
+        DevelopmentSetup::make()
+            ->run();
 
         //$seleccion = FpRoute::seleccionar();
 

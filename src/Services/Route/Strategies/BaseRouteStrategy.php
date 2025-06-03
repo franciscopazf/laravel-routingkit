@@ -16,6 +16,7 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
 {
     protected RouteContentManager $fileManager;
     protected ?TransformerContext $transformer;
+    protected bool $onlyStringSupport = true;
 
     protected ?Collection $treeEntitys = null;
     protected ?Collection $flattenedEntitys = null;
@@ -29,7 +30,8 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
 
     public function __construct(
         RouteContentManager $fileManager,
-        ?TransformerContext $transformer = null
+        ?TransformerContext $transformer = null,
+        bool $onlyStringSupport = true
     ) {
         # echo static::class . "\n";
 
@@ -40,11 +42,6 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         );
     }
 
-    public function setTransformerType(string $transformer): void
-    {
-        $this->transformer->setType($transformer);
-    }
-
     /**
      * Crea una nueva instancia de RouteStrategyFile.
      *
@@ -53,11 +50,17 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
      */
     public static function make(
         RouteContentManager $fileManager,
-        ?TransformerContext $transformer = null
+        ?TransformerContext $transformer = null,
+        bool $onlyStringSupport = true
     ): self {
-
-        return new static($fileManager, $transformer);
+        return new static($fileManager, $transformer, $onlyStringSupport);
     }
+
+    public function setTransformerType(string $transformer): void
+    {
+        $this->transformer->setType($transformer);
+    }
+
 
     abstract protected function getTransformerType(): string;
 
@@ -316,7 +319,7 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     {
 
         if ($this->flattenedEntitys === null) {
-            echo "Obteniendo todas las rutas aplanadas...\n";
+            #echo "Obteniendo todas las rutas aplanadas...\n";
             $routes =  $this->fileManager->getContents();
             $this->flattenedEntitys = $this->flattenTreeRoutes(
                 collect($routes)

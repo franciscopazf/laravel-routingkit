@@ -44,7 +44,7 @@ class RouteStrategyFactory
         ?string $filePath = null,
         bool $onlyStringSupport = true
     ): ArrayFileRouteStrategy {
-        $routeContentManager = new RouteContentManager($filePath);
+        $routeContentManager = new RouteContentManager($filePath, $onlyStringSupport);
         return new ArrayFileRouteStrategy($routeContentManager);
     }
 
@@ -52,7 +52,7 @@ class RouteStrategyFactory
         ?string $filePath = null,
         bool $onlyStringSupport = true
     ): TreeFileRouteStrategy {
-        $routeContentManager = new RouteContentManager($filePath);
+        $routeContentManager = new RouteContentManager($filePath, $onlyStringSupport);
         return new TreeFileRouteStrategy($routeContentManager);
     }
 

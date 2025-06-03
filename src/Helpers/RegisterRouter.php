@@ -19,36 +19,43 @@ class RegisterRouter
             $routes = FpRoute::all();
         }
         $routes->each(function ($route) {
-            if ($route instanceof FpRoute) {
+            if ($route instanceof FpRoute)
                 static::registerFullRoute($route);
-            }
         });
     }
 
     public static function registerFullRoute(FpRoute $route)
     {
+        //echo "Registering route: {$route->id} ({$route->urlMethod})\n";
         $hasChildren = !empty($route->childrens);
         $method = strtolower($route->urlMethod);
         $isLivewire = $route->urlAction === 'livewire';
-        $url = '/' . ltrim($route->getFullUrl(), '/');
+        $url = '/' . ltrim($route->getUrl(), '/');
+
+
         $middleware = $route->urlMiddleware ?? [];
 
+        // si existe el permiso de la ruta entonces se agrega al middleware
+        if ($route->permission)
+            $middleware[] = 'permission:' . $route->permission;
+
+
         // Ruta simple
-        Route::match([$method],$url,
-            $isLivewire ? $route->urlController : [$route->urlController, $route->urlAction]
-        )->name($route->urlName)
+        Route::match(
+            [$method],
+            $url,
+            $isLivewire ? $route->urlController :
+                [$route->urlController, $route->urlAction]
+        )->name($route->id)
             ->middleware($middleware);
 
 
         // Registrar rutas hijas dentro del grupo con middleware del padre
-        if ($hasChildren) {
+        if ($hasChildren)
             Route::middleware($middleware)->group(function () use ($route) {
-                foreach ($route->childrens as $childRoute) {
-                    if ($childRoute instanceof FpRoute) {
+                foreach ($route->childrens as $childRoute)
+                    if ($childRoute instanceof FpRoute)
                         static::registerFullRoute($childRoute);
-                    }
-                }
             });
-        }
     }
 }
