@@ -28,12 +28,6 @@ class FpRouteCommand extends Command
     public function handle()
     {
 
-        $randomId = Str::random(10);
-        $dd = FpNavigation::all();
-
-        //dd($dd[0]->childrens[5]->getEntity());
-        DevelopmentSetup::make()
-            ->run();
 
         //$seleccion = FpRoute::seleccionar();
 

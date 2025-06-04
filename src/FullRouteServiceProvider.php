@@ -4,7 +4,7 @@ namespace Fp\FullRoute;
 
 use Illuminate\Support\ServiceProvider;
 use Fp\FullRoute\Commands\FpRouteCommand;
-use Fp\FullRoute\Commands\FpChangeSupportFile; // Este comando ha sido eliminado
+use Fp\FullRoute\Commands\FpAcces;
 
 class FullRouteServiceProvider extends ServiceProvider
 {
@@ -18,7 +18,7 @@ class FullRouteServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 FpRouteCommand::class,
-                FpChangeSupportFile::class, // Este comando ha sido eliminado
+                FpAcces::class,
             ]);
         }
 

@@ -118,6 +118,20 @@ abstract class FpBaseEntity implements FpEntityInterface
         return $this;
     }
 
+    public function getBrothers(): Collection
+    {
+        return static::getOrchestrator()
+            ->getBrothers($this);
+    }
+
+    public static function findByIdWithChilds(string $id): ?FpEntityInterface
+    {
+        $entity = static::getOrchestrator()
+            ->findByIdWithChilds($id);
+            
+        return $entity instanceof FpEntityInterface ? $entity : null;
+    }
+
     /**
      * Delete the entity permanently.
      *

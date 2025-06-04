@@ -16,6 +16,7 @@ abstract class BaseOrchestrator implements OrchestratorInterface
 
     protected ?Collection $treeAllEntitys = null;
     protected ?Collection $flattenedAllEntitys = null;
+    protected ?Collection $allFlattenedWhitChilds = null;
 
 
     abstract protected function prepareContext(array $config): mixed;
@@ -112,6 +113,33 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         // Buscar en el índice de rutas
         if (isset($this->entityMap[$id]))
             return $this->entityMap[$id]->findRoute($id);
+
+        // Si no se encuentra, retornar null
+        return null;
+    }
+
+    public function getBrothers(string|FpEntityInterface $entity): Collection
+    {
+        if ($entity instanceof FpEntityInterface)
+            $id = $entity->getId();
+
+        // Verifica si la ruta existe en el índice de rutas
+        if (isset($this->entityMap[$id])) {
+            $parentId = $this->allFlattenedWhitChilds[$id]->getParentId();
+            if ($parentId !== null) {
+                return collect($this->allFlattenedWhitChilds[$parentId]->getChildrens());
+            }
+        }
+
+        return collect(); // Retorna una colección vacía si no hay hermanos
+    }
+
+
+    public function findByIdWithChilds(string $id): ?FpEntityInterface
+    {
+        // Buscar en el índice de rutas
+        if (isset($this->allFlattenedWhitChilds[$id]))
+            return $this->allFlattenedWhitChilds[$id];
 
         // Si no se encuentra, retornar null
         return null;
@@ -287,8 +315,18 @@ abstract class BaseOrchestrator implements OrchestratorInterface
                 $tree->push($entity);
             }
         }
+        $this->allFlattenedWhitChilds = $cloned;
 
         return $tree;
+    }
+
+    public function getAllFlattenedWhitChilds(): ?Collection
+    {
+        if ($this->allFlattenedWhitChilds === null) {
+            $this->getAllFlattenedRoutesGlobal();
+        }
+
+        return $this->allFlattenedWhitChilds;
     }
 
 

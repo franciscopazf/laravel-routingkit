@@ -37,10 +37,10 @@ class PermissionCreator
         // dd($routes);
 
         foreach ($routes as $route) {
-            echo "Processing route: {$route->getId()}\n";
+            #echo "Processing route: {$route->getId()}\n";
             // a. Crear permisos
             foreach ($route->getAllPermissions() as $permissionName) {
-                echo "Creating permission: {$permissionName}\n";
+                #echo "Creating permission: {$permissionName}\n";
                 Permission::firstOrCreate(['name' => $permissionName]);
             }
             // dd($route->getRoles());
@@ -55,6 +55,10 @@ class PermissionCreator
                         ->first();
                     $permissions = Permission::whereIn('name', $permList)
                         ->get();
+                    // agregar a permissions el rol de acceso a la ruta o el permission individual
+                    $permissions->push(Permission::firstOrCreate(['name' => $route->getPermission()]));
+
+                    ///dd($permissions);
                 } else {
                     #echo "||| Processing role: {$permList} with permissions: " . implode(', ', $route->getPermissions()) . "\n";
                     // formato: 'user' (sin array)

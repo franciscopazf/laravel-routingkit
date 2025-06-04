@@ -20,38 +20,64 @@ class FpNavigation extends FpBaseEntity
      */
     protected string $entityId;
 
-    public ?FpRoute $entity = null;
+    //public ?FpRoute $entity = null;
 
     public string $id;
 
     public ?string $parentId = null;
 
+    public ?string $urlName = null;
+
+    public ?string $url = null;
+
+    public ?string $description = null;
+
+    public ?string $accesPermission = null;
+
+    public ?string $label = null;
+
+    public ?string $heroIcon = null;
+
+    public ?bool $isFpRoute = false;
+
     public array|Collection $childrens = [];
 
     public string $endBlock;
 
-    public function __construct() {}
+    private function __construct(string $id)
+    {
+        $this->id = $id;
+        $this->entityId = $id; // Initialize entityId with the provided id
+    }
+
 
     public static function make(string $id): self
     {
-        $instance = new self();
-        $instance->id = $id;
-        if (FpRoute::exists($id)) {
-            $instance->entity = FpRoute::findById($id);
-            $instance->entityId = $instance->entity->getId();
-        }
-
+        $instance = new self($id);
         return $instance;
     }
+
+    public function setIsFpRoute(bool $loadRoute = true): self
+    {
+        $route = FpRoute::findById($this->entityId);
+        if ($route) {
+            $this->urlName = $route->getId();
+            $this->accesPermission= $route->getPermission();
+            $this->url = $route->getUrl();
+        } else {
+            throw new \InvalidArgumentException("Route not found for ID: " . $this->id);
+        }
+
+        return $this;
+    }
+
 
     public function setEntityId(String|FpRoute $entityId): self
     {
         if (is_string($entityId)) {
             $this->entityId = $entityId;
-            $this->entity = FpRoute::findById($entityId);
         } else if ($entityId instanceof FpRoute) {
             $this->entityId = $entityId->getId();
-            $this->entity = $entityId;
         } else {
             throw new \InvalidArgumentException("Entity ID must be a string or an instance of FpRoute.");
         }
