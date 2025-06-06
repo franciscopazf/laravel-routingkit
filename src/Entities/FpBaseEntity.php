@@ -42,6 +42,8 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     //public array|Collection $childrens = [];
 
+    public ?string $accesPermission = null;
+
     public function __construct(string $id)
     {
         $this->id = $id;
@@ -69,7 +71,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     abstract public static function getOrchestrator(): OrchestratorInterface;
 
- 
+
 
     public function setId(string $id): static
     {
@@ -114,7 +116,7 @@ abstract class FpBaseEntity implements FpEntityInterface
         //dd($parent);
         static::getOrchestrator()
             ->save($this, $parent);
-            
+
         return $this;
     }
 
@@ -128,7 +130,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     {
         $entity = static::getOrchestrator()
             ->findByIdWithChilds($id);
-            
+
         return $entity instanceof FpEntityInterface ? $entity : null;
     }
 
@@ -330,5 +332,4 @@ abstract class FpBaseEntity implements FpEntityInterface
         static::getOrchestrator()
             ->rewriteAllContext();
     }
-   
 }

@@ -15,20 +15,14 @@ class FpRoute extends FpBaseEntity
 
     public ?string $parentId = null;
 
-    public $permission;
-    public $title;
-    public $description;
-    public $keywords;
-    public $icon;
     public $url;
     public $urlName;
     public $urlMethod;
     public $urlController;
     public $urlAction;
-    public string $fullUrlName = '';
-    public $fullUrl;
 
     public $urlMiddleware = [];
+    public ?string $accessPermission = null;
     public $permissions = [];
     public $roles = [];
     public array|Collection $childrens = [];
@@ -51,7 +45,7 @@ class FpRoute extends FpBaseEntity
             $permission = $permission();
         }
         // Ahora $permission es un string
-        $this->permission = $permission;
+        $this->accessPermission = $permission;
         // $this->permissions[] = $permission;
         //$this->urlMiddleware[] = 'permission:' . $permission;
 
@@ -60,8 +54,9 @@ class FpRoute extends FpBaseEntity
 
     public function getAllPermissions(): array
     {
+       // dd('getAllPermissions', $this->accessPermission, $this->permissions);
         return array_filter(
-            array_merge([$this->permission], $this->permissions),
+            array_merge([$this->accessPermission], $this->permissions),
             fn($permission) => trim($permission) !== ''
         );
     }

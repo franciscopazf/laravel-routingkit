@@ -2,6 +2,7 @@
 
 namespace Fp\FullRoute\Services\Route\Orchestrator;
 
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Fp\FullRoute\Contracts\OrchestratorInterface;
 use Fp\FullRoute\Contracts\FpEntityInterface;
@@ -17,6 +18,11 @@ abstract class BaseOrchestrator implements OrchestratorInterface
     protected ?Collection $treeAllEntitys = null;
     protected ?Collection $flattenedAllEntitys = null;
     protected ?Collection $allFlattenedWhitChilds = null;
+
+
+    protected ?Collection $filtredTreeAllEntitys = null;
+    protected ?Collection $filtedFlattenedAllEntitys = null;
+    protected ?Collection $filtredAllFlattenedWhitChilds = null;
 
 
     abstract protected function prepareContext(array $config): mixed;
@@ -157,18 +163,7 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         return collect();
     }
 
-    /**
-     * get all entities.
-     * @return Collection
-     */
-    public function all(): Collection
-    {
-        if ($this->treeAllEntitys === null) {
-            $allFlattened = $this->getAllFlattenedRoutesGlobal();
-            $this->treeAllEntitys = $this->buildTreeFromFlattened($allFlattened);
-        }
-        return $this->treeAllEntitys;
-    }
+
 
     /**
      * Get all entities grouped by file.
@@ -191,6 +186,19 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         return collect();
     }
 
+
+    /**
+     * get all entities.
+     * @return Collection
+     */
+    public function all(): Collection
+    {
+        if ($this->treeAllEntitys === null) {
+            $allFlattened = $this->getAllFlattenedRoutesGlobal();
+            $this->treeAllEntitys = $this->buildTreeFromFlattened($allFlattened);
+        }
+        return $this->treeAllEntitys;
+    }
 
     /**
      * Get all entities in a flattened structure.
@@ -329,7 +337,163 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         return $this->allFlattenedWhitChilds;
     }
 
+    public function getAllOfCurrenUser(): Collection
+    {
+        // Obtener el usuario actual
+        $user = auth()->user();
 
+        // Si no hay usuario autenticado, retornar una colección vacía
+        if (!$user) {
+            // lanzar una excepción o retornar una colección vacía
+            throw new \RuntimeException("No hay usuario autenticado.");
+        }
+        return $this->getAllOfUser($user);
+    }
+
+
+    public function getAllOfUser(User $user): Collection
+    {
+        // Obtener roles del usuario
+        $allowedRoles = $user->roles;
+
+        // Si el usuario no tiene roles, retornar una colección vacía
+        if ($allowedRoles->isEmpty()) {
+            return collect();
+        }
+
+        // Obtener todas las rutas filtradas por los roles del usuario
+        return $this->getAllWithRoles($allowedRoles);
+    }
+
+    public function getAllWithRoles(array|Collection $allowedRoles): Collection
+    {
+        // 
+        if (is_array($allowedRoles)) {
+            $allowedRoles = collect($allowedRoles);
+        } elseif (!$allowedRoles instanceof Collection) {
+            throw new \InvalidArgumentException('Allowed roles must be an array or a Collection.');
+        }
+
+        $permissions = $allowedRoles->flatMap(function ($role) {
+            return $role->permissions->pluck('name');
+        })->unique()->values()->all();
+
+        // dd($permissions);
+
+        return $this->getAllWithGroupsAndPermissions($permissions);
+    }
+
+
+    public function getAllWithGroupsAndPermissions(array|Collection $allowedPermissions): Collection
+    {
+        // Asegurar que los permisos estén en formato de array
+        if ($allowedPermissions instanceof Collection) {
+            $allowedPermissions = $allowedPermissions->all();
+        }
+
+        $tree = $this->all(); // Obtiene el árbol completo de rutas (ya jerarquizado)
+        //dd($this->filterTreeMixed($tree, $allowedPermissions));
+        return $this->filterTreeMixed($tree, $allowedPermissions);
+    }
+
+
+    protected function filterTreeMixed(array|Collection $nodes, array $allowedPermissions, ?string $activeRouteName = null): Collection
+    {
+        if ($activeRouteName === null) {
+            $activeRouteName = request()->route()?->getName();
+        }
+
+        $filtered = collect();
+
+        foreach ($nodes as $node) {
+            // Filtrar recursivamente los hijos
+            $children = $this->filterTreeMixed($node->getChildrens(), $allowedPermissions, $activeRouteName);
+
+            // Verifica si el nodo actual tiene permiso válido o no necesita permiso (public)
+            $hasValidPermission = !$node->isGroup && (
+                is_null($node->accessPermission) || in_array($node->accessPermission, $allowedPermissions)
+            );
+
+            // Si el nodo es grupo y tiene hijos, se le debe copiar el url y urlname del primer hijo
+            if ($node->isGroup && $children->isNotEmpty()) {
+                $firstChild = $children->first();
+                $node->setUrl($firstChild->url);
+                $node->urlName = $firstChild->urlName;
+            }
+
+            // Inicializa isActive como false
+            $node->isActive = false;
+
+            // Verifica si este nodo está activo por su propia ruta
+            if ($node->urlName === $activeRouteName) {
+                $node->isActive = true;
+            }
+
+            // Si algún hijo está activo, este nodo también se marca como activo
+            foreach ($children as $child) {
+                if ($child->isActive) {
+                    $node->isActive = true;
+                    break;
+                }
+            }
+
+            // Si tiene permiso válido o hijos válidos, se agrega al árbol filtrado
+            if ($hasValidPermission || $children->isNotEmpty()) {
+                // Limpiar hijos actuales
+                $node->setChildrens([]);
+
+                // Agregar hijos válidos
+                foreach ($children as $child) {
+                    $node->addChild($child);
+                }
+
+                $filtered->push($node);
+            }
+        }
+
+        return $filtered;
+    }
+
+
+
+    // esto solo filtra las rutas filtradas en una colleccion plana no el arbol
+    // no se si es posible reconstruir el arbol si se filtra primero 
+    // porque se perdera la referencia al padre en algunos casos.
+    public function getAllInRoleList(array|Collection $roles): Collection
+    {
+        $allFlattened = $this->getAllFlattenedRoutesGlobal();
+
+        // Aseguramos que $roles sea una colección para usar contains()
+        $roles = collect($roles);
+
+        $filtered = $allFlattened->filter(function (FpEntityInterface $entity) use ($roles) {
+            return $roles->contains($entity->accessRole);
+        });
+
+        return $filtered->values();
+    }
+
+    // lo mismo que el de roles pero con permisos.
+    public function getAllInPermissionList(array|Collection $permissions): Collection
+    {
+        $allFlattened = $this->getAllFlattenedRoutesGlobal();
+
+        // Aseguramos que $permissions sea una colección para usar contains()
+        $permissions = collect($permissions);
+
+        $filtered = $allFlattened->filter(function (FpEntityInterface $entity) use ($permissions) {
+            return $permissions->contains($entity->accessPermission);
+        });
+
+        return $filtered;
+    }
+
+    /**
+     * Get all routes in a flattened structure across all contexts.
+     *
+     * @return Collection
+     */
+    // Obtiene todas las rutas planas de todos los contextos o archivos o BD.
     public function getAllFlattenedRoutesGlobal(): ?Collection
     {
         if ($this->flattenedAllEntitys === null) {
@@ -347,6 +511,9 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         return $this->flattenedAllEntitys;
     }
 
+
+
+
     /**
      * Get the breadcrumbs for the entity. in the tree structure.
      *
@@ -356,7 +523,6 @@ abstract class BaseOrchestrator implements OrchestratorInterface
     {
         if ($entity instanceof FpEntityInterface)
             $id = $entity->getId();
-
 
         $flattened = $this->getAllFlattenedRoutesGlobal();
         $byId = $flattened->keyBy(fn($entity) => $entity->getId());
@@ -375,35 +541,9 @@ abstract class BaseOrchestrator implements OrchestratorInterface
 
         return collect($breadcrumb);
     }
-    /**
-     * Move the entity to a new parent.
-     *
-     * @return FpEntityInterface
-     */
-    public function moveTo(string|FpEntityInterface $parent): self
-    {
-        return $this;
-    }
 
 
-    /**
-     * Get the ID of the entity.
-     *
-     * @return string
-     */
-    public function getParent(): ?FpEntityInterface
-    {
-        if ($this->getParentId() === null) {
-            return null; // No tiene padre
-        }
 
-        $parent = $this->findById($this->getParentId());
-        if ($parent) {
-            return $parent;
-        }
-
-        throw new \RuntimeException("No se encontró un padre para la ruta: {$this->getParentId()}");
-    }
 
     /**
      * add a child to the current entity.
@@ -416,12 +556,17 @@ abstract class BaseOrchestrator implements OrchestratorInterface
     }
 
 
+
+
+    /**
+     * Rewrite all routes in all contexts.
+     *
+     * @return self
+     */
     public function rewriteAllContext(): self
     {
-        // Reescribe todos los contextos, si es necesario
-        foreach ($this->contexts as $context) {
+        foreach ($this->contexts as $context)
             $context->rewriteAllRoutes();
-        }
         return $this;
     }
 }

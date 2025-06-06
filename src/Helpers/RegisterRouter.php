@@ -36,8 +36,8 @@ class RegisterRouter
         $middleware = $route->urlMiddleware ?? [];
 
         // si existe el permiso de la ruta entonces se agrega al middleware
-        if ($route->permission)
-            $middleware[] = 'permission:' . $route->permission;
+        if ($route->accessPermission)
+            $middleware[] = 'permission:' . $route->accessPermission;
 
 
         // Ruta simple

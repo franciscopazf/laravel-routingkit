@@ -10,7 +10,10 @@ use Fp\FullRoute\Services\Route\RouteContext;
 
 class NavigatorOrchestrator extends BaseOrchestrator implements OrchestratorInterface
 {
+    
     protected static ?self $instance = null;
+
+    public $finalFlattenned = [];
 
     public static function make(): self
     {
@@ -58,4 +61,15 @@ class NavigatorOrchestrator extends BaseOrchestrator implements OrchestratorInte
         #dd($this->contexts);
         #dd("Rutas cargadas desde la configuración.");
     }
+
+    public function getAllOnlyRolHasPermissions($role): array
+    {
+
+    }
+
+    public function getAllInPermissionsList(array $permissions): array
+    {
+
+    }
+
 }

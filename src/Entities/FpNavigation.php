@@ -32,7 +32,7 @@ class FpNavigation extends FpBaseEntity
 
     public ?string $description = null;
 
-    public ?string $accesPermission = null;
+    public ?string $accessPermission = null;
 
     public ?string $label = null;
 
@@ -40,21 +40,36 @@ class FpNavigation extends FpBaseEntity
 
     public ?bool $isFpRoute = false;
 
+    public ?bool $isGroup = false;
+
+    public ?bool $isHidden = false;
+
+    public bool $isActive = false;
+
     public array|Collection $childrens = [];
 
     public string $endBlock;
 
-    private function __construct(string $id)
+
+
+    private function __construct(string $id, bool $isGroup = false)
     {
         $this->id = $id;
+        $this->isGroup = $isGroup; // Initialize isGroup with the provided value
         $this->entityId = $id; // Initialize entityId with the provided id
     }
 
 
     public static function make(string $id): self
     {
-        $instance = new self($id);
+        $instance = new self($id, $isGroup = false);
         return $instance;
+    }
+
+    public function setIsGroup(bool $isGroup = true): self
+    {
+        $this->isGroup = $isGroup;
+        return $this;
     }
 
     public function setIsFpRoute(bool $loadRoute = true): self
@@ -62,7 +77,7 @@ class FpNavigation extends FpBaseEntity
         $route = FpRoute::findById($this->entityId);
         if ($route) {
             $this->urlName = $route->getId();
-            $this->accesPermission= $route->getPermission();
+            $this->accessPermission = $route->getAccessPermission();
             $this->url = $route->getUrl();
         } else {
             throw new \InvalidArgumentException("Route not found for ID: " . $this->id);

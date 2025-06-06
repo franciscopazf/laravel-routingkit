@@ -56,11 +56,11 @@ class PermissionCreator
                     $permissions = Permission::whereIn('name', $permList)
                         ->get();
                     // agregar a permissions el rol de acceso a la ruta o el permission individual
-                    $permissions->push(Permission::firstOrCreate(['name' => $route->getPermission()]));
+                    $permissions->push(Permission::firstOrCreate(['name' => $route->getAccessPermission()]));
 
                     ///dd($permissions);
                 } else {
-                    #echo "||| Processing role: {$permList} with permissions: " . implode(', ', $route->getPermissions()) . "\n";
+                    #echo "||| Processing role: {$permList} with permissions: " . implode(', ', $route->getAccessPermissions()) . "\n";
                     // formato: 'user' (sin array)
                     $role = Role::where('name', $permList)
                         ->first();
