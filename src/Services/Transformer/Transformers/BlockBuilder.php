@@ -116,11 +116,11 @@ class BlockBuilder
         $code = "$classPattern::make('{$id}')\n";
 
         // Filtrar las propiedades que no deben procesarse
-        $filtered = $props->reject(function ($value, $key) use ($setParent) {
+        $filtered = $props->reject(function ($value, $key) use ($setParent, $entity) {
             return $key === 'id'
                 || $value === null
                 || (is_array($value) && empty($value) && $key !== 'childrens')
-                || in_array($key, ['endBlock', 'level', 'parent', 'childrens']);
+                || in_array($key, $entity->getOmmittedAttributes());
             #  || ($key === 'parentId' && $setParent);
         });
 

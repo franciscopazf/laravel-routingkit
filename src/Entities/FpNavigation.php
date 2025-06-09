@@ -66,6 +66,17 @@ class FpNavigation extends FpBaseEntity
         return $instance;
     }
 
+    public function getOmmittedAttributes(): array
+    {
+        return [
+            'id',
+            'urlName',
+            'childrens',
+            'endBlock',
+            'level',
+        ];
+    }
+
     public function setIsGroup(bool $isGroup = true): self
     {
         $this->isGroup = $isGroup;

@@ -39,20 +39,16 @@ class FullRouteInteractive
             
         }
 
+      //  convertir el id a minúsculas
+        $idMinusculas = strtolower($id);
+
         // Crear ruta
         $ruta = FullRoute::make($id)
-            ->setPermission($datos['permission'] ?? text('🔐 Permiso de la ruta'))
-            ->setTitle($datos['title'] ?? text('📌 Título de la ruta'))
-            ->setDescription($datos['description'] ?? text('📝 Descripción de la ruta'))
-            ->setKeywords($datos['keywords'] ?? text('🔑 Palabras clave (separadas por comas)'))
-            ->setIcon($datos['icon'] ?? text('🎨 Icono de la ruta'))
-            ->setUrl($datos['url'] ?? text('🔗 URL de la ruta'))
-            ->setUrlName($datos['url_name'] ?? text('🧩 Nombre de la URL'))
+            ->setAccessPermission($datos['permission'] ?? 'acceder-' . $idMinusculas)
             ->setUrlMethod($datos['method'] ?? select('📥 Método HTTP', ['GET', 'POST', 'PUT', 'DELETE']))
             ->setUrlController($datos['controller'] ?? text('🏗️ Controlador de la ruta'))
             ->setUrlAction($datos['action'] ?? text('⚙️ Acción del controlador'))
             ->setRoles($datos['roles'] ?? multiselect('👥 Roles permitidos', config('fproute.roles')))
-            ->setChildrens([])
             ->setEndBlock($id);
 
         $parent = $datos['parent'] ?? FullRoute::seleccionar(label: '📁 Selecciona la ruta padre');

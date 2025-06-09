@@ -72,6 +72,10 @@ abstract class FpBaseEntity implements FpEntityInterface
     abstract public static function getOrchestrator(): OrchestratorInterface;
 
 
+    abstract public function getOmmittedAttributes(): array;
+
+
+
 
     public function setId(string $id): static
     {

@@ -38,6 +38,17 @@ class FpRoute extends FpBaseEntity
         return $instance;
     }
 
+    public function getOmmittedAttributes(): array
+    {
+        return [
+            'id',
+            'urlName',
+            'childrens',
+            'endBlock',
+            'level'
+        ];
+    }
+
     public function setPermission($permission): self
     {
         // Si es un Closure, lo ejecutamos para obtener el string
@@ -54,7 +65,7 @@ class FpRoute extends FpBaseEntity
 
     public function getAllPermissions(): array
     {
-       // dd('getAllPermissions', $this->accessPermission, $this->permissions);
+        // dd('getAllPermissions', $this->accessPermission, $this->permissions);
         return array_filter(
             array_merge([$this->accessPermission], $this->permissions),
             fn($permission) => trim($permission) !== ''

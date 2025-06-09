@@ -52,7 +52,7 @@ class TreeNavigator
 
             foreach ($hijos as $child) {
                 if ($child->id === $omitId) continue;
-                $opciones[$child->id] = '📁 ' . $child->title;
+                $opciones[$child->id] = '📁 ' . $child->id;
             }
 
             $opciones['__seleccionar__'] = '✅ Seleccionar esta ruta';
@@ -63,7 +63,7 @@ class TreeNavigator
         } else {
             foreach ($rutas as $ruta) {
                 if ($ruta->id === $omitId) continue;
-                $opciones[$ruta->id] = '📁 ' . $ruta->title;
+                $opciones[$ruta->id] = '📁 ' . $ruta->id;
             }
 
             $opciones['__seleccionar__'] = '✅ Seleccionar una ruta raíz';
@@ -71,8 +71,8 @@ class TreeNavigator
         }
 
         $breadcrumb = collect($pila)
-            ->pluck('title')
-            ->push(optional($nodoActual)->title)
+            ->pluck('id')
+            ->push(optional($nodoActual)->id)
             ->filter()
             ->implode(' > ');
 
