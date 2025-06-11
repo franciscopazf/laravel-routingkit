@@ -2,6 +2,7 @@
 
 namespace Fp\FullRoute\Entities;
 
+use Fp\FullRoute\Contracts\FpEntityInterface;
 use Fp\FullRoute\Contracts\OrchestratorInterface;
 use Fp\FullRoute\Helpers\RegisterRouter;
 use Fp\FullRoute\Services\Navigator\Navigator;
@@ -15,11 +16,13 @@ class FpRoute extends FpBaseEntity
 
     public ?string $parentId = null;
 
-    public $url;
-    public $urlName;
-    public $urlMethod;
+    public $url;  // omit if is same as id
+    public $urlName; // omit if is same as id
+    public $urlMethod; // omit if is GET
     public $urlController;
     public $urlAction;
+
+    public bool $isGroup = false;
 
     public $urlMiddleware = [];
     public ?string $accessPermission = null;
@@ -38,14 +41,41 @@ class FpRoute extends FpBaseEntity
         return $instance;
     }
 
+    public static function makeGroup(string $id): FpEntityInterface
+    {
+        $instance = new static($id);
+        $instance->id = $id;
+        $instance->url = null; // No URL for groups
+        $instance->urlName = null; // No URL name for groups
+        $instance->urlMethod = null; // No method for groups
+        $instance->urlController = null; // No controller for groups
+        $instance->urlAction = null; // No action for groups
+        $instance->isGroup = true;
+        
+        $instance->makerMethod = 'makeGroup';
+        return $instance;
+    }
+
     public function getOmmittedAttributes(): array
     {
         return [
-            'id',
-            'urlName',
-            'childrens',
-            'endBlock',
-            'level'
+            'id' => ['omit'],
+
+            'url' => ['same:id'],
+            'urlName' => ['same:id'],
+
+            'makerMethod' => ['omit'],
+            'level' => ['omit'],
+
+            'roles' => ['minElements:1'],
+            'urlMiddleware' => ['minElements:1'],
+            'permissions' => ['minElements:1'],
+
+            'isGroup' => ['omit'],
+
+
+            'childrens' => ['omit'],
+            'endBlock' => ['omit'],
         ];
     }
 

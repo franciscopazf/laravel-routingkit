@@ -41,13 +41,15 @@ class RegisterRouter
 
 
         // Ruta simple
-        Route::match(
-            [$method],
-            $url,
-            $isLivewire ? $route->urlController :
-                [$route->urlController, $route->urlAction]
-        )->name($route->id)
-            ->middleware($middleware);
+        if (!$route->isGroup) {
+            Route::match(
+                [$method],
+                $url,
+                $isLivewire ? $route->urlController :
+                    [$route->urlController, $route->urlAction]
+            )->name($route->id)
+                ->middleware($middleware);
+        }
 
 
         // Registrar rutas hijas dentro del grupo con middleware del padre
@@ -58,4 +60,6 @@ class RegisterRouter
                         static::registerFullRoute($childRoute);
             });
     }
+
+
 }

@@ -66,7 +66,7 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         // dd($context->getAllRoutes());
         // Actualizar el índice de rutas
         $this->entityMap[$new->getId()] = $context;
-
+        //dd($this->entityMap);
         return $new;
     }
 

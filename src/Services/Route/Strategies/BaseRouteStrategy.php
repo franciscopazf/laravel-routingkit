@@ -96,6 +96,11 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             $routes->push($route); // Agrega al nivel raíz si no se especifica padre
         $updatedRoutes = $routes;
 
+        $this->treeEntitys = $updatedRoutes; // Actualiza el árbol de rutas
+
+        // agregar la nueva ruta a la colección de rutas aplanadas
+        $this->flattenedEntitys[$route->getId()] = $route;
+
         $this->transformer
             ->setCollectionRoutes($updatedRoutes)
             ->transformAndWrite();

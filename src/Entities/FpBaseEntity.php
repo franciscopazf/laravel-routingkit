@@ -28,6 +28,8 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public string $id;
 
+    public string $makerMethod = 'make';
+
     /**
      * Level of the entity in the hierarchy.
      *
@@ -44,9 +46,10 @@ abstract class FpBaseEntity implements FpEntityInterface
 
     public ?string $accesPermission = null;
 
-    public function __construct(string $id)
+    public function __construct(string $id, ?string $makerMethod = "make")
     {
         $this->id = $id;
+        $this->makerMethod = $makerMethod;
     }
 
     // CRUD Methods
@@ -58,8 +61,13 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function make(string $id): FpEntityInterface
     {
-        //echo "Creating entity with ID: $id\n";
-        return new static($id);
+        return new static($id, "make");
+    }
+
+    
+    public static function makeGroup(string $id): FpEntityInterface
+    {
+        return new static($id, "makeGroup");
     }
 
 

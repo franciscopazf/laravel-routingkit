@@ -9,20 +9,25 @@ use Fp\FullRoute\Traits\HasDynamicAccessors;
 use Fp\FullRoute\Contracts\OrchestratorInterface;
 use Fp\FullRoute\Services\Route\Orchestrator\NavigatorOrchestrator;
 use Fp\FullRoute\Services\Route\Orchestrator\RouteOrchestrator;
+use Fp\FullRoute\Services\Navigator\Navigator;
 
 use Illuminate\Support\Collection;
+
+use Illuminate\Support\Facades\Route; // ¡Importante!
+
 
 class FpNavigation extends FpBaseEntity
 {
     use HasDynamicAccessors;
+
     /**
      * @var string
      */
-    protected string $entityId;
-
-    //public ?FpRoute $entity = null;
-
     public string $id;
+
+    public string $makerMethod = 'make';
+
+    public ?string $fpRouteId = null;
 
     public ?string $parentId = null;
 
@@ -46,34 +51,105 @@ class FpNavigation extends FpBaseEntity
 
     public bool $isActive = false;
 
+
     public array|Collection $childrens = [];
 
-    public string $endBlock;
+    public ?string $endBlock = null;
 
-
-
-    private function __construct(string $id, bool $isGroup = false)
+    private function __construct(string $id, ?string $fpRouteId = null)
     {
         $this->id = $id;
-        $this->isGroup = $isGroup; // Initialize isGroup with the provided value
-        $this->entityId = $id; // Initialize entityId with the provided id
+        $this->fpRouteId = $fpRouteId ?? $id; // Default to id if fpRouteId is not provided
+        $this->isGroup = false; // Default to false, can be set later
+        $this->loadData();
+    }
+
+    public static function make(string $id, ?string $fpRouteId = null): self
+    {
+        $instance = new self($id,  fpRouteId: $fpRouteId);
+        return $instance;
+    }
+
+    public static function makeGroup(string $id): self
+    {
+        $instance = new self($id);
+        $instance->makerMethod = 'makeGroup';
+        $instance->isGroup = true; // Set as a group
+        return $instance;
+    }
+
+    public static function makeSimple(string $id): self
+    {
+        $instance = new self($id);
+        $instance->makerMethod = 'makeSimple';
+        return $instance;
+    }
+
+    public function loadData(): self
+    {
+        if (FpRoute::exists($this->fpRouteId)) {
+            $this->loadFromFpRoute();
+        } else if (Route::has($this->id)) {
+            $this->loadFromSimpleRoute();
+        } else {
+            $this->urlName = $this->id; // Use the ID as the URL name
+            $this->url = url($this->id); // Generate URL from ID
+            $this->label = $this->id; // Use the ID as the label
+            $this->accessPermission = null; // No access permission for simple routes
+            $this->isFpRoute = false;
+        }
+
+        return $this;
     }
 
 
-    public static function make(string $id): self
+    public function loadFromSimpleRoute(): self
     {
-        $instance = new self($id, $isGroup = false);
-        return $instance;
+        $this->urlName = $this->id; // Use the ID as the URL name
+        $this->url = parse_url(url($this->urlName), PHP_URL_PATH);
+        $this->label = $this->id;
+        $this->accessPermission = null; // No access permission for simple routes
+
+        return $this;
+    }
+
+
+    public function loadFromFpRoute(): self
+    {
+
+        $route = FpRoute::findById($this->fpRouteId);
+
+        if (!$route)
+            throw new \InvalidArgumentException("Route not found for entity ID: {$this->fpRouteId}");
+
+        $this->urlName = $route->getId();
+        $this->accessPermission = $route->getAccessPermission();
+        $this->url = $route->getUrl();
+        $this->label = $route->getId();
+
+        return $this;
     }
 
     public function getOmmittedAttributes(): array
     {
         return [
-            'id',
-            'urlName',
-            'childrens',
-            'endBlock',
-            'level',
+            'id' => ['omit'],
+            'fpRouteId' => ['omit'],//['same:id', 'isTrue:isFpRoute'],
+            'url' => ['same:FpRoute().url', 'isTrue:isGroup'],
+
+            'makerMethod' => ['omit'],
+            'urlName' => ['same:fpRouteId'],
+            'accessPermission' => ['same:FpRoute().accessPermission'],
+            'label' => ['same:fpRouteId'],
+
+            'isFpRoute' => ['omit'],
+            'isGroup' => ['omit'],
+            'isHidden' => ['omit:false'],
+
+            'isActive' => ['omit'],
+            'childrens' => ['omit'],
+            'endBlock' => ['omit'],
+            'level' => ['omit'],
         ];
     }
 
@@ -83,33 +159,20 @@ class FpNavigation extends FpBaseEntity
         return $this;
     }
 
-    public function setIsFpRoute(bool $loadRoute = true): self
+    public function setFpRouteId(string $fpRouteId): self
     {
-        $route = FpRoute::findById($this->entityId);
-        if ($route) {
-            $this->urlName = $route->getId();
-            $this->accessPermission = $route->getAccessPermission();
-            $this->url = $route->getUrl();
-        } else {
-            throw new \InvalidArgumentException("Route not found for ID: " . $this->id);
-        }
-
+        $this->fpRouteId = $fpRouteId;
+        $this->loadFromFpRoute();
         return $this;
     }
 
-
-    public function setEntityId(String|FpRoute $entityId): self
+    public function FpRoute(): ?FpEntityInterface
     {
-        if (is_string($entityId)) {
-            $this->entityId = $entityId;
-        } else if ($entityId instanceof FpRoute) {
-            $this->entityId = $entityId->getId();
-        } else {
-            throw new \InvalidArgumentException("Entity ID must be a string or an instance of FpRoute.");
+        if (FpRoute::exists($this->fpRouteId)) {
+            return FpRoute::findById($this->fpRouteId);
         }
-        return $this;
+        return null;
     }
-
 
     public static function getOrchestrator(): OrchestratorInterface
     {
@@ -118,7 +181,7 @@ class FpNavigation extends FpBaseEntity
 
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
-        return ""; // Implementación pendiente
-
+        return Navigator::make()
+            ->treeNavigator(FpNavigation::all());
     }
 }

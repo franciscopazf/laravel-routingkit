@@ -30,16 +30,15 @@ class FullRouteInteractive
         } while (FullRoute::exists($id));
 
         // si $datos['controller'] es null entonces se debe obtener de la ruta actual
-        if (!isset($datos['controller']) ) {
-        
+        if (!isset($datos['controller'])) {
+
             $dataControlador = Navigator::make()
                 ->getControllerRouteParams();
             $datos['controller'] =   $dataControlador->controller;
             $datos['action'] =  $dataControlador->action;
-            
         }
 
-      //  convertir el id a minúsculas
+        //  convertir el id a minúsculas
         $idMinusculas = strtolower($id);
 
         // Crear ruta
@@ -54,6 +53,17 @@ class FullRouteInteractive
         $parent = $datos['parent'] ?? FullRoute::seleccionar(label: '📁 Selecciona la ruta padre');
         $this->confirmar("⚠️ ¿Estás seguro de que deseas crear la ruta con ID '{$id}'?");
         $ruta->save(parent: $parent);
+
+       $nueva =  FullRoute::findById($id);
+       //     dd($nueva);
+
+        // preguntar si se desea agregar una navegacion para la ruta recien creada
+        $agregarNavegacion = confirm("🧭 ¿Deseas agregar una navegación para la ruta '{$id}'?", default: true)
+            ? FpNavigationInteractive::make()->crear([
+                'id' => $id,
+            ])
+            : null;
+
         $this->info("✅ Ruta con ID '{$id}' creada correctamente.");
     }
 
@@ -62,7 +72,7 @@ class FullRouteInteractive
     {
         $id = $id ?? FullRoute::seleccionar(label: '🗑️ Selecciona la ruta a eliminar');
         $ruta = FullRoute::findById($id);
-      
+
         if (!$ruta) {
             return $this->error("❌ No se encontró la ruta con ID '{$id}'.");
         }

@@ -4,7 +4,9 @@ namespace Fp\FullRoute;
 
 use Illuminate\Support\ServiceProvider;
 use Fp\FullRoute\Commands\FpRouteCommand;
+use Fp\FullRoute\Commands\FpNavigationCommand;
 use Fp\FullRoute\Commands\FpAcces;
+use Fp\FullRoute\Entities\FpNavigation;
 
 class FullRouteServiceProvider extends ServiceProvider
 {
@@ -18,6 +20,7 @@ class FullRouteServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 FpRouteCommand::class,
+                FpNavigationCommand::class,
                 FpAcces::class,
             ]);
         }
