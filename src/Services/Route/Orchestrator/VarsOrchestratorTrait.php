@@ -53,6 +53,29 @@ trait VarsOrchestratorTrait
 
         // Primero clonamos todas las entidades
         foreach ($flat as $entity) {
+            //echo "Clonando entidad: " . $entity->getId() . $entity->getMakerMethod() . "\n";
+            if ($entity->getMakerMethod() === 'makeSelf') {
+                $originalId = $entity->getId();
+                $sourceEntity = $this->findById($entity->getInstanceRouteId());
+
+                if (!$sourceEntity) {
+                    throw new \Exception("Entidad base no encontrada.");
+                }
+
+                $clonedEntity = clone $sourceEntity;
+
+                // Si usas Doctrine, nunca deberías reutilizar el mismo ID
+                // pero si es obligatorio por alguna razón, asegúrate de hacer esto con cuidado
+                $clonedEntity->setId($originalId); // ⚠️ Riesgoso si el ID es autogenerado
+
+                // Si quieres persistir el clon en lugar del original:
+                $entity = $clonedEntity;
+
+                // Asegúrate de persistirlo si es necesario
+                // $entityManager->persist($entity);  <-- descomenta si corresponde
+            }
+
+
             $cloned->put($entity->getId(), clone $entity);
         }
 

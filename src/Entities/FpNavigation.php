@@ -27,7 +27,7 @@ class FpNavigation extends FpBaseEntity
 
     public string $makerMethod = 'make';
 
-    public ?string $fpRouteId = null;
+    public ?string $instanceRouteId = null;
 
     public ?string $parentId = null;
 
@@ -56,17 +56,34 @@ class FpNavigation extends FpBaseEntity
 
     public ?string $endBlock = null;
 
-    private function __construct(string $id, ?string $fpRouteId = null)
+    private function __construct(string $id, ?string $instanceRouteId = null)
     {
         $this->id = $id;
-        $this->fpRouteId = $fpRouteId ?? $id; // Default to id if fpRouteId is not provided
-        $this->isGroup = false; // Default to false, can be set later
-        $this->loadData();
+        $this->label = $id; // Default label to id
+        $this->instanceRouteId = $instanceRouteId ?? $id; // Default to id if instanceRouteId is not provided
+        //$this->loadData();
     }
 
-    public static function make(string $id, ?string $fpRouteId = null): self
+    public static function make(string $id, ?string $instanceRouteId = null): self
     {
-        $instance = new self($id,  fpRouteId: $fpRouteId);
+        $instance = new self($id,  instanceRouteId: $instanceRouteId);
+        $instance->loadFromFpRoute();
+        $instance->makerMethod = 'make';
+        return $instance;
+    }
+
+    public static function makeSelf(string $id, string $instanceRouteId): self
+    {
+        $instance = new self($id,  instanceRouteId: $instanceRouteId);
+        $instance->makerMethod = 'makeSelf';
+        return $instance;
+    }
+
+    public static function makeSimple(string $id, ?string $instanceRouteId = null): self
+    {
+        $instance = new self($id,  instanceRouteId: $instanceRouteId);
+        $instance->makerMethod = 'makeSimple';
+        $instance->loadFromSimpleRoute();
         return $instance;
     }
 
@@ -78,16 +95,17 @@ class FpNavigation extends FpBaseEntity
         return $instance;
     }
 
-    public static function makeSimple(string $id): self
+    public static function makeLink(string $id): self
     {
         $instance = new self($id);
-        $instance->makerMethod = 'makeSimple';
+        $instance->makerMethod = 'makeLink';
         return $instance;
     }
 
+    
     public function loadData(): self
     {
-        if (FpRoute::exists($this->fpRouteId)) {
+        if (FpRoute::exists($this->instanceRouteId)) {
             $this->loadFromFpRoute();
         } else if (Route::has($this->id)) {
             $this->loadFromSimpleRoute();
@@ -105,7 +123,7 @@ class FpNavigation extends FpBaseEntity
 
     public function loadFromSimpleRoute(): self
     {
-        $this->urlName = $this->id; // Use the ID as the URL name
+        $this->urlName = $this->instanceRouteId ?? $this->id; // Use instanceRouteId if provided, otherwise use id
         $this->url = parse_url(url($this->urlName), PHP_URL_PATH);
         $this->label = $this->id;
         $this->accessPermission = null; // No access permission for simple routes
@@ -117,10 +135,10 @@ class FpNavigation extends FpBaseEntity
     public function loadFromFpRoute(): self
     {
 
-        $route = FpRoute::findById($this->fpRouteId);
+        $route = FpRoute::findById($this->instanceRouteId);
 
         if (!$route)
-            throw new \InvalidArgumentException("Route not found for entity ID: {$this->fpRouteId}");
+            throw new \InvalidArgumentException("Route not found for entity ID: {$this->instanceRouteId}");
 
         $this->urlName = $route->getId();
         $this->accessPermission = $route->getAccessPermission();
@@ -134,13 +152,13 @@ class FpNavigation extends FpBaseEntity
     {
         return [
             'id' => ['omit'],
-            'fpRouteId' => ['omit'],//['same:id', 'isTrue:isFpRoute'],
+            'instanceRouteId' => ['omit'], //['same:id', 'isTrue:isFpRoute'],
             'url' => ['same:FpRoute().url', 'isTrue:isGroup'],
 
             'makerMethod' => ['omit'],
-            'urlName' => ['same:fpRouteId'],
+            'urlName' => ['same:instanceRouteId'],
             'accessPermission' => ['same:FpRoute().accessPermission'],
-            'label' => ['same:fpRouteId'],
+            'label' => ['same:instanceRouteId'],
 
             'isFpRoute' => ['omit'],
             'isGroup' => ['omit'],
@@ -159,17 +177,17 @@ class FpNavigation extends FpBaseEntity
         return $this;
     }
 
-    public function setFpRouteId(string $fpRouteId): self
+    public function setinstanceRouteId(string $instanceRouteId): self
     {
-        $this->fpRouteId = $fpRouteId;
+        $this->instanceRouteId = $instanceRouteId;
         $this->loadFromFpRoute();
         return $this;
     }
 
     public function FpRoute(): ?FpEntityInterface
     {
-        if (FpRoute::exists($this->fpRouteId)) {
-            return FpRoute::findById($this->fpRouteId);
+        if (FpRoute::exists($this->instanceRouteId)) {
+            return FpRoute::findById($this->instanceRouteId);
         }
         return null;
     }
