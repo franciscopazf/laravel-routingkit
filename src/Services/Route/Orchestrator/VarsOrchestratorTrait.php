@@ -283,7 +283,7 @@ trait VarsOrchestratorTrait
 
     protected function isNodeActive($node, ?string $activeRouteName, Collection $children): bool
     {
-        if ($node->urlName === $activeRouteName) {
+        if ($node->id === $activeRouteName) {
             return true;
         }
 

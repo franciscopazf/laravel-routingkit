@@ -6,13 +6,10 @@ use Fp\FullRoute\Contracts\FpEntityInterface;
 use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
 
 use Illuminate\Support\Collection;
-
-
 use Illuminate\Support\Str;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionParameter;
-
 
 class BlockBuilder
 {
@@ -104,24 +101,27 @@ class BlockBuilder
     private function getBlockFromFile(FpEntityInterface $entity): string
     {
         $file = $this->manager->getContentsString();
+        // Usamos getBlockPattern para la búsqueda
         $pattern = $this->getBlockPattern($entity);
 
-        if (!preg_match($pattern, $file, $matches))
+        if (!preg_match($pattern, $file, $matches)) {
+            echo "\n " . $pattern;
+            echo "\nNo se encontró el bloque para la entidad: " . $entity->getId();
             return $this->rebuildRouteContent($entity);
+        }
 
         return $matches[0];
     }
 
-
-
-
     private function rebuildRouteContent(FpEntityInterface $entity, bool $setParent = false): string
     {
         $props = collect($entity->getProperties());
-        $classPattern =  (new ReflectionClass($entity))->getShortName();
+        // Usamos getMakerCallLiteral para la creación de la cadena literal
+        $code = $this->getMakerCallLiteral($entity) . "\n";
 
-        $code = $this->getMakerPattern($entity) . "\n";
-
+        // Asegúrate de que AttributeOmitter esté definido o incluido si es una clase externa.
+        // Si no está definido, esto causará un error fatal.
+        // Por ahora, asumiré que AttributeOmitter existe y es accesible.
         $validator = AttributeOmitter::make(object: $entity);
         $filtered = $props->reject(function ($value, $key) use ($validator) {
             // Puedes añadir lógica adicional aquí para omitir las propiedades que ya se usaron
@@ -150,12 +150,13 @@ class BlockBuilder
 
     /**
      * Genera dinámicamente la llamada al método 'make' con sus parámetros,
-     * enfocándose en agregar un máximo de dos parámetros distintos.
+     * para ser insertada como código literal en un archivo.
+     * Enfocándose en agregar un máximo de dos parámetros.
      *
      * @param FpEntityInterface $entity La entidad de la cual se obtendrán las propiedades y la clase.
-     * @return string La cadena de código para el método 'make'.
+     * @return string La cadena de código literal para el método 'make'.
      */
-    public function getMakerPattern(FpEntityInterface $entity): string
+    public function getMakerCallLiteral(FpEntityInterface $entity): string
     {
         $reflectionClass = new ReflectionClass($entity);
         $className = $reflectionClass->getShortName();
@@ -171,37 +172,126 @@ class BlockBuilder
 
         $props = collect($entity->getProperties());
         $args = [];
-        $addedParameters = []; // Para llevar un registro de los parámetros ya agregados
+        $addedParameters = [];
 
         foreach ($parameters as $parameter) {
             $paramName = $parameter->getName();
             $paramValue = $props->get($paramName);
 
-            // Formatear el valor
             $formattedValue = match (true) {
                 is_string($paramValue) => "'{$paramValue}'",
                 is_array($paramValue)  => $this->exportArray($paramValue),
                 is_bool($paramValue)   => $paramValue ? 'true' : 'false',
                 is_numeric($paramValue) => (string) $paramValue,
                 $paramValue === null && $parameter->isOptional() && $parameter->isDefaultValueAvailable() => (string) $parameter->getDefaultValue(),
-                $paramValue === null => 'null', // Manejar explícitamente los nulls si no tienen valor por defecto
+                $paramValue === null => 'null',
                 default => '',
             };
 
-            // Lógica para agregar solo dos parámetros distintos
             if (count($addedParameters) < 2) {
-                if (!in_array($formattedValue, $addedParameters) || $formattedValue === 'null') { // Permitir agregar 'null' siempre, o podrías ajustarlo
+                if (!in_array($formattedValue, $addedParameters) || $formattedValue === 'null') {
                     $args[] = $formattedValue;
                     $addedParameters[] = $formattedValue;
                 }
             } else {
-                // Si ya tenemos dos parámetros distintos, salimos del bucle.
-                // Si el método 'make' tiene más de 2 parámetros, los demás se ignorarán.
                 break;
             }
         }
 
+        // Formato limpio con un espacio después de la coma
         return "$className::$makerMethodName(" . implode(', ', $args) . ")";
+    }
+
+
+    /**
+     * Genera dinámicamente el patrón de expresión regular para la llamada al método 'make'.
+     *
+     * - Si el método tiene 0 o 1 parámetro, genera el patrón correspondiente.
+     * - Si tiene 2 o más parámetros Y TODOS son iguales, genera un patrón como si solo hubiera uno.
+     * - Si tiene 2 o más parámetros Y SON DISTINTOS, genera un patrón con los primeros dos parámetros.
+     *
+     * @param FpEntityInterface $entity La entidad de la cual se obtendrán las propiedades y la clase.
+     * @return string El patrón regex para la llamada al método 'make'.
+     */
+    public function getMakerPattern(FpEntityInterface $entity): string
+    {
+        $reflectionClass = new ReflectionClass($entity);
+        $className = $reflectionClass->getShortName();
+        $makerMethodName = $entity->getProperties()['makerMethod'] ?? 'make';
+
+        // Escapamos el nombre de la clase y el método para regex
+        $escapedClassName = preg_quote($className, '/');
+        $escapedMakerMethodName = preg_quote($makerMethodName, '/');
+
+        // Caso especial si el método 'make' no existe en la clase
+        if (!$reflectionClass->hasMethod($makerMethodName)) {
+            $id = $entity->getProperties()['id'] ?? 'undefined';
+            $escapedId = preg_quote($id, '/');
+            return "$escapedClassName\\s*::\\s*$escapedMakerMethodName\\s*\\(\\s*'{$escapedId}'\\s*\\)";
+        }
+
+        $reflectionMethod = $reflectionClass->getMethod($makerMethodName);
+        $parameters = $reflectionMethod->getParameters();
+        $props = collect($entity->getProperties());
+
+        // 1. Recolectamos los patrones de TODOS los argumentos disponibles
+        $allArgPatterns = [];
+        foreach ($parameters as $parameter) {
+            $paramName = $parameter->getName();
+            $paramValue = $props->get($paramName);
+            $formattedPattern = '';
+
+            switch (true) {
+                case is_string($paramValue):
+                    $formattedPattern = "'" . preg_quote($paramValue, '/') . "'";
+                    break;
+                case is_array($paramValue):
+                    $exportedArray = $this->exportArray($paramValue);
+                    $formattedPattern = preg_quote($exportedArray, '/');
+                    break;
+                case is_bool($paramValue):
+                    $formattedPattern = $paramValue ? 'true' : 'false';
+                    break;
+                case is_numeric($paramValue):
+                    $formattedPattern = (string)$paramValue;
+                    break;
+                case $paramValue === null && $parameter->isOptional() && $parameter->isDefaultValueAvailable():
+                    $formattedPattern = preg_quote((string)$parameter->getDefaultValue(), '/');
+                    break;
+                case $paramValue === null:
+                    $formattedPattern = 'null';
+                    break;
+            }
+
+            if ($formattedPattern !== '') {
+                $allArgPatterns[] = $formattedPattern;
+            }
+        }
+
+        // 2. Aplicamos la lógica de filtrado según las nuevas reglas
+        $finalArgPatterns = [];
+        $numArgs = count($allArgPatterns);
+
+        if ($numArgs >= 2) {
+            // Hay dos o más parámetros
+            $uniqueArgs = array_unique($allArgPatterns);
+            if (count($uniqueArgs) === 1) {
+                // Si TODOS los parámetros son iguales, tomamos solo el primero.
+                $finalArgPatterns = [$allArgPatterns[0]];
+            } else {
+                // Si son distintos, tomamos los primeros dos (comportamiento anterior).
+                $finalArgPatterns = array_slice($allArgPatterns, 0, 2);
+            }
+        } else {
+            // Si hay 0 o 1 parámetro, simplemente los usamos todos.
+            $finalArgPatterns = $allArgPatterns;
+        }
+
+        // 3. Construimos el string final de argumentos
+        $argsString = implode('\\s*,\\s*', $finalArgPatterns);
+
+        // Retornamos el patrón completo
+        return "$escapedClassName\\s*::\\s*$escapedMakerMethodName\\s*\\(\\s*$argsString\\s*\\)";
     }
 
 
@@ -236,7 +326,6 @@ class BlockBuilder
         return '[' . implode(', ', $items) . ']';
     }
 
-
     public function getHeaderBlock(): string
     {
         $file =  $this->manager->getContentsString();
@@ -261,23 +350,26 @@ class BlockBuilder
     {
         return '/
         ->setChildrens\((.*?)\)                     # Grupo 1: contenido dentro del setChildrens(...)
-        \s*                                         # posibles espacios o saltos de línea
+        \s* # posibles espacios o saltos de línea
         ->setEndBlock\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
         /sx'; // ⚠️ 's' para que el punto incluya saltos de línea, 'x' para comentarios legibles
     }
 
-    // funcion que recive un parametro un string y 
+    // funcion que recive un parametro un string y
     // retorna el patron que permite buscar rutas
     // en el archivo de rutas.
     private function getBlockPattern(FpEntityInterface $entity): string
     {
-
         $entityId = $entity->getId();
-        $shortClass = (new \ReflectionClass($entity))->getShortName(); // Solo "FpRoute"
-        $makerMethod = $entity->getMakerMethod() ?? 'make';
+        // Genera el patrón regex de la llamada al método 'make' usando getMakerPattern
+        $makerCallPattern = $this->getMakerPattern($entity);
+
+        // ¡Importante!: No se necesita preg_quote aquí, ya que getMakerPattern
+        // ya devuelve un patrón escapado para regex.
+        // $escapedMakerCallPattern = preg_quote($makerCallPattern, '/'); // <-- ELIMINADO
 
         return '/
-        ' . preg_quote($shortClass, '/') . '::' . $makerMethod . '\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)  # Class::make()
+        ' . $makerCallPattern . '  # Class::make() (ya es un patrón regex flexible)
         .*?
         ->setEndBlock\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)
     /sx';
