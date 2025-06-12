@@ -3,62 +3,83 @@
 namespace Fp\FullRoute\Services\Route\Orchestrator;
 
 use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Services\Route\Orchestrator\BaseOrchestrator;
+use Fp\FullRoute\Contracts\RouteStrategyInterface; // Usar el contrato RouteStrategyInterface directamente
 use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
-use Fp\FullRoute\Services\Route\RouteContext;
-
+// Si RouteContext es tu implementación concreta de RouteStrategyInterface, y no otra interfaz:
+// use Fp\FullRoute\Services\Route\RouteContext;
+use RuntimeException;
 
 class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterface
 {
-
     protected static ?self $instance = null;
 
+    /**
+     * Implementación del patrón Singleton para el NavigatorOrchestrator.
+     * @return self
+     */
     public static function make(): self
     {
         if (self::$instance === null) {
-            self::$instance = new self(); // método que carga rutas desde archivos, por ejemplo
+            self::$instance = new self();
         }
-
         return self::$instance;
     }
 
-    public function prepareContext(array $contextData): mixed
+    /**
+     * Implementa el método abstracto de BaseOrchestrator.
+     * Define la ruta de configuración específica para los contextos de NavigatorOrchestrator.
+     * @return string
+     */
+    protected function getContextsConfigPath(): string
     {
-        // Crear un nuevo contexto con la estrategia adecuada
-        $context = RouteStrategyFactory::make(
-            $contextData['support_file'],
-            $contextData['path'],
-            $contextData['only_string_support'] ?? true
-        );
-
-        // Devolver el contexto creado
-        return $context;
+        return 'fproute.routes_file_path.items'; // La ruta a tu array de configuraciones de contextos
     }
 
-    public function getDefaultContext(): ?RouteContext
+    
+
+    /**
+     * Obtiene la clave del contexto por defecto.
+     * @return string|null
+     */
+    public function getDefaultContextKey(): ?string
     {
-        // Retorna el primer contexto si existe, o null si no hay contextos
         $position = config('fproute.routes_file_path.defaul_file_path_position', 0);
-        return $this->contexts[$position] ?? null;
+        $keys = $this->getContextKeys();
+
+        if (isset($keys[$position])) {
+            return $keys[$position];
+        }
+        return null;
     }
 
-    public function loadFromConfig(): void
+    /**
+     * Obtiene la instancia del contexto por defecto.
+     * @return RouteStrategyInterface|null // Usando la interfaz directamente
+     */
+    public function getDefaultContext(): ?RouteStrategyInterface // Usando la interfaz directamente
     {
-
-        # dd("Cargando rutas desde la configuración...");
-        $configs = config('fproute.routes_file_path.items');
-        //dd($this->contexts);
-
-        #dd($configs);
-        foreach ($configs as $config) {
-            $context = $this->prepareContext($config);
-            $this->contexts[] = $context;
-
-            $flatRoutes = $context->getAllFlattenedRoutes();
-            foreach ($flatRoutes as $route)
-                $this->entityMap[$route->getId()] = $context;
+        $defaultKey = $this->getDefaultContextKey();
+        if ($defaultKey) {
+            try {
+                return $this->getContextInstance($defaultKey);
+            } catch (RuntimeException $e) {
+                // Loguear el error si el contexto por defecto no se puede cargar
+                // Log::error("Error loading default context '{$defaultKey}': " . $e->getMessage());
+                return null;
+            }
         }
-        #dd($this->contexts);
-        #dd("Rutas cargadas desde la configuración.");
+        return null;
+    }
+
+    // Los métodos getAllOnlyRolHasPermissions y getAllInPermissionsList
+    // siguen lanzando una excepción si no están implementados.
+    public function getAllOnlyRolHasPermissions($role): array
+    {
+        throw new \BadMethodCallException(__FUNCTION__ . " no está implementado o ha sido reemplazado. Usa 'getFilteredWithPermissions' o 'getAllOfCurrenUser'.");
+    }
+
+    public function getAllInPermissionsList(array $permissions): array
+    {
+        throw new \BadMethodCallException(__FUNCTION__ . " no está implementado o ha sido reemplazado. Usa 'getFilteredWithPermissions'.");
     }
 }

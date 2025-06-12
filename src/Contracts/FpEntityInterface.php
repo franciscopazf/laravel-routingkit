@@ -91,7 +91,7 @@ interface FpEntityInterface
      * @return FpEntityInterface
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
-    public static function findByParamName(string $paramName, string $value): ?Collection;
+  //  public static function findByParamName(string $paramName, string $value): ?Collection;
 
     /**
      * get all entities.
@@ -104,14 +104,14 @@ interface FpEntityInterface
      *
      * @return Collection
      */
-    public static function getAllsByFile(string $filePath): Collection;
+  //  public static function getAllsByFile(string $filePath): Collection;
 
     /**
      * Get all entities grouped by file, flattened.
      *
      * @return Collection
      */
-    public static function getAllsByFileFlattened(): Collection;
+ //   public static function getAllsByFileFlattened(): Collection;
     
 
     /**
@@ -126,7 +126,7 @@ interface FpEntityInterface
      *
      * @return Collection
      */
-    public static function allInTree(): Collection;
+    //public static function allInTree(): Collection;
 
 
     // Utility Methods
@@ -154,14 +154,14 @@ interface FpEntityInterface
      * @param string $id
      * @return bool
      */
-    public function parent(string|FpEntityInterface $parent): FpEntityInterface;
+  //  public function parent(string|FpEntityInterface $parent): FpEntityInterface;
 
     /**
      * Get the breadcrumbs for the entity. in the tree structure.
      *
      * @return Collection
      */
-    public function getBreadcrumbs(): Collection;
+   //  public static function getBreadcrumbs(string|FpEntityInterface $entity): Collection;
 
     /**
      * Move the entity to a new parent.

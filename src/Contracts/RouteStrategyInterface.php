@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 
 interface RouteStrategyInterface
 {
-    public static function make(RouteContentManager $fileManager, ?TransformerContext $transformer = null): self;
+   // public static function make(RouteContentManager $fileManager, ?TransformerContext $transformer = null): self;
 
     public function addRoute(FpEntityInterface $route, string|FpEntityInterface|null $parent): void;
 

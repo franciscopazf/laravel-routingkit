@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
  * RouteContext es una clase que utiliza el patrón Strategy para manejar diferentes estrategias de rutas.
  * Permite cambiar la estrategia de rutas en tiempo de ejecución.
  */
-class RouteContext
+class RouteContext implements RouteStrategyInterface
 {
     protected RouteStrategyInterface $strategy;
 

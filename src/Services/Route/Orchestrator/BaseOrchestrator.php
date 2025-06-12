@@ -2,329 +2,164 @@
 
 namespace Fp\FullRoute\Services\Route\Orchestrator;
 
-use Illuminate\Support\Collection;
 use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Contracts\FpEntityInterface;
-use Fp\FullRoute\Entities\FpBaseEntity;
-use Fp\FullRoute\Services\Route\Orchestrator\VarsOrchestratorTrait;
-use Fp\FullRoute\Services\Route\RouteContext;
-
+use Fp\FullRoute\Contracts\RouteStrategyInterface; 
+use Fp\FullRoute\Contracts\FpEntityInterface; 
+use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Illuminate\Support\Collection;
+use RuntimeException;
 
 abstract class BaseOrchestrator implements OrchestratorInterface
 {
-    use VarsOrchestratorTrait;
+    use VarsOrchestratorTrait {
+        // Asegúrate de que el constructor del trait se ejecute.
+        // PHP 8+ permite llamar al constructor del trait directamente en el constructor de la clase.
+        // Si no usas __construct() en el trait, puedes hacer esto:
+        __construct as private initializeVarsOrchestratorTrait;
+    }
 
-    // Context and Entity Map
-    protected array $entityMap = []; // Mapa de ID de entidad a su contexto
-    protected array $contexts = []; // Todos los contextos disponibles
-    protected array $activeContextKeys = []; // Las claves de los contextos actualmente 'cargados' para operaciones
+    /**
+     * @var array Cache para las configuraciones de contexto cargadas.
+     * Key: contextKey, Value: array de configuración del contexto.
+     */
+    protected array $contextConfigurations = [];
 
-    abstract protected function prepareContext(array $config): mixed;
-
-    abstract protected function loadFromConfig(): void;
-
-    abstract public function getDefaultContext(): ?RouteContext;
-
+    /**
+     * Constructor del Orchestrator.
+     */
     public function __construct()
     {
-        $this->loadAllAvailableContexts(); // Carga inicial de todos los contextos
+        // Inicializa el trait primero.
+        $this->initializeVarsOrchestratorTrait(); // Llama al constructor del trait
+
+        // Cargar las configuraciones de los contextos.
+        $this->loadAllContextConfigurations();
+
+        // <--- NUEVO: Inicializar currentIncludedContextKeys con todos los contextos.
+        // Esto garantiza que siempre esté poblado y nunca sea null al inicio de cualquier orquestador.
+        // NOTA: Esto se mueve aquí si quieres que la inicialización ocurra DESPUÉS de que
+        // loadAllContextConfigurations() haya llenado $this->contextConfigurations.
+        // Si el trait ya tiene un constructor que llama a getContextKeys(), asegúrate
+        // que loadAllContextConfigurations() ya se haya ejecutado.
+        // La forma más segura es hacer que el trait NO tenga un constructor y que la inicialización
+        // de currentIncludedContextKeys se haga en el constructor de BaseOrchestrator.
+        $this->currentIncludedContextKeys = $this->getContextKeys();
     }
 
     /**
-     * Carga todos los contextos disponibles desde la configuración.
-     * Este es el método que inicializa `$this->contexts`.
-     * @return void
+     * Método abstracto que debe ser implementado por las clases derivadas
+     * para especificar la ruta del archivo de configuración donde se encuentran
+     * las definiciones de todos los contextos para este orquestador.
+     *
+     * Ejemplo: 'fproute.navigators_file_path.items'
+     * @return string
      */
-    protected function loadAllAvailableContexts(): void
-    {
-        $this->loadFromConfig(); // Asume que este método llena $this->contexts
-        $this->activeContextKeys = array_keys($this->contexts); // Por defecto, todos los contextos están activos
-        $this->rebuildEntityMap(); // Rellenar entityMap con todas las entidades iniciales
-    }
+    abstract protected function getContextsConfigPath(): string;
 
     /**
-     * Reconstruye el entityMap basándose en los contextos activos.
-     * Se llama después de cambiar los contextos activos (loadContexts, excludeContexts, etc.).
-     * @return void
+     * Carga todas las configuraciones de los contextos desde el archivo de configuración.
+     * Esto llena $this->contextConfigurations.
+     * Este método se llama en el constructor de BaseOrchestrator.
      */
-    protected function rebuildEntityMap(): void
+    protected function loadAllContextConfigurations(): void
     {
-        $this->entityMap = [];
-        foreach ($this->activeContextKeys as $key) {
-            if (isset($this->contexts[$key])) {
-                foreach ($this->contexts[$key]->getAllFlattenedRoutes() as $entity) {
-                    $this->entityMap[$entity->getId()] = $this->contexts[$key];
-                }
-            }
+        $configPath = $this->getContextsConfigPath();
+        $configs = config($configPath);
+
+        if (!is_array($configs)) {
+            throw new RuntimeException("La ruta de configuración '{$configPath}' no devuelve un array válido.");
         }
-        // Invalida los cachés de VarsOrchestratorTrait para que se recarguen
-        $this->treeAllEntitys = null;
-        $this->flattenedAllEntities = null;
-        $this->allFlattenedWhitChilds = null;
-        $this->allExcludingContexts = null;
-        $this->allExclusedContexts = null;
-    }
 
-
-    /**
-     * Carga contextos específicos por sus claves.
-     * Las operaciones posteriores de "all()" y similares operarán solo sobre estos contextos.
-     * @param string|array $contextKeys Una o varias claves de contexto.
-     * @return self
-     * @throws \RuntimeException Si un contexto no se encuentra.
-     */
-    public function loadContexts(string|array $contextKeys): self
-    {
-        $keysToLoad = is_array($contextKeys) ? $contextKeys : [$contextKeys];
-       // dd($this->contexts);
-        foreach ($keysToLoad as $key) {
-            if (!isset($this->contexts[$key])) {
-                throw new \RuntimeException("El contexto con la clave '$key' no fue encontrado.");
-            }
-        }
-        $this->activeContextKeys = $keysToLoad;
-        $this->rebuildEntityMap();
-        return $this;
+        $this->contextConfigurations = $configs;
     }
 
     /**
-     * Restaura los contextos activos a todos los disponibles.
-     * @return self
-     */
-    public function resetContexts(): self
-    {
-        $this->activeContextKeys = array_keys($this->contexts);
-        $this->rebuildEntityMap();
-        return $this;
-    }
-
-    /**
-     * Obtiene las claves de todos los contextos disponibles.
+     * Devuelve una lista de todas las claves de contexto disponibles
+     * basadas en las configuraciones cargadas.
      * @return array
      */
     public function getContextKeys(): array
     {
-        return array_keys($this->contexts);
+        return array_keys($this->contextConfigurations);
     }
 
     /**
-     * Obtiene las claves de los contextos actualmente activos (cargados).
-     * @return array
+     * Retorna una instancia del contexto de ruta para una clave dada.
+     * @param string $key
+     * @return RouteStrategyInterface 
+     * @throws RuntimeException Si el contexto no puede ser instanciado o configurado.
      */
-    public function getActiveContextKeys(): array
+    protected function getContextInstance(string $key): RouteStrategyInterface 
     {
-        return $this->activeContextKeys;
-    }
-
-    // ALL ENTITIES
-
-    /**
-     * Save permanently the entity, optionally setting a parent.
-     *
-     * @param FpEntityInterface $new
-     * @param string|FpEntityInterface|null $parent
-     * @return FpEntityInterface
-     */
-    public function save(FpEntityInterface $new, string|FpEntityInterface|null $parent = null): FpEntityInterface
-    {
-        // Si el valor es null, se interpreta como ruta raíz (sin padre)
-        if ($parent instanceof FpEntityInterface)
-            $parentId = $parent->getId();
-        else
-            $parentId = $parent;
-
-        $new->setParentId($parentId);
-
-        // Buscar el contexto del padre solo si hay un ID
-        $context = $parent !== null
-            ? $this->findContextById($parentId)
-            : $this->getDefaultContext(); // Si no hay padre, usa el primer contexto disponible (opcional)
-
-        if (!$context) {
-            throw new \RuntimeException(
-                $parentId !== null
-                    ? "No se encontró un contexto que contenga la ruta padre: $parentId"
-                    : "No hay contextos disponibles para agregar la ruta raíz"
-            );
-        }
-        // Agregar la nueva ruta al contexto
-        $context->addRoute($new, $parentId);
-        // Actualizar el índice de rutas
-        $this->entityMap[$new->getId()] = $context;
-        $this->rebuildEntityMap(); // Reconstruye los cachés globales después de una modificación
-        return $new;
-    }
-
-
-    /**
-     * Delete the entity permanently.
-     *
-     *
-     * @return bool
-     */
-    public function delete(string|FpEntityInterface $entity): bool
-    {
-
-        if ($entity instanceof FpEntityInterface)
-            $entityId = $entity->getId();
-        else
-            $entityId = $entity;
-
-        $context = $this->findContextById($entityId);
-
-        if ($context) {
-            $context->removeRoute($entityId);
-            unset($this->entityMap[$entityId]); // mantener limpio el índice
-            $this->rebuildEntityMap(); // Reconstruye los cachés globales después de una modificación
-        } else {
-            throw new \RuntimeException("No se encontró un contexto que contenga la entidad: $entityId");
+        if (!isset($this->contextConfigurations[$key])) {
+            throw new RuntimeException("Configuración de contexto para la clave '{$key}' no encontrada.");
         }
 
+        $contextData = $this->contextConfigurations[$key];
+        $context = $this->prepareContext($contextData);
+       
+        return $context;
+    }
+
+    /**
+     * Implementa el método abstracto de BaseOrchestrator.
+     * Prepara una instancia de RouteStrategyInterface a partir de los datos de configuración.
+     *
+     * @param array $contextData Array de configuración para un contexto específico.
+     * @return RouteStrategyInterface 
+     * @throws RuntimeException Si la configuración no es válida.
+     */
+    protected function prepareContext(array $contextData): RouteStrategyInterface 
+    {
+        if (!isset($contextData['support_file']) || !isset($contextData['path'])) {
+            throw new RuntimeException("Configuración de contexto inválida: 'support_file' o 'path' faltantes para el contexto.");
+        }
+       
+        $context = RouteStrategyFactory::make(
+            $contextData['support_file'],
+            $contextData['path'],
+            $contextData['only_string_support'] ?? true
+        );
+       
+        return $context;
+    }
+
+    // --- Otros métodos implementados o abstractos requeridos por OrchestratorInterface ---
+
+    public function newQuery(): OrchestratorInterface
+    {
+        $newInstance = new static();
+        // Al crear una nueva query, queremos que empiece con todos los contextos activos por defecto.
+        $newInstance->loadAllContexts(); // Esto establecerá currentIncludedContextKeys a todas las claves.
+        return $newInstance;
+    }
+
+    public function save(FpEntityInterface $entity, string|FpEntityInterface|null $parent = null): void
+    {
+        // Lógica para guardar la entidad
+    }
+
+    public function delete(FpEntityInterface $entity): bool
+    {
+        // Lógica para eliminar la entidad
         return true;
     }
 
-
-
-    public function findContextById(string $routeId): ?RouteContext
-    {
-        return $this->entityMap[$routeId] ?? null;
-    }
-
-    /**
-     * Find an entity by its ID.
-     *
-     * @param string $id
-     * @return FpEntityInterface|null
-     */
     public function findById(string $id): ?FpEntityInterface
     {
-        if (isset($this->entityMap[$id]))
-            return $this->entityMap[$id]->findRoute($id);
-        return null;
+        $allFlattened = $this->getRawGlobalFlattened();
+        return $allFlattened->get($id);
     }
-
-    public function getBrothers(string|FpEntityInterface $entity): Collection
-    {
-        if ($entity instanceof FpEntityInterface)
-            $id = $entity->getId();
-        else
-            $id = $entity; // Asegurar que $id esté definido para el caso de string
-
-        // Verifica si la ruta existe en el índice de rutas
-        if (isset($this->allFlattenedWhitChilds[$id])) {
-            $parentId = $this->allFlattenedWhitChilds[$id]->getParentId();
-            if ($parentId !== null) {
-                $parentEntity = $this->allFlattenedWhitChilds[$parentId];
-                if ($parentEntity) {
-                    return collect($parentEntity->getChildrens());
-                }
-            }
-        }
-
-        return collect(); // Retorna una colección vacía si no hay hermanos
-    }
-
 
     public function findByIdWithChilds(string $id): ?FpEntityInterface
     {
-        // Buscar en el índice de rutas
-        if (isset($this->allFlattenedWhitChilds[$id]))
-            return $this->allFlattenedWhitChilds[$id];
-
-        // Si no se encuentra, retornar null
-        return null;
+        $tree = $this->getRawGlobalTree();
+        $flattened = $this->flattenTree($tree); 
+        return $flattened->get($id);
     }
 
-
-
-    // Utility Methods
-
-    /**
-     * Check if an entity exists by its ID.
-     *
-     * @param string $id
-     * @return bool
-     */
-    public  function exists(string $id): bool
+    public function exists(string $id): bool
     {
-        // Verifica si la ruta existe en el índice de rutas
-        return isset($this->entityMap[$id]);
-    }
-
-
-    /**
-     * Check if an entity is a child of another entity.
-     *
-     * @param string|FpEntityInterface $entity
-     * @return bool
-     */
-    public function isChild(string|FpEntityInterface $entity): bool
-    {
-        if ($entity instanceof FpEntityInterface)
-            $id = $entity->getId();
-        else
-            $id = $entity; // Asegurar que $id esté definido para el caso de string
-
-        // Verifica si la ruta existe en el índice de rutas
-        return isset($this->entityMap[$id]) && $this->entityMap[$id]->getParentId() !== null;
-    }
-
-
-    /**
-     * returns the parent entity of the current entity.
-     *
-     * @param string|FpEntityInterface $entity
-     * @return FpEntityInterface
-     * @throws \RuntimeException Si no se encuentra un contexto que contenga la entidad.
-     */
-    public function parent(string|FpEntityInterface $entity): FpEntityInterface
-    {
-        if ($entity instanceof FpEntityInterface)
-            $id = $entity->getId();
-        else
-            $id = $entity; // Asegurar que $id esté definido para el caso de string
-
-
-        // Verifica si la ruta existe en el índice de rutas
-        if (isset($this->entityMap[$id])) {
-            $context = $this->entityMap[$id];
-            $foundEntity = $context->findRoute($id);
-            if ($foundEntity && $foundEntity->getParentId() !== null) {
-                return $context->findRoute($foundEntity->getParentId());
-            }
-        }
-
-        throw new \RuntimeException("No se encontró un contexto que contenga la ruta: $id o la ruta no tiene un padre.");
-    }
-
-    /**
-     * Rewrite all routes in all contexts.
-     *
-     * @return self
-     */
-    public function rewriteAllContext(): self
-    {
-        foreach ($this->contexts as $context)
-            $context->rewriteAllRoutes();
-        $this->rebuildEntityMap(); // Reconstruye los cachés globales después de una reescritura
-        return $this;
-    }
-
-    // Métodos para FpBaseEntity para interactuar con el Orchestrator
-    public function getParent(FpEntityInterface $entity): ?FpEntityInterface
-    {
-        if ($entity->getParentId()) {
-            return $this->findById($entity->getParentId());
-        }
-        return null;
-    }
-
-    public function moveTo(FpEntityInterface $entity, string|FpEntityInterface $parent): FpEntityInterface
-    {
-        // Primero, elimina la entidad de su contexto actual
-        $this->delete($entity);
-
-        // Luego, guarda la entidad con el nuevo padre
-        return $this->save($entity, $parent);
+        return $this->findById($id) !== null;
     }
 }

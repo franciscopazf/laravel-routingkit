@@ -43,11 +43,11 @@ class FpNavigation extends FpBaseEntity
 
     public ?string $heroIcon = null;
 
-    public ?bool $isFpRoute = false;
+    public bool $isFpRoute = false;
 
-    public ?bool $isGroup = false;
+    public bool $isGroup = false;
 
-    public ?bool $isHidden = false;
+    public bool $isHidden = false;
 
     public bool $isActive = false;
 
@@ -56,7 +56,7 @@ class FpNavigation extends FpBaseEntity
 
     public ?string $endBlock = null;
 
-    private function __construct(string $id, ?string $instanceRouteId = null)
+    public function __construct(string $id, ?string $instanceRouteId = null)
     {
         $this->id = $id;
         $this->label = $id; // Default label to id

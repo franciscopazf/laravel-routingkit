@@ -16,16 +16,21 @@ class FpRoute extends FpBaseEntity
 
     public ?string $parentId = null;
 
-    public $url;  // omit if is same as id
-    public $urlName; // omit if is same as id
+    public ?string $accessPermission = null;
+
+    // Propiedades adicionales (ej. para navegación, puedes expandir con HasDynamicAccessors)
+    public ?string $url = null;
+    public ?string $urlName = null;
+    public bool $isGroup = false; // Indica si la entidad representa un grupo de rutas
+    public bool $isActive = false; // Indica si la entidad está activa en la ruta actual
+
+
     public $urlMethod; // omit if is GET
     public $urlController;
     public $urlAction;
 
-    public bool $isGroup = false;
 
     public $urlMiddleware = [];
-    public ?string $accessPermission = null;
     public $permissions = [];
     public $roles = [];
     public array|Collection $childrens = [];
