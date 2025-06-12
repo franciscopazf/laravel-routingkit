@@ -289,10 +289,12 @@ trait VarsOrchestratorTrait
     /**
      * Controla si los nodos grupo sin ítems (hijos) se deben incluir en el resultado final.
      * Por defecto, no se incluyen a menos que se llame a este método con `true`.
+     *
      * @param bool $value `true` para forzar la inclusión de grupos vacíos, `false` para omitirlos.
+     * El valor por defecto es `true` para facilitar la activación.
      * @return static
      */
-    public function setEmptyGroupsIncluded(bool $value = true): static
+    public function withEmptyGroups(bool $value = true): static
     {
         $this->forceEmptyGroups = $value;
         $this->filteredEntitiesCache = null; // Invalida la caché
@@ -307,7 +309,7 @@ trait VarsOrchestratorTrait
     /**
      * Obtiene el árbol de entidades completo o filtrado por contextos si se han especificado.
      * No aplica filtros de usuario ni de profundidad. Este método ahora siempre respeta
-     * el estado de `currentIncludedContextKeys`.
+     * el estado de `currentIncludedContextKeys`. Siempre devuelve todos los grupos, incluidos los vacíos.
      *
      * @return Collection El árbol de entidades resultante de los contextos activos.
      */
@@ -319,17 +321,15 @@ trait VarsOrchestratorTrait
             $this->setIncludedContextKeys($this->getContextKeys());
         }
 
-        // Si se llama a `all()` no se aplican los filtros de `forceEmptyGroups`
-        // por lo que temporalmente se fuerza a true y luego se restaura.
-        $originalForceEmptyGroups = $this->forceEmptyGroups;
-        $this->forceEmptyGroups = true; // Para `all()`, los grupos vacíos pueden ser relevantes.
-
+        // Para `all()`, se deben incluir todos los grupos, vacíos o no.
+        // No hay necesidad de guardar y restaurar `forceEmptyGroups` ya que `all()` tiene su propia lógica.
         $flattenedEntities = $this->getFlattenedEntitiesByActiveContexts();
         $tree = $this->buildTreeFromFlattened($flattenedEntities);
 
-        // Restaurar el valor original para no afectar llamadas futuras de `get()`
-        $this->forceEmptyGroups = $originalForceEmptyGroups;
-
+        // Cuando se llama a `all()`, los grupos vacíos siempre deben ser incluidos
+        // y no se aplican filtros de usuario/permisos ni de "active state" o URL de grupo.
+        // Se asume que `buildTreeFromFlattened` ya maneja la estructura básica.
+        // No aplicar `markActiveNodesAndSetGroupUrls` ni `applyPermissionAndActiveFilter` aquí.
         return $tree;
     }
 
@@ -417,10 +417,10 @@ trait VarsOrchestratorTrait
             $clonedNode->setIsActive($nodeIsActive || $itemsAreActive);
 
             // Lógica para grupos vacíos:
-            // Si es un grupo y no tiene ítems Y NO estamos forzando la inclusión de grupos vacíos,
-            // entonces NO lo incluimos en el resultado.
+            // Si es un grupo y después de procesar los ítems, no tiene ítems (está vacío)
+            // Y la bandera forceEmptyGroups es FALSE (por defecto, se omite).
             if ($clonedNode->isGroup && $items->isEmpty() && !$forceEmptyGroups) {
-                continue;
+                continue; // Omitir este grupo vacío
             }
 
             // Reconstruir la colección de items del nodo clonado
@@ -490,7 +490,9 @@ trait VarsOrchestratorTrait
      */
     public function getSubBranch(string $rootEntityId): Collection
     {
-        $fullFilteredTree = $this->get(); // Obtiene el árbol completo filtrado por el estado actual
+        // Obtiene el árbol completo filtrado por el estado actual.
+        // Si ya está cacheado, se utiliza la caché, optimizando llamadas múltiples.
+        $fullFilteredTree = $this->get();
 
         $flattenedFilteredTree = $this->flattenTree($fullFilteredTree);
 
@@ -498,15 +500,53 @@ trait VarsOrchestratorTrait
             return collect();
         }
 
+        // Clonar la entidad raíz para asegurar que no modificamos el árbol original cacheado.
         $rootEntity = clone $flattenedFilteredTree->get($rootEntityId);
-        $rootEntity->setParentId(null);
-        $rootEntity->setItems(new Collection());
+        $rootEntity->setParentId(null); // La nueva raíz no tiene padre en su nueva sub-estructura.
+        $rootEntity->setItems(new Collection()); // Limpiar ítems para reconstruir.
 
         $subTree = collect([$rootEntity]);
         $this->buildSubTreeRecursive($rootEntity, $flattenedFilteredTree);
 
         return $subTree;
     }
+
+    /**
+     * Obtiene múltiples subramas a partir de un arreglo de IDs de entidades raíz.
+     * Aplica todos los filtros configurados en la instancia actual del orquestador.
+     *
+     * @param array $rootEntityIds Un arreglo de IDs de entidades que serán las raíces de las subramas.
+     * @return Collection Una colección de colecciones, donde cada sub-colección es una subrama.
+     */
+    public function getSubBranches(array $rootEntityIds): Collection
+    {
+        $allSubBranches = collect();
+        // Obtiene el árbol completo filtrado una sola vez para optimizar las búsquedas de subramas.
+        $fullFilteredTree = $this->get();
+        $flattenedFilteredTree = $this->flattenTree($fullFilteredTree);
+
+        foreach ($rootEntityIds as $rootId) {
+            if (!$flattenedFilteredTree->has($rootId)) {
+                // Si la raíz no existe, simplemente la saltamos o podrías añadir un registro de error.
+                continue;
+            }
+
+            // Clonar la entidad raíz para construir la subrama.
+            $rootEntity = clone $flattenedFilteredTree->get($rootId);
+            $rootEntity->setParentId(null);
+            $rootEntity->setItems(new Collection());
+
+            $subTree = collect([$rootEntity]);
+            // Reconstruir recursivamente la subrama
+            $this->buildSubTreeRecursive($rootEntity, $flattenedFilteredTree);
+
+            // Añadir la subrama al resultado principal
+            $allSubBranches->push($subTree->first()); // Obtenemos el primer elemento que es la raíz de la subrama
+        }
+
+        return $allSubBranches;
+    }
+
 
     //---
 
@@ -659,27 +699,40 @@ trait VarsOrchestratorTrait
 
             $items = $this->applyPermissionAndActiveFilter($clonedNode->getItems(), $allowedPermissions, $activeRouteName, $forceEmptyGroups);
 
+            // Intentar establecer la URL del grupo si tiene elementos
             if ($clonedNode->isGroup && $items->isNotEmpty()) {
                 $this->setGroupUrlFromFirstChild($clonedNode, $items);
             }
 
+            // Marcar el nodo como activo
             $nodeIsActive = ($clonedNode->getUrlName() && $clonedNode->getUrlName() === $activeRouteName) || $clonedNode->getId() === $activeRouteName;
             $itemsAreActive = $items->contains(fn($item) => $item->isActive());
             $clonedNode->setIsActive($nodeIsActive || $itemsAreActive);
 
             $hasPermission = $this->hasValidPermission($clonedNode, $allowedPermissions);
-            $shouldInclude = ($hasPermission || $clonedNode->isGroup || $items->isNotEmpty() || ($clonedNode->isGroup && $forceEmptyGroups));
 
-            // Si no debe incluirse Y no es un grupo O es un grupo sin hijos y no se fuerza su inclusión, continuar.
+            // Lógica de inclusión basada en permisos, si es grupo, o si tiene ítems, o si se fuerza la inclusión de grupos vacíos
+            $shouldInclude = ($hasPermission && !$clonedNode->isGroup) // Si tiene permiso y no es grupo, siempre incluir
+                             || ($clonedNode->isGroup && $items->isNotEmpty()) // Si es grupo y tiene items, incluir
+                             || ($clonedNode->isGroup && $forceEmptyGroups && $hasPermission); // Si es grupo, se fuerza y tiene permiso, incluir
+
+            // Si es un grupo y no tiene ítems, y no se fuerza la inclusión, y no tiene permiso, omitirlo.
+            // La condición `$hasPermission` para grupos vacíos con `forceEmptyGroups` es clave.
+            if ($clonedNode->isGroup && $items->isEmpty() && !$forceEmptyGroups) {
+                 // Si no tiene permisos, o tiene permisos pero no se fuerza la inclusión de grupos vacíos,
+                 // y el grupo está realmente vacío, no se incluye.
+                if (!$hasPermission || ($hasPermission && $items->isEmpty() && !$forceEmptyGroups)) {
+                    continue;
+                }
+            }
+
+
+            // Si el nodo no debe incluirse y no es un grupo, o si es un grupo vacío y no se fuerza, continuar
             if (!$shouldInclude && !$clonedNode->isGroup) {
                 continue;
             }
 
-            // Si es un grupo y no tiene hijos Y no tiene permisos Y NO estamos forzando la inclusión, omitirlo.
-            if ($clonedNode->isGroup && $items->isEmpty() && !$hasPermission && !$forceEmptyGroups) {
-                continue;
-            }
-
+            // Reconstruir la colección de items del nodo clonado
             $clonedNode->setItems(new Collection());
             foreach ($items as $item) {
                 $clonedNode->addItem($item);
@@ -700,10 +753,12 @@ trait VarsOrchestratorTrait
 
     protected function hasValidPermission($node, array $allowedPermissions): bool
     {
-        if ($node->isGroup) {
-            return is_null($node->accessPermission) || in_array($node->accessPermission, $allowedPermissions);
+        // Para grupos, el permiso es solo un requisito adicional si se define.
+        // Para items, el permiso es fundamental.
+        if ($node->accessPermission === null) {
+            return true; // No requiere permiso, siempre es válido
         }
-        return is_null($node->accessPermission) || in_array($node->accessPermission, $allowedPermissions);
+        return in_array($node->accessPermission, $allowedPermissions);
     }
 
     //---
@@ -718,7 +773,7 @@ trait VarsOrchestratorTrait
      */
     public function getBreadcrumbs(FpEntityInterface $entity): Collection
     {
-        $sourceTree = $this->get();
+        $sourceTree = $this->get(); // Obtiene el árbol completo filtrado y cacheado
 
         $targetId = $entity->getId();
         $flattenedSource = $this->flattenTree($sourceTree);
@@ -749,7 +804,7 @@ trait VarsOrchestratorTrait
             return null;
         }
 
-        $sourceTree = $this->get();
+        $sourceTree = $this->get(); // Obtiene el árbol completo filtrado y cacheado
 
         $flattenedSource = $this->flattenTree($sourceTree);
 
@@ -791,30 +846,27 @@ trait VarsOrchestratorTrait
 
         // Obtiene el árbol completo ya filtrado por la cadena de consulta actual
         $sourceTree = $this->get();
-
-        // Aplana el árbol filtrado para una búsqueda eficiente
         $flattenedSource = $this->flattenTree($sourceTree);
 
-        // Intenta encontrar la entidad correspondiente a la ruta activa por su ID o urlName
-        $activeEntity = $flattenedSource->first(function ($entity) use ($activeRouteName) {
-            return $entity->getId() === $activeRouteName || $entity->getUrlName() === $activeRouteName;
-        });
+        // **CORRECCIÓN:** Asegurarse de que la entidad obtenida sea del tipo correcto FpEntityInterface.
+        // Si no se encuentra, o no es del tipo esperado, se devuelve una colección vacía.
+        $activeEntity = $flattenedSource->get($activeRouteName);
 
-        if (!$activeEntity) {
-            return collect(); // Si no se encuentra la entidad, no hay migas de pan.
+        if (!$activeEntity instanceof FpEntityInterface) {
+            return collect(); // No se encontró una entidad activa válida o no es del tipo correcto.
         }
 
-        // Reutiliza la lógica existente de getBreadcrumbs con la entidad encontrada
+        // Llama al método getBreadcrumbs con la entidad FpEntityInterface.
         return $this->getBreadcrumbs($activeEntity);
     }
 
-
     /**
-     * Flattens a tree (Collection of entities) for easy lookup by ID.
-     * @param Collection $tree The tree to flatten.
-     * @return Collection A flattened collection of entities, keyed by ID.
+     * Helper to flatten a tree into a single-level collection indexed by ID.
+     *
+     * @param Collection $tree
+     * @return Collection
      */
-    public function flattenTree(Collection $tree): Collection
+    protected function flattenTree(Collection $tree): Collection
     {
         $flattened = collect();
         foreach ($tree as $node) {
@@ -825,4 +877,10 @@ trait VarsOrchestratorTrait
         }
         return $flattened;
     }
+
+    // Aquí se asume que existe un método `getContextKeys()` y `getContextInstance()`
+    // en la clase que usa este trait o en la clase padre `BaseOrchestrator`.
+    // Ejemplo (añadir si no existen):
+    // abstract protected function getContextKeys(): array;
+    // abstract protected function getContextInstance(string $contextKey): FpEntityInterface; // O la interfaz de tu contexto.
 }

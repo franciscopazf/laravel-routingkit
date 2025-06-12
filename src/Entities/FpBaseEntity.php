@@ -699,12 +699,15 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * Controla si los nodos grupo sin ítems (hijos) se deben incluir en el resultado final.
      * Por defecto, no se incluyen a menos que se llame a este método con `true`.
+     *
+     * **Alias para `withEmptyGroups()` en el Orchestrator.**
+     *
      * @param bool $value `true` para forzar la inclusión de grupos vacíos, `false` para omitirlos.
      * @return static
      */
-    public static function setEmptyGroupsIncluded(bool $value = true): static
+    public static function withEmptyGroups(bool $value = true): static
     {
-        static::getOrchestratorSingleton()->setEmptyGroupsIncluded($value);
+        static::getOrchestratorSingleton()->withEmptyGroups($value);
         return static::getInstance();
     }
 
@@ -751,6 +754,20 @@ abstract class FpBaseEntity implements FpEntityInterface
     public static function getSubBranch(string $rootEntityId): Collection
     {
         return static::getOrchestratorSingleton()->getSubBranch($rootEntityId);
+    }
+
+    /**
+     * Gets multiple sub-branches from the tree, each starting from a specified root ID.
+     * All filters configured on the current orchestrator instance will be applied to the
+     * overall tree before extracting the sub-branches.
+     *
+     * @param array $rootEntityIds An array of IDs of entities that will be the roots of the sub-branches.
+     * @return Collection A collection where each item is the root entity of a sub-branch,
+     * with its children nested, from the filtered tree.
+     */
+    public static function getSubBranches(array $rootEntityIds): Collection
+    {
+        return static::getOrchestratorSingleton()->getSubBranches($rootEntityIds);
     }
 
     /**
