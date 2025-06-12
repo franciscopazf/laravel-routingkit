@@ -189,12 +189,7 @@ interface FpEntityInterface
     // Context Methods
 
 
-    /**
-     * Get the context of the entity.
-     *
-     * @return string
-     */
-    public static function getContext();
+    
 
 
     

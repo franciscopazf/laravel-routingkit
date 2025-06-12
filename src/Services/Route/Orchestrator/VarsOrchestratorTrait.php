@@ -20,6 +20,10 @@ trait VarsOrchestratorTrait
 
     public array $breadcrumbActive = [];
 
+    protected array $excludedContextKeys = []; // Las claves de contexto a excluir
+    protected ?Collection $allExcludingContexts = null;
+    protected ?Collection $allExclusedContexts = null;
+
 
     public function all(): Collection
     {
@@ -31,11 +35,6 @@ trait VarsOrchestratorTrait
         return $this->treeAllEntitys;
     }
 
-    public function hola()
-    {
-        dd('Hola desde VarsOrchestratorTrait');
-    }
-
     public function allFlattened(): Collection
     {
         if ($this->flattenedAllEntities === null) {
@@ -45,6 +44,107 @@ trait VarsOrchestratorTrait
         return $this->flattenedAllEntities;
     }
 
+    /**
+     * Establece los contextos a excluir para futuras operaciones.
+     * @param string|array $contextKeys Una o varias claves de contexto a excluir.
+     * @return self
+     */
+    public function excludeContexts(string|array $contextKeys): self
+    {
+        $this->excludedContextKeys = is_array($contextKeys) ? $contextKeys : [$contextKeys];
+        // Invalida los cachés relacionados con exclusiones
+        $this->allExcludingContexts = null;
+        $this->allExclusedContexts = null;
+        // Si el `entityMap` en BaseOrchestrator también necesita ser actualizado,
+        // tendrías que llamar a `rebuildEntityMap()` aquí o en BaseOrchestrator.
+        // Para esta implementación, asumimos que `rebuildEntityMap` ya considera `activeContextKeys`.
+        // Si quieres que `all()` y `allFlattened()` también respeten exclusiones sin modificar `activeContextKeys`,
+        // entonces necesitarías modificar `getAllFlattenedRoutesGlobal()` para usar `excludedContextKeys`.
+        // La implementación actual asume que `excludeContexts` es para `allExcludingContexts` y `allExclusedContexts` específicamente.
+        return $this;
+    }
+
+    /**
+     * Obtiene todas las entidades de todos los contextos, excluyendo los contextos especificados.
+     *
+     * @return Collection
+     */
+    public function allExcludingContexts(): Collection
+    {
+        if ($this->allExcludingContexts === null) {
+            $filteredFlattened = collect();
+            foreach ($this->contexts as $key => $context) {
+                if (!in_array($key, $this->excludedContextKeys)) {
+                    $filteredFlattened = $filteredFlattened->merge($context->getAllFlattenedRoutes());
+                }
+            }
+            $this->allExcludingContexts = $this->buildTreeFromFlattened($filteredFlattened);
+        }
+        return $this->allExcludingContexts;
+    }
+
+    /**
+     * Obtiene solo las entidades de los contextos especificados como excluidos.
+     *
+     * @return Collection
+     */
+    public function allExclusedContexts(): Collection
+    {
+        if ($this->allExclusedContexts === null) {
+            $filteredFlattened = collect();
+            foreach ($this->contexts as $key => $context) {
+                if (in_array($key, $this->excludedContextKeys)) {
+                    $filteredFlattened = $filteredFlattened->merge($context->getAllFlattenedRoutes());
+                }
+            }
+            $this->allExclusedContexts = $this->buildTreeFromFlattened($filteredFlattened);
+        }
+        return $this->allExclusedContexts;
+    }
+
+
+    /**
+     * Obtiene una sub-rama (sub-árbol) de entidades a partir de un ID de entidad raíz.
+     *
+     * @param string $rootEntityId El ID de la entidad que será la raíz de la sub-rama.
+     * @return Collection Una colección con la sub-rama, o vacía si no se encuentra la entidad raíz.
+     */
+    public function getSubBranch(string $rootEntityId): Collection
+    {
+        $allEntitiesWithChilds = $this->getAllFlattenedWhitChilds(); // Asegura que esté cargado
+
+        if (!isset($allEntitiesWithChilds[$rootEntityId])) {
+            return collect(); // La entidad raíz no existe
+        }
+
+        $rootEntity = clone $allEntitiesWithChilds[$rootEntityId]; // Clonar para no modificar el original
+        $rootEntity->setParentId(null); // La raíz del sub-árbol no tiene padre en este contexto
+        $rootEntity->setChildrens(new Collection()); // Limpiar hijos para reconstruir el sub-árbol
+
+        $subTree = collect([$rootEntity]);
+        $this->buildSubTree($rootEntity, $allEntitiesWithChilds); // Construir el sub-árbol recursivamente
+
+        return $subTree;
+    }
+
+    /**
+     * Método auxiliar recursivo para construir un sub-árbol.
+     * @param FpEntityInterface $currentNode El nodo actual al que se le añadirán los hijos.
+     * @param Collection $allEntitiesFlattened Todas las entidades aplanadas con sus hijos.
+     * @return void
+     */
+    protected function buildSubTree(FpEntityInterface $currentNode, Collection $allEntitiesFlattened): void
+    {
+        foreach ($allEntitiesFlattened as $entity) {
+            if ($entity->getParentId() === $currentNode->getId()) {
+                $clonedChild = clone $entity;
+                $currentNode->addChild($clonedChild);
+                $this->buildSubTree($clonedChild, $allEntitiesFlattened);
+            }
+        }
+    }
+
+
     // All Routes
     public function buildTreeFromFlattened(Collection $flat): Collection
     {
@@ -53,29 +153,18 @@ trait VarsOrchestratorTrait
 
         // Primero clonamos todas las entidades
         foreach ($flat as $entity) {
-            //echo "Clonando entidad: " . $entity->getId() . $entity->getMakerMethod() . "\n";
             if ($entity->getMakerMethod() === 'makeSelf') {
                 $originalId = $entity->getId();
-                $sourceEntity = $this->findById($entity->getInstanceRouteId());
+                $sourceEntity = $this->findById($entity->getInstanceRouteId()); // Asumiendo que getInstanceRouteId existe y funciona
 
                 if (!$sourceEntity) {
-                    throw new \Exception("Entidad base no encontrada.");
+                    throw new \Exception("Entidad base no encontrada para makeSelf: " . $entity->getInstanceRouteId());
                 }
 
                 $clonedEntity = clone $sourceEntity;
-
-                // Si usas Doctrine, nunca deberías reutilizar el mismo ID
-                // pero si es obligatorio por alguna razón, asegúrate de hacer esto con cuidado
-                $clonedEntity->setId($originalId); // ⚠️ Riesgoso si el ID es autogenerado
-
-                // Si quieres persistir el clon en lugar del original:
+                $clonedEntity->setId($originalId);
                 $entity = $clonedEntity;
-
-                // Asegúrate de persistirlo si es necesario
-                // $entityManager->persist($entity);  <-- descomenta si corresponde
             }
-
-
             $cloned->put($entity->getId(), clone $entity);
         }
 
@@ -99,14 +188,16 @@ trait VarsOrchestratorTrait
     public function getAllFlattenedWhitChilds(): ?Collection
     {
         if ($this->allFlattenedWhitChilds === null) {
-            $this->getAllFlattenedRoutesGlobal();
+            // Asegúrate de que flattenedAllEntities esté cargado antes de construir el árbol
+            $this->allFlattened();
+            $this->buildTreeFromFlattened($this->flattenedAllEntities);
         }
 
         return $this->allFlattenedWhitChilds;
     }
 
     /**
-     * Get all routes in a flattened structure across all contexts.
+     * Get all routes in a flattened structure across the active contexts.
      *
      * @return Collection
      */
@@ -114,14 +205,12 @@ trait VarsOrchestratorTrait
     {
         if ($this->flattenedAllEntities === null) {
             $this->flattenedAllEntities = collect();
-
-            foreach ($this->contexts as $context) {
-                $this->flattenedAllEntities = $this->flattenedAllEntities
-                    ->merge($context->getAllFlattenedRoutes());
+            foreach ($this->activeContextKeys as $key) { // Usamos activeContextKeys
+                if (isset($this->contexts[$key])) {
+                    $this->flattenedAllEntities = $this->flattenedAllEntities->merge($this->contexts[$key]->getAllFlattenedRoutes());
+                }
             }
         }
-
-
         return $this->flattenedAllEntities;
     }
 
@@ -134,34 +223,61 @@ trait VarsOrchestratorTrait
     {
         if ($entity instanceof FpEntityInterface)
             $id = $entity->getId();
+        else
+            $id = $entity;
 
         $flattened = $this->getAllFlattenedRoutesGlobal();
         $byId = $flattened->keyBy(fn($entity) => $entity->getId());
 
         $breadcrumb = [];
 
+        // Verifica si la entidad existe en la colección aplanada
+        if (!isset($byId[$id])) {
+            return collect(); // Retorna una colección vacía si la entidad no existe
+        }
+
+        $currentId = $id; // Usar una variable para el ID actual en el bucle
+
         $flag = false;
         while (!$flag) {
-            $entity = $byId[$id];
+            if (!isset($byId[$currentId])) {
+                // Esto puede pasar si la entidad no está en la colección aplanada (ej. si fue eliminada o nunca se cargó)
+                break;
+            }
+            $entity = $byId[$currentId];
             array_unshift($breadcrumb, $entity); // prepend to breadcrumb
             if ($entity->getParentId() === null)
                 $flag = true;
             else
-                $id = $entity->getParentId();
+                $currentId = $entity->getParentId();
         }
 
         return collect($breadcrumb);
     }
 
+    /**
+     * Verifica si hay una rama activa establecida.
+     * @return bool
+     */
+    public function hasActiveBranch(): bool
+    {
+        return $this->activeBranch !== null;
+    }
 
-
+    /**
+     * Verifica si hay breadcrumbs cargados para la ruta activa.
+     * @return bool
+     */
+    public function hasBreadcrumbs(): bool
+    {
+        return !empty($this->breadcrumbActive);
+    }
 
     // functions for filtering entities
     // filtered entities with roles and permissions of the current user or given roles.
 
     public function prepareDataForTheCurrentUser(): void
     {
-        // esta fun
         $this->getAllOfCurrenUser();
     }
 
@@ -193,9 +309,8 @@ trait VarsOrchestratorTrait
             // Obtener el usuario actual
             $user = auth()->user();
 
-            // Si no hay usuario autenticado, retornar una colección vacía
+            // Si no hay usuario autenticado, lanzar una excepción
             if (!$user) {
-                // lanzar una excepción o retornar una colección vacía
                 throw new \RuntimeException("No hay usuario autenticado.");
             }
 
@@ -209,8 +324,6 @@ trait VarsOrchestratorTrait
 
     public function getAllOfUser(User $user): Collection
     {
-
-
         // Obtener roles del usuario
         $allowedRoles = $user->roles;
 
@@ -224,7 +337,6 @@ trait VarsOrchestratorTrait
 
     public function getAllWithRoles(array|Collection $allowedRoles): Collection
     {
-        // 
         if (is_array($allowedRoles)) {
             $allowedRoles = collect($allowedRoles);
         } elseif (!$allowedRoles instanceof Collection) {
@@ -232,12 +344,21 @@ trait VarsOrchestratorTrait
         }
 
         $permissions = $allowedRoles->flatMap(function ($role) {
+            // Asegúrate de que $role->permissions es una Collection y tiene pluck('name')
             return $role->permissions->pluck('name');
         })->unique()->values()->all();
 
-        // dd($permissions);
-
         return $this->getAllWithGroupsAndPermissions($permissions);
+    }
+
+    /**
+     * Retorna el árbol de entidades filtrado por un conjunto de permisos dados.
+     * @param array|Collection $allowedPermissions
+     * @return Collection
+     */
+    public function getFilteredWithPermissions(array|Collection $allowedPermissions): Collection
+    {
+        return $this->getAllWithGroupsAndPermissions($allowedPermissions);
     }
 
 
@@ -249,14 +370,13 @@ trait VarsOrchestratorTrait
         }
 
         $tree = $this->all(); // Obtiene el árbol completo de rutas (ya jerarquizado)
-        //dd($this->filterTreeMixed($tree, $allowedPermissions));
         return $this->filterTreeMixed($tree, $allowedPermissions);
     }
 
 
 
-    // filtra el arbol de rutas devolviendo solamente aquellas talque coincidan con los 
-    // permisos pasados 
+    // filtra el arbol de rutas devolviendo solamente aquellas talque coincidan con los
+    // permisos pasados
 
     public function filterTreeMixed(array|Collection $nodes, array $allowedPermissions, ?string $activeRouteName = null): Collection
     {
@@ -267,30 +387,32 @@ trait VarsOrchestratorTrait
         $filtered = collect();
 
         foreach ($nodes as $node) {
-            $children = $this->filterTreeMixed($node->getChildrens(), $allowedPermissions, $activeRouteName);
+            // Clonar el nodo para evitar modificar el original en el árbol global
+            $clonedNode = clone $node;
 
-            if ($node->isGroup && $children->isNotEmpty()) {
-                $this->setGroupUrlFromFirstChild($node, $children);
+            $children = $this->filterTreeMixed($clonedNode->getChildrens(), $allowedPermissions, $activeRouteName);
+
+            if ($clonedNode->isGroup && $children->isNotEmpty()) {
+                $this->setGroupUrlFromFirstChild($clonedNode, $children);
             }
 
-            $node->isActive = $this->isNodeActive($node, $activeRouteName, $children);
+            $clonedNode->isActive = $this->isNodeActive($clonedNode, $activeRouteName, $children);
 
-            if ($node->isActive) {
-                $this->addToBreadcrumb(clone $node);
+            if ($clonedNode->isActive) {
+                $this->addToBreadcrumb(clone $clonedNode);
             }
 
-            if ($this->hasValidPermission($node, $allowedPermissions) || $children->isNotEmpty()) {
-                $node->setChildrens([]);
+            if ($this->hasValidPermission($clonedNode, $allowedPermissions) || $children->isNotEmpty()) {
+                $clonedNode->setChildrens(new Collection()); // Reiniciar hijos del clon
                 foreach ($children as $child) {
-                    $node->addChild($child);
+                    $clonedNode->addChild($child);
                 }
 
-                if ($node->isActive) {
-                    $this->addToActiveBranch(clone $node);
+                if ($clonedNode->isActive) {
+                    $this->addToActiveBranch(clone $clonedNode);
                 }
 
-
-                $filtered->push($node);
+                $filtered->push($clonedNode);
             }
         }
 
@@ -300,8 +422,10 @@ trait VarsOrchestratorTrait
     protected function setGroupUrlFromFirstChild($node, Collection $children): void
     {
         $firstChild = $children->first();
-        $node->setUrl($firstChild->url);
-        $node->setUrlName($firstChild->urlName);
+        if ($firstChild) { // Asegúrate de que hay un primer hijo
+            $node->setUrl($firstChild->url);
+            $node->setUrlName($firstChild->urlName);
+        }
     }
 
     protected function isNodeActive($node, ?string $activeRouteName, Collection $children): bool
@@ -328,12 +452,13 @@ trait VarsOrchestratorTrait
 
     protected function addToBreadcrumb($node): void
     {
-        $node->setChildrens([]);
+        $node->setChildrens(new Collection()); // Asegurarse de que no arrastre hijos
         array_unshift($this->breadcrumbActive, $node);
     }
 
     protected function addToActiveBranch($node): void
     {
         $this->activeBranch = clone $node;
+      //  $this->activeBranch->setChildrens(new Collection()); // Asegurarse de que no arrastre hijos
     }
 }

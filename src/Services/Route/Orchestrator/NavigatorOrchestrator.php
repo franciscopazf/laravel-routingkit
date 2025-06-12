@@ -50,9 +50,10 @@ class NavigatorOrchestrator extends BaseOrchestrator implements OrchestratorInte
         //dd($this->contexts);
 
         #dd($configs);
-        foreach ($configs as $config) {
+        foreach ($configs as $key => $config) {
+
             $context = $this->prepareContext($config);
-            $this->contexts[] = $context;
+            $this->contexts[$key] = $context;
 
             $flatRoutes = $context->getAllFlattenedRoutes();
             foreach ($flatRoutes as $route)

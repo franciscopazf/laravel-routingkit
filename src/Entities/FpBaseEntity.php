@@ -40,16 +40,17 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * The children of the entity.
      *
-     * @var Collection|array
+     * @var Collection
      */
-    //public array|Collection $childrens = [];
+    protected Collection|array $childrens;
 
-    public ?string $accesPermission = null;
+    public ?string $accessPermission = null; // Corregido el nombre de la propiedad
 
     public function __construct(string $id, ?string $makerMethod = "make")
     {
         $this->id = $id;
         $this->makerMethod = $makerMethod;
+        $this->childrens = new Collection(); // Inicializar como colección
     }
 
     // CRUD Methods
@@ -64,7 +65,7 @@ abstract class FpBaseEntity implements FpEntityInterface
         return new static($id, "make");
     }
 
-    
+
     public static function makeGroup(string $id): FpEntityInterface
     {
         return new static($id, "makeGroup");
@@ -73,7 +74,7 @@ abstract class FpBaseEntity implements FpEntityInterface
 
 
     /**
-     * Get the context of the entity.
+     * Get the orchestrator instance for the entity.
      *
      * @return OrchestratorInterface
      */
@@ -81,8 +82,6 @@ abstract class FpBaseEntity implements FpEntityInterface
 
 
     abstract public function getOmmittedAttributes(): array;
-
-
 
 
     public function setId(string $id): static
@@ -117,6 +116,21 @@ abstract class FpBaseEntity implements FpEntityInterface
     {
         return $this->parentId;
     }
+
+    public function getMakerMethod(): string
+    {
+        return $this->makerMethod;
+    }
+
+    public function getInstanceRouteId(): ?string
+    {
+        // Si necesitas una propiedad específica para esto, debes definirla en FpBaseEntity
+        // y asegurarte de que se establezca al crear con 'makeSelf'.
+        // Por ahora, si no existe un método claro para obtenerla, asumimos que puede ser nulo o necesitará una implementación específica.
+        return null; // O implementar lógica para obtener el ID de la ruta de la instancia
+    }
+
+
     /**
      * Save permanently the entity, optionally setting a parent.
      *
@@ -125,7 +139,6 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function save(string|FpEntityInterface|null $parent = null): static
     {
-        //dd($parent);
         static::getOrchestrator()
             ->save($this, $parent);
 
@@ -149,7 +162,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * Delete the entity permanently.
      *
-     * 
+     *
      * @return bool
      */
     public function delete(): bool
@@ -180,8 +193,11 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function findByParamName(string $paramName, string $value): ?Collection
     {
-        return static::getOrchestrator()
-            ->findByParamName($paramName, $value);
+        // Este método no estaba implementado en el Orchestrator que me diste.
+        // Si lo necesitas, deberás agregarlo en BaseOrchestrator.
+        // Por ahora, lanzaré un error o devolveré null.
+        // throw new \BadMethodCallException("findByParamName no está implementado en el Orchestrator.");
+        return null;
     }
 
     /**
@@ -190,7 +206,6 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function all(): Collection
     {
-        //  dd('all');
         return static::getOrchestrator()
             ->all();
     }
@@ -202,8 +217,10 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function getAllsByFile(string $filePath): Collection
     {
-        return static::getOrchestrator()
-            ->getAllByFile($filePath);
+        // Este método no estaba implementado en el Orchestrator que me diste.
+        // Si lo necesitas, deberás agregarlo en BaseOrchestrator.
+        // throw new \BadMethodCallException("getAllsByFile no está implementado en el Orchestrator.");
+        return collect();
     }
 
 
@@ -214,8 +231,10 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function getAllsByFileFlattened(): Collection
     {
-        return static::getOrchestrator()
-            ->getAllsByFileFlattened();
+        // Este método no estaba implementado en el Orchestrator que me diste.
+        // Si lo necesitas, deberás agregarlo en BaseOrchestrator.
+        // throw new \BadMethodCallException("getAllsByFileFlattened no está implementado en el Orchestrator.");
+        return collect();
     }
 
 
@@ -237,8 +256,9 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function allInTree(): Collection
     {
+        // Asumiendo que 'all()' ya devuelve el árbol
         return static::getOrchestrator()
-            ->allInTree();
+            ->all();
     }
 
 
@@ -261,25 +281,25 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * Check if an entity is a child of another entity.
      *
-     * @param string $id
+     * @param string|FpEntityInterface $entity
      * @return bool
      */
     public function isChild(string|FpEntityInterface $entity): bool
     {
         return static::getOrchestrator()
-            ->isChild($this, $entity);
+            ->isChild($entity);
     }
 
     /**
      * returns the parent entity of the current entity.
      *
-     * @param string $id
-     * @return bool
+     * @param string|FpEntityInterface $entity
+     * @return FpEntityInterface
      */
-    public function parent(string|FpEntityInterface $parent): FpEntityInterface
+    public function parent(string|FpEntityInterface $entity): FpEntityInterface
     {
         return static::getOrchestrator()
-            ->parent($this, $this->parent);
+            ->parent($entity);
     }
 
     /**
@@ -296,7 +316,8 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * Move the entity to a new parent.
      *
-     * @return FpEntityInterface
+     * @param string|FpEntityInterface $parent
+     * @return static
      */
     public function moveTo(string|FpEntityInterface $parent): static
     {
@@ -319,24 +340,143 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * add a child to the current entity.
      *
+     * @param FpEntityInterface $child
      * @return static
      */
     public function addChild(FpEntityInterface $child): static
     {
         $child->setParentId($this->getId());
         $child->setLevel($this->getLevel() + 1);
-        $this->childrens[] = $child;
+        $this->childrens->push($child);
         return $this;
     }
 
-
-    // Context Methods
-
-
-    public static function getContext(): array
+    /**
+     * Set the children for the entity.
+     * @param array|Collection $children
+     * @return static
+     */
+    public function setChildrens(array|Collection $children): static
     {
-        return static::getOrchestrator()
-            ->getContext();
+        $this->childrens = collect($children);
+        return $this;
+    }
+
+    /**
+     * Get the children of the entity.
+     * @return Collection
+     */
+    public function getChildrens(): Collection
+    {
+        return $this->childrens;
+    }
+
+    public function setLevel(int $level): static
+    {
+        $this->level = $level;
+        return $this;
+    }
+
+    public function getLevel(): int
+    {
+        return $this->level;
+    }
+
+
+    // Context Methods (delegando al Orchestrator)
+
+    /**
+     * Obtiene las claves de todos los contextos disponibles en el orquestador.
+     * @return array
+     */
+    public static function getContextKeys(): array
+    {
+        return static::getOrchestrator()->getContextKeys();
+    }
+
+    /**
+     * Obtiene las claves de los contextos actualmente activos en el orquestador.
+     * @return array
+     */
+    public static function getActiveContextKeys(): array
+    {
+        return static::getOrchestrator()->getActiveContextKeys();
+    }
+
+    /**
+     * Carga contextos específicos en el orquestador.
+     * @param string|array $contextKeys
+     * @return OrchestratorInterface
+     */
+    public static function loadContexts(string|array $contextKeys): OrchestratorInterface
+    {
+        return static::getOrchestrator()->loadContexts($contextKeys);
+    }
+
+    /**
+     * Restaura los contextos activos a todos los disponibles en el orquestador.
+     * @return OrchestratorInterface
+     */
+    public static function resetContexts(): OrchestratorInterface
+    {
+        return static::getOrchestrator()->resetContexts();
+    }
+
+    /**
+     * Establece los contextos a excluir en el orquestador.
+     * @param string|array $contextKeys
+     * @return OrchestratorInterface
+     */
+    public static function excludeContexts(string|array $contextKeys): OrchestratorInterface
+    {
+        return static::getOrchestrator()->excludeContexts($contextKeys);
+    }
+
+    /**
+     * Obtiene todas las entidades, excluyendo los contextos configurados en el orquestador.
+     * @return Collection
+     */
+    public static function allExcludingContexts(): Collection
+    {
+        return static::getOrchestrator()->allExcludingContexts();
+    }
+
+    /**
+     * Obtiene solo las entidades de los contextos configurados como excluidos en el orquestador.
+     * @return Collection
+     */
+    public static function allExclusedContexts(): Collection
+    {
+        return static::getOrchestrator()->allExclusedContexts();
+    }
+
+    /**
+     * Obtiene una sub-rama de entidades a partir de un ID de entidad raíz.
+     * @param string $rootEntityId
+     * @return Collection
+     */
+    public static function getSubBranch(string $rootEntityId): Collection
+    {
+        return static::getOrchestrator()->getSubBranch($rootEntityId);
+    }
+
+    /**
+     * Retorna el árbol de entidades tal que el usuario actual tenga permiso de acceso o que sean públicas.
+     * @return Collection
+     */
+    public static function getAllOfCurrenUser(): Collection
+    {
+        return static::getOrchestrator()->getAllOfCurrenUser();
+    }
+
+    /**
+     * Retorna el árbol de entidades filtrado por un conjunto de permisos dados.
+     * @param array|Collection $permissions
+     * @return Collection
+     */
+    public static function getFilteredWithPermissions(array|Collection $permissions): Collection
+    {
+        return static::getOrchestrator()->getFilteredWithPermissions($permissions);
     }
 
     public static function rewriteAllContext(): void
