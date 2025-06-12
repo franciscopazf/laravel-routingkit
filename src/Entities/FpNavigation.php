@@ -52,7 +52,7 @@ class FpNavigation extends FpBaseEntity
     public bool $isActive = false;
 
 
-    public array|Collection $childrens = [];
+    public array|Collection $items = [];
 
     public ?string $endBlock = null;
 
@@ -165,7 +165,7 @@ class FpNavigation extends FpBaseEntity
             'isHidden' => ['omit:false'],
 
             'isActive' => ['omit'],
-            'childrens' => ['omit'],
+            'items' => ['omit'],
             'endBlock' => ['omit'],
             'level' => ['omit'],
         ];

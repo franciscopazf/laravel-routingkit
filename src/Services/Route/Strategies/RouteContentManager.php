@@ -20,8 +20,9 @@ class RouteContentManager
 
     public function getContents(): array
     {
-        # echo "SE HIZO UNA CARGA DE ARCHIVO \n";
+     //    echo "SE HIZO UNA CARGA DE ARCHIVO \n";
         /** @var array $routes */
+
         $routes = include $this->filePath;
         return $routes;
     }

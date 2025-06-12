@@ -29,6 +29,7 @@ abstract class BaseOrchestrator implements OrchestratorInterface
      */
     public function __construct()
     {
+        //echo "Inicializando BaseOrchestrator...\n";
         // Inicializa el trait primero.
         $this->initializeVarsOrchestratorTrait(); // Llama al constructor del trait
 
@@ -126,13 +127,6 @@ abstract class BaseOrchestrator implements OrchestratorInterface
 
     // --- Otros métodos implementados o abstractos requeridos por OrchestratorInterface ---
 
-    public function newQuery(): OrchestratorInterface
-    {
-        $newInstance = new static();
-        // Al crear una nueva query, queremos que empiece con todos los contextos activos por defecto.
-        $newInstance->loadAllContexts(); // Esto establecerá currentIncludedContextKeys a todas las claves.
-        return $newInstance;
-    }
 
     public function save(FpEntityInterface $entity, string|FpEntityInterface|null $parent = null): void
     {
@@ -151,7 +145,13 @@ abstract class BaseOrchestrator implements OrchestratorInterface
         return $allFlattened->get($id);
     }
 
-    public function findByIdWithChilds(string $id): ?FpEntityInterface
+    /**
+     * Encuentra una entidad por su ID, incluyendo sus elementos hijos.
+     *
+     * @param string $id
+     * @return FpEntityInterface|null
+     */
+    public function findByIdWithItems(string $id): ?FpEntityInterface // <-- RENOMBRADO A findByIdWithItems
     {
         $tree = $this->getRawGlobalTree();
         $flattened = $this->flattenTree($tree); 

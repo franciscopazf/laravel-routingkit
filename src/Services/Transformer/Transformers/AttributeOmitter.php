@@ -193,15 +193,15 @@ class AttributeOmitter
     }
 
     /**
-     * Omite si el objeto tiene hijos (basado en un atributo 'childrens').
+     * Omite si el objeto tiene hijos (basado en un atributo 'items').
      * Uso: 'haschildren'
      *
      * @return bool
      */
     protected function ruleHaschildren(): bool
     {
-        $childrens = $this->getAttributeValue('childrens');
-        return (is_array($childrens) || $childrens instanceof Countable) && count($childrens) > 0;
+        $items = $this->getAttributeValue('items');
+        return (is_array($items) || $items instanceof Countable) && count($items) > 0;
     }
 
     /**

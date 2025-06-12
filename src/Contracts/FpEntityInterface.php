@@ -183,7 +183,7 @@ interface FpEntityInterface
      *
      * @return self
      */
-    public function addChild(FpEntityInterface $child): self;
+    public function addItem(FpEntityInterface $child): self;
 
 
     // Context Methods

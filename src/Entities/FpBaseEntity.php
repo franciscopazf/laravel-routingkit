@@ -17,12 +17,18 @@ abstract class FpBaseEntity implements FpEntityInterface
     use HasDynamicAccessors;
 
     /**
-     * @var array Cache de las instancias del orquestador por clase derivada.
-     * Esto implementa el patrón Singleton a nivel de la clase derivada.
+     * @var array Cache de las instancias del orquestador por clase derivada (Singleton por Orchestrator).
      * Key: FQCN de la clase derivada (ej. FpNavigation::class)
      * Value: OrchestratorInterface
      */
     protected static array $orchestratorInstances = [];
+
+    /**
+     * @var array Cache de las instancias TEMPORALES de la entidad para el Query Builder (Singleton por Entidad de Query Builder).
+     * Key: FQCN de la clase derivada (ej. FpNavigation::class)
+     * Value: FpBaseEntity (o su clase derivada)
+     */
+    protected static array $queryBuilderInstances = [];
 
     /**
      * The ID of the parent entity, if any.
@@ -53,11 +59,11 @@ abstract class FpBaseEntity implements FpEntityInterface
     public int $level = 0;
 
     /**
-     * The children of the entity.
+     * The child items of the entity.
      *
      * @var Collection
      */
-    protected Collection|array $childrens;
+    protected Collection|array $items;
 
     /**
      * The access permission required for this entity.
@@ -86,7 +92,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     {
         $this->id = $id;
         $this->makerMethod = $makerMethod;
-        $this->childrens = new Collection();
+        $this->items = new Collection();
     }
 
     // --- Orchestrator Configuration ---
@@ -111,9 +117,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     {
         $class = static::class;
         if (!isset(static::$orchestratorInstances[$class])) {
-            // Si no hay una instancia, creamos una y la preparamos para una nueva query.
-            // Esto asegura que la primera llamada siempre inicie con un orquestador limpio.
-            static::$orchestratorInstances[$class] = static::getOrchestrator()->newQuery();
+           static::$orchestratorInstances[$class] = static::getOrchestrator();
         }
         return static::$orchestratorInstances[$class];
     }
@@ -127,20 +131,35 @@ abstract class FpBaseEntity implements FpEntityInterface
     protected static function resetOrchestratorSingleton(): OrchestratorInterface
     {
         $class = static::class;
-        // Crea una nueva instancia limpia y la almacena.
         static::$orchestratorInstances[$class] = static::getOrchestrator()->newQuery();
         return static::$orchestratorInstances[$class];
     }
 
+    // --- Query Builder Entity Instance Management ---
+
+    /**
+     * Obtiene y/o crea la única instancia de la entidad (Query Builder) para la clase derivada actual.
+     * Este es el método central para obtener la instancia para encadenar filtros.
+     *
+     * @param bool $reset Si es true, fuerza la creación de una nueva instancia y reinicia el orquestador.
+     * @return static La instancia Singleton de la entidad de Query Builder.
+     */
+    public static function getInstance(bool $reset = false): static
+    {
+        $class = static::class;
+
+        if (!isset(static::$queryBuilderInstances[$class]) || $reset) {
+            // Si no existe la instancia o si se solicita un reset, la creamos/reiniciamos.
+            static::$queryBuilderInstances[$class] = new static('temp_id_for_query_builder', null);
+            // Y si se reinicia la instancia del Query Builder, también reiniciamos el Orchestrator.
+            static::resetOrchestratorSingleton();
+        }
+
+        return static::$queryBuilderInstances[$class];
+    }
+
+
     // --- Entity-Specific CRUD and Relation Methods (Delegate to Orchestrator) ---
-
-    // ... (Todos los setters y getters como setId, setParentId, getId, getParentId, etc.,
-    // y los métodos de relación como addChild, setChildrens, getChildrens, etc.,
-    // y los métodos de propiedades dinámicas como setUrl, getUrl, etc.,
-    // permanecen EXACTAMENTE IGUALES a como los tenías.)
-
-    // Solo voy a incluir los métodos que necesitan el orquestador para CRUD y Query Builder,
-    // asumiendo que el resto de los métodos están correctos en tu archivo.
 
     /**
      * Set the ID of the entity.
@@ -239,39 +258,39 @@ abstract class FpBaseEntity implements FpEntityInterface
     }
 
     /**
-     * Add a child entity to this entity.
-     * @param FpEntityInterface $child
+     * Add an item (child entity) to this entity.
+     * @param FpEntityInterface $item
      * @return static
      */
-    public function addChild(FpEntityInterface $child): static
+    public function addItem(FpEntityInterface $item): static
     {
-        $child->setParentId($this->id);
-        $this->childrens->put($child->getId(), $child);
+        $item->setParentId($this->id);
+        $this->items->put($item->getId(), $item);
         return $this;
     }
 
     /**
-     * Set the children collection for this entity.
-     * @param Collection $childrens
+     * Set the items (children) collection for this entity.
+     * @param Collection $items
      * @return static
      */
-    public function setChildrens(Collection|array $childrens): static
+    public function setItems(Collection|array $items): static
     {
-        if (!($childrens instanceof Collection)) {
-            $childrens = new Collection($childrens);
+        if (!($items instanceof Collection)) {
+            $items = new Collection($items);
         }
 
-        $this->childrens = $childrens;
+        $this->items = $items;
         return $this;
     }
 
     /**
-     * Get the children collection of this entity.
+     * Get the items (children) collection of this entity.
      * @return Collection
      */
-    public function getChildrens(): Collection
+    public function getItems(): Collection
     {
-        return $this->childrens;
+        return $this->items;
     }
 
     /**
@@ -374,6 +393,14 @@ abstract class FpBaseEntity implements FpEntityInterface
         return $this->accessPermission;
     }
 
+    /**
+     * Check if the entity is a group.
+     * @return bool
+     */
+    public function isGroup(): bool
+    {
+        return $this->isGroup;
+    }
 
     /**
      * Check if the entity is active.
@@ -415,7 +442,6 @@ abstract class FpBaseEntity implements FpEntityInterface
         return $this->contextKey;
     }
 
-
     /**
      * Save the entity to the orchestrator.
      *
@@ -424,7 +450,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function save(string|FpEntityInterface|null $parent = null): static
     {
-        static::getOrchestratorSingleton()->save($this, $parent); // Usar el singleton
+        static::getOrchestratorSingleton()->save($this, $parent);
         return $this;
     }
 
@@ -435,18 +461,18 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function getBrothers(): Collection
     {
-        return static::getOrchestratorSingleton()->getBrothers($this); // Usar el singleton
+        return static::getOrchestratorSingleton()->getBrothers($this);
     }
 
     /**
-     * Find an entity by its ID, including its children.
+     * Find an entity by its ID, including its child items.
      *
      * @param string $id
      * @return FpEntityInterface|null
      */
-    public static function findByIdWithChilds(string $id): ?FpEntityInterface
+    public static function findByIdWithItems(string $id): ?FpEntityInterface
     {
-        $entity = static::getOrchestratorSingleton()->findByIdWithChilds($id); // Usar el singleton
+        $entity = static::getOrchestratorSingleton()->findByIdWithItems($id);
         return $entity instanceof FpEntityInterface ? $entity : null;
     }
 
@@ -457,7 +483,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function delete(): bool
     {
-        return static::getOrchestratorSingleton()->delete($this); // Usar el singleton
+        return static::getOrchestratorSingleton()->delete($this);
     }
 
     /**
@@ -468,7 +494,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function findById(string $id): ?FpEntityInterface
     {
-        $entity = static::getOrchestratorSingleton()->findById($id); // Usar el singleton
+        $entity = static::getOrchestratorSingleton()->findById($id);
         return $entity instanceof FpEntityInterface ? $entity : null;
     }
 
@@ -480,7 +506,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function exists(string $id): bool
     {
-        return static::getOrchestratorSingleton()->exists($id); // Usar el singleton
+        return static::getOrchestratorSingleton()->exists($id);
     }
 
     /**
@@ -491,7 +517,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function isChild(string|FpEntityInterface $entity): bool
     {
-        return static::getOrchestratorSingleton()->isChild($this, $entity); // Usar el singleton
+        return static::getOrchestratorSingleton()->isChild($this, $entity);
     }
 
     /**
@@ -501,7 +527,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function getParent(): ?FpEntityInterface
     {
-        return static::getOrchestratorSingleton()->getParent($this); // Usar el singleton
+        return static::getOrchestratorSingleton()->getParent($this);
     }
 
     /**
@@ -512,7 +538,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function moveTo(string|FpEntityInterface $parent): static
     {
-        static::getOrchestratorSingleton()->moveTo($this, $parent); // Usar el singleton
+        static::getOrchestratorSingleton()->moveTo($this, $parent);
         return $this;
     }
 
@@ -522,84 +548,82 @@ abstract class FpBaseEntity implements FpEntityInterface
      * Starts a new "query" to the orchestrator, ensuring temporary filters are cleared.
      * Provides a clear entry point for starting filter chains.
      *
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function newQuery(): static
     {
-        // Al iniciar una nueva query, siempre reiniciamos la instancia del orquestador
-        // para asegurar un estado limpio y que los filtros se concatenen desde cero.
-        static::resetOrchestratorSingleton();
-        return new static('temp_id_for_query_builder'); // Devuelve una instancia temporal para encadenar
+        // Al iniciar una nueva query, forzamos un reset completo del Query Builder Entity y su Orchestrator.
+        return static::getInstance(true);
     }
 
     /**
      * Configures the orchestrator to load and activate specific contexts.
      *
      * @param string|array $contextKeys One or more context keys to load and activate.
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function loadContexts(string|array $contextKeys): static
     {
-        static::getOrchestratorSingleton()->loadContexts($contextKeys); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->loadContexts($contextKeys);
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Configures the orchestrator to load and activate all available contexts.
      *
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function loadAllContexts(): static
     {
-        static::getOrchestratorSingleton()->loadAllContexts(); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->loadAllContexts();
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Configures the orchestrator to reset active contexts to their default state (usually all available).
      *
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function resetContexts(): static
     {
-        static::getOrchestratorSingleton()->resetContexts(); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->resetContexts();
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Configures the orchestrator to exclude specific contexts in the next data retrieval operation.
      *
      * @param string|array $contextKeys One or more context keys to exclude.
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function excludeContexts(string|array $contextKeys): static
     {
-        static::getOrchestratorSingleton()->excludeContexts($contextKeys); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->excludeContexts($contextKeys);
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Configures the orchestrator to filter by a maximum depth level.
      *
      * @param int|null $level The maximum depth level. Null for no depth filter.
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function withDepth(?int $level = null): static
     {
-        static::getOrchestratorSingleton()->withDepth($level); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->withDepth($level);
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Configures the orchestrator to filter routes for a specific user ID.
      *
      * @param string|null $userId The user ID to filter by. Null for no user filter.
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function forUser(?string $userId): static
     {
-        static::getOrchestratorSingleton()->forUser($userId); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->forUser($userId);
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
@@ -607,24 +631,81 @@ abstract class FpBaseEntity implements FpEntityInterface
      * This is a convenience method combining `forUser()` with `auth()->user()->id`.
      *
      * @param string|null $userId Optional: If provided, use this user ID instead of the authenticated one.
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      * @throws RuntimeException If no authenticated user is found and no userId is provided.
      */
     public static function prepareForUser(?string $userId = null): static
     {
-        static::getOrchestratorSingleton()->prepareForUser($userId); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->prepareForUser($userId);
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
     }
 
     /**
      * Resets all filters configured on the current orchestrator instance.
      *
-     * @return static A new temporary entity instance for chaining methods.
+     * @return static The single temporary entity instance for chaining methods.
      */
     public static function resetFilters(): static
     {
-        static::getOrchestratorSingleton()->resetFilters(); // Usar el singleton
-        return new static('temp_id_for_query_builder');
+        static::getOrchestratorSingleton()->resetFilters();
+        return static::getInstance(); // Devuelve la misma instancia para encadenar
+    }
+
+    // --- NUEVOS MÉTODOS DE FILTRADO EN EL QUERY BUILDER ---
+
+    /**
+     * Filtra para mostrar solo los archivos de un contexto específico (o varios).
+     * @param string|array $contextKeys La clave o claves de contexto a incluir.
+     * @return static
+     */
+    public static function filterOnlyFiles(string|array $contextKeys): static
+    {
+        static::getOrchestratorSingleton()->filterOnlyFiles($contextKeys);
+        return static::getInstance();
+    }
+
+    /**
+     * Filtra para mostrar todas las rutas/archivos de todos los contextos disponibles.
+     * @return static
+     */
+    public static function filterAllFiles(): static
+    {
+        static::getOrchestratorSingleton()->filterAllFiles();
+        return static::getInstance();
+    }
+
+    /**
+     * Configura el orquestador para filtrar las rutas para el usuario autenticado actual.
+     * @return static
+     * @throws RuntimeException Si no hay usuario autenticado.
+     */
+    public static function filterForCurrentUser(): static
+    {
+        static::getOrchestratorSingleton()->filterForCurrentUser();
+        return static::getInstance();
+    }
+
+    /**
+     * Configura el filtro de profundidad.
+     * @param int|null $level El nivel de profundidad.
+     * @return static
+     */
+    public static function filterByDepth(?int $level = null): static
+    {
+        static::getOrchestratorSingleton()->filterByDepth($level);
+        return static::getInstance();
+    }
+
+    /**
+     * Controla si los nodos grupo sin ítems (hijos) se deben incluir en el resultado final.
+     * Por defecto, no se incluyen a menos que se llame a este método con `true`.
+     * @param bool $value `true` para forzar la inclusión de grupos vacíos, `false` para omitirlos.
+     * @return static
+     */
+    public static function setEmptyGroupsIncluded(bool $value = true): static
+    {
+        static::getOrchestratorSingleton()->setEmptyGroupsIncluded($value);
+        return static::getInstance();
     }
 
     // --- Terminal Methods (Data Retrieval) ---
@@ -637,7 +718,6 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function get(): Collection
     {
-        // Los métodos terminales simplemente usan la instancia actual del orquestador.
         return static::getOrchestratorSingleton()->get();
     }
 
@@ -685,7 +765,6 @@ abstract class FpBaseEntity implements FpEntityInterface
         return static::getOrchestratorSingleton()->getForCurrentUser();
     }
 
-
     // --- Unified Breadcrumbs and Active Branch Logic ---
 
     /**
@@ -711,6 +790,17 @@ abstract class FpBaseEntity implements FpEntityInterface
         return static::getOrchestratorSingleton()->getActiveBranch($activeRouteName);
     }
 
+    /**
+     * **NUEVO:** Obtiene las migas de pan para la ruta activa actual.
+     * Aplica los filtros configurados en la cadena de consulta actual.
+     *
+     * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, se intenta obtener de la solicitud de Laravel.
+     * @return Collection Una colección de entidades que representan las migas de pan para la ruta activa.
+     */
+    public static function getBreadcrumbsForCurrentRoute(?string $activeRouteName = null): Collection
+    {
+        return static::getOrchestratorSingleton()->getBreadcrumbsForCurrentRoute($activeRouteName);
+    }
 
     // --- Utility and Orchestrator Management Methods ---
 
@@ -720,11 +810,6 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function getContextKeys(): array
     {
-        // Para obtener las claves de contexto generales, no necesitamos una instancia "limpia"
-        // del orquestador, ya que es información global. Podríamos usar getOrchestrator()
-        // que debería devolver una instancia "base" que conoce todos los contextos.
-        // Pero para asegurar que se use la instancia que ya conoce todos los contextos,
-        // podemos simplemente usar el singleton sin resetearlo.
         return static::getOrchestratorSingleton()->getContextKeys();
     }
 
@@ -734,7 +819,7 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public static function getActiveContextKeys(): array
     {
-        return static::getOrchestratorSingleton()->getActiveContextKeys();
+        return static::getOrchestratorSingleton()->getCurrentIncludedContextKeys();
     }
 
     /**

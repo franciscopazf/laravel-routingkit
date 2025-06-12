@@ -141,8 +141,8 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             $route->setFullUrl($fullUrl);
             $route->setLevel($level);
 
-            if (!empty($route->getChildrens())) {
-                $this->setFullUrls(collect($route->getChildrens()), $fullName, $fullUrl, $level + 1);
+            if (!empty($route->getItems())) {
+                $this->setFullUrls(collect($route->getItems()), $fullName, $fullUrl, $level + 1);
             }
         }
     }
@@ -187,7 +187,7 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         //        url: $route->getUrl(),
         //        params: $route->getParams(),
         //        parentId: $route->getParentId(),
-        //        childrens: $route->getChildrens()
+        //        items: $route->getItems()
         //    );
         //});
     }
@@ -254,14 +254,14 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
         return $routes->map(function ($route) use ($newRoute, $parentId) {
             if ($route->id === $parentId) {
                 $newRoute->setLevel($route->getLevel() + 1);
-                $route->childrens = array_merge(
-                    $route->childrens ?? [],
+                $route->items = array_merge(
+                    $route->items ?? [],
                     [$newRoute]
                 );
             }
 
-            if (!empty($route->childrens)) {
-                $route->childrens = $this->addRouteRecursive(collect($route->childrens), $newRoute, $parentId)->toArray();
+            if (!empty($route->items)) {
+                $route->items = $this->addRouteRecursive(collect($route->items), $newRoute, $parentId)->toArray();
             }
 
             return $route;
@@ -282,8 +282,8 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
 
 
             // Si el nodo tiene hijos, procesarlos recursivamente
-            if (!empty($route->childrens)) {
-                $route->childrens = $this->removeRouteRecursive(collect($route->childrens), $routeId)->toArray();
+            if (!empty($route->items)) {
+                $route->items = $this->removeRouteRecursive(collect($route->items), $routeId)->toArray();
             }
 
             $result[] = $route;
@@ -343,7 +343,7 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     // una ves aplanado volver a reconstruir el arbol de rutas y asignarlo 
     //  protected Collection $treeEntitys; a estre valor
     // ademas validar en cada paso que 
-    // estas son las interfaces que obligan a tener un atributo id, parentId, childrens, 
+    // estas son las interfaces que obligan a tener un atributo id, parentId, items, 
     // solmaente :)
     // FpEntityInterface 
     protected function flattenTreeRoutes(Collection $tree, ?string $parentId = null): Collection
@@ -374,13 +374,13 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
             $flat->put($id, $entity);
 
             // Procesar hijos
-            $children = collect($entity->getChildrens() ?? []);
+            $children = collect($entity->getItems() ?? []);
             if ($children->isNotEmpty()) {
                 $flat = $flat->merge(
                     $this->flattenTreeRoutes($children, $id)
                 );
             }
-            $entity->setChildrens([]); // Limpiar hijos para evitar duplicados
+            $entity->setItems([]); // Limpiar hijos para evitar duplicados
         }
 
         return $flat;

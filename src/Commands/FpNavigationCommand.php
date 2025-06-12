@@ -29,14 +29,12 @@ class FpNavigationCommand extends Command
     {
 
 
-        //$seleccion = FpRoute::seleccionar();
+        $data = FpNavigation::loadContexts(['key2','dashboard_context'])
+        ->withDepth(1)
+        ->get();
 
-        //dd($seleccion);
 
-
-        //$routes = FpRoute::all();
-
-        // dd($routes);
+        dd($data);
 
         $this->interactive = new FpNavigationInteractive();
 

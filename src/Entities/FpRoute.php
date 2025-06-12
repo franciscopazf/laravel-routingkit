@@ -33,7 +33,7 @@ class FpRoute extends FpBaseEntity
     public $urlMiddleware = [];
     public $permissions = [];
     public $roles = [];
-    public array|Collection $childrens = [];
+    public array|Collection $items = [];
     public $endBlock;
 
     public static function make(string $id): static

@@ -27,7 +27,7 @@ class RegisterRouter
     public static function registerFullRoute(FpRoute $route)
     {
         //echo "Registering route: {$route->id} ({$route->urlMethod})\n";
-        $hasChildren = !empty($route->childrens);
+        $hasItems = !empty($route->items);
         $method = strtolower($route->urlMethod);
         $isLivewire = $route->urlAction === 'livewire';
         $url = '/' . ltrim($route->getUrl(), '/');
@@ -53,9 +53,9 @@ class RegisterRouter
 
 
         // Registrar rutas hijas dentro del grupo con middleware del padre
-        if ($hasChildren)
+        if ($hasItems)
             Route::middleware($middleware)->group(function () use ($route) {
-                foreach ($route->childrens as $childRoute)
+                foreach ($route->items as $childRoute)
                     if ($childRoute instanceof FpRoute)
                         static::registerFullRoute($childRoute);
             });

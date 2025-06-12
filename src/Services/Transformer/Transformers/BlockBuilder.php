@@ -77,23 +77,23 @@ class BlockBuilder
     {
         return preg_replace_callback(
             $this->getChildrenPattern($entity->getId()),
-            fn() => "->setChildrens([])\n->setEndBlock('{$entity->getId()}')",
+            fn() => "->setItems([])\n->setEndBlock('{$entity->getId()}')",
             $block
         );
     }
 
-    public function insertChildren(string $block, string $children, FpEntityInterface $entity, int $level): string
+    public function insertChildren(string $block, string $Item, FpEntityInterface $entity, int $level): string
     {
         $indent = str_repeat("    ", $level + 1);
 
-        $children = trim($children)
-            ? "->setChildrens([\n" . $children . "\n$indent])\n"
-            : "->setChildrens([])\n";
+        $Item = trim($Item)
+            ? "->setItems([\n" . $Item . "\n$indent])\n"
+            : "->setItems([])\n";
         $end = $indent . "->setEndBlock('{$entity->getId()}')";
 
         return preg_replace_callback(
             $this->getChildrenPattern($entity->getId()),
-            fn() => $children . $end,
+            fn() => $Item . $end,
             $block
         );
     }
@@ -142,7 +142,7 @@ class BlockBuilder
             $code .= "\n";
         }
 
-        $code .= "->setChildrens([])\n";
+        $code .= "->setItems([])\n";
         $code .= "->setEndBlock('{$props->get('id', 'undefined')}')";
 
         return $code;
@@ -349,7 +349,7 @@ class BlockBuilder
     public function getChildrenPattern(string $entityId): string
     {
         return '/
-        ->setChildrens\((.*?)\)                     # Grupo 1: contenido dentro del setChildrens(...)
+        ->setItems\((.*?)\)                     # Grupo 1: contenido dentro del setItems(...)
         \s* # posibles espacios o saltos de línea
         ->setEndBlock\(\s*[\'"]' . preg_quote($entityId, '/') . '[\'"]\s*\)   # ->setEndBlock("ID")
         /sx'; // ⚠️ 's' para que el punto incluya saltos de línea, 'x' para comentarios legibles

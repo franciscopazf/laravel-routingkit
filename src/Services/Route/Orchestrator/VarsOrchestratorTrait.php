@@ -17,28 +17,46 @@ trait VarsOrchestratorTrait
     // //--- Current Filter State (Transient per query chain) //---
     protected ?int $currentDepthFilterLevel = null;
     protected ?string $currentUserFilterId = null;
-    protected array $currentExcludedContextKeys = []; // <--- CAMBIO: Inicializamos como array vacío
-    protected array $currentIncludedContextKeys = []; // <--- CAMBIO: Inicializamos como array vacío
+    protected array $currentExcludedContextKeys = [];
+    protected array $currentIncludedContextKeys = [];
+    protected bool $forceEmptyGroups = false; // <--- NUEVO: Para controlar si los grupos vacíos deben mostrarse
 
     // //--- Filtered Result Cache (Per Query Chain) //---
     protected ?Collection $filteredEntitiesCache = null;
 
+    // //--- Observer Callback ---
+    protected ?\Closure $contextKeysObserver = null;
+
     /**
      * Constructor del Orchestrator.
-     * Añadimos aquí la inicialización de currentIncludedContextKeys con todos los contextos.
+     * NOTA: Este constructor ahora se llama desde el constructor de BaseOrchestrator.
+     * Asegúrate de que `loadAllContextConfigurations()` se llame antes de `setIncludedContextKeys($this->getContextKeys())`.
      */
     public function __construct()
     {
         $this->contextualCachedEntities = new Collection();
         $this->resetQueryState(); // Asegura que los filtros están limpios al inicio
 
-        // Cargar las configuraciones de los contextos al instanciar el orquestador base.
-        // Esto es esencial para que getContextKeys() y getContextInstance() funcionen.
-        $this->loadAllContextConfigurations(); // Este método debe estar en BaseOrchestrator y cargar $this->contextConfigurations
+        // `loadAllContextConfigurations()` se asume que se llama en el constructor de BaseOrchestrator
+        // antes de que se intente usar `getContextKeys()`.
 
-        // <--- NUEVO: Inicializar currentIncludedContextKeys con todos los contextos al inicio.
-        // Esto garantiza que siempre esté poblado y nunca sea null.
-         $this->currentIncludedContextKeys = $this->getContextKeys(); 
+        // NOTA: La inicialización de currentIncludedContextKeys a todos los contextos ahora
+        // se maneja en el constructor de BaseOrchestrator para asegurar que `loadAllContextConfigurations()`
+        // ya se haya ejecutado y `getContextKeys()` sea válido.
+    }
+
+    /**
+     * Inicia una nueva "query" en el orquestador, asegurando que los filtros temporales sean limpiados.
+     * Proporciona un punto de entrada claro para iniciar cadenas de filtros.
+     * @return static
+     */
+    public function newQuery(): static
+    {
+        $this->resetQueryState(); // Reinicia el estado de la consulta
+        // Después de resetear el estado, asegúrate de que los contextos incluidos estén en su estado inicial.
+        // Esto es importante para que una nueva consulta comience con todos los contextos por defecto.
+        $this->setIncludedContextKeys($this->getContextKeys());
+        return $this;
     }
 
     /**
@@ -50,11 +68,48 @@ trait VarsOrchestratorTrait
     {
         $this->currentDepthFilterLevel = null;
         $this->currentUserFilterId = null;
-        $this->currentExcludedContextKeys = []; // <--- CAMBIO: Reiniciar como array vacío
-        // <--- IMPORTANTE: No se setea a null aquí.
-        // La lógica de newQuery() o el constructor se encargarán de inicializarlo con todos los contextos.
-        $this->currentIncludedContextKeys = []; // <--- CAMBIO: Reiniciar como array vacío
-        $this->filteredEntitiesCache = null; 
+        $this->currentExcludedContextKeys = [];
+        $this->forceEmptyGroups = false; // Reinicia el estado de grupos vacíos
+        $this->filteredEntitiesCache = null;
+    }
+
+    /**
+     * Establece las claves de contexto incluidas y notifica al observador.
+     * @param array $keys
+     * @return void
+     */
+    protected function setIncludedContextKeys(array $keys): void
+    {
+        // Solo actualizar si realmente ha cambiado para evitar ecos redundantes
+        if ($this->currentIncludedContextKeys !== $keys) {
+            $this->currentIncludedContextKeys = $keys;
+            if ($this->contextKeysObserver) {
+                // Llama al observador con las nuevas claves
+                ($this->contextKeysObserver)($this->currentIncludedContextKeys);
+            }
+        }
+    }
+
+    /**
+     * Obtiene las claves de contexto incluidas actualmente.
+     * @return array
+     */
+    public function getCurrentIncludedContextKeys(): array
+    {
+        return $this->currentIncludedContextKeys;
+    }
+
+    /**
+     * Registra una función de callback para observar los cambios en currentIncludedContextKeys.
+     *
+     * @param \Closure $callback La función a ejecutar cuando currentIncludedContextKeys cambie.
+     * Recibe el array de las nuevas claves de contexto.
+     * @return static
+     */
+    public function observeIncludedContextKeys(\Closure $callback): static
+    {
+        $this->contextKeysObserver = $callback;
+        return $this;
     }
 
     /**
@@ -67,6 +122,7 @@ trait VarsOrchestratorTrait
      */
     protected function getRawEntitiesByContext(string $contextKey): Collection
     {
+        // Carga perezosa y caché: Si no está cacheado, lo carga.
         if (!$this->contextualCachedEntities->has($contextKey)) {
             try {
                 $context = $this->getContextInstance($contextKey);
@@ -80,63 +136,90 @@ trait VarsOrchestratorTrait
 
     // //--- Filter Configuration Methods (Return $this for chaining) //---
 
+    /**
+     * Establece el nivel de profundidad máxima para filtrar el árbol.
+     * @param int|null $level El nivel de profundidad máxima. `null` para no aplicar filtro de profundidad.
+     * @return static
+     */
     public function withDepth(?int $level = null): static
     {
         $this->currentDepthFilterLevel = $level;
-        $this->filteredEntitiesCache = null; 
+        $this->filteredEntitiesCache = null; // Invalida la caché del resultado final
         return $this;
     }
 
+    /**
+     * Configura el filtro para un usuario específico.
+     * @param string|null $userId El ID del usuario. `null` para no aplicar filtro de usuario.
+     * @return static
+     */
     public function forUser(?string $userId): static
     {
         $this->currentUserFilterId = $userId;
-        $this->filteredEntitiesCache = null; 
+        $this->filteredEntitiesCache = null; // Invalida la caché del resultado final
         return $this;
     }
 
+    /**
+     * Carga y activa contextos específicos.
+     * @param string|array $contextKeys Una o más claves de contexto a cargar y activar.
+     * @return static
+     */
     public function loadContexts(string|array $contextKeys): static
     {
-        $this->currentIncludedContextKeys = (array) $contextKeys; // <--- CAMBIO: Directamente asignamos
-        //dd($this->currentIncludedContextKeys);
-        $this->currentExcludedContextKeys = []; // <--- CAMBIO: Limpiamos las exclusiones
-        $this->filteredEntitiesCache = null; 
+        $this->setIncludedContextKeys((array) $contextKeys);
+        $this->currentExcludedContextKeys = []; // Limpiamos las exclusiones
+        $this->filteredEntitiesCache = null; // Invalida la caché
         return $this;
     }
 
+    /**
+     * Carga y activa todos los contextos disponibles.
+     * @return static
+     */
     public function loadAllContexts(): static
     {
-        // <--- CAMBIO: Setear a TODAS las claves de contexto disponibles
-        $this->currentIncludedContextKeys = $this->getContextKeys(); 
-        $this->currentExcludedContextKeys = []; // <--- CAMBIO: Limpiamos las exclusiones
-        $this->filteredEntitiesCache = null; 
+        $this->setIncludedContextKeys($this->getContextKeys());
+        $this->currentExcludedContextKeys = []; // Limpiamos las exclusiones
+        $this->filteredEntitiesCache = null; // Invalida la caché
         return $this;
     }
 
+    /**
+     * Reinicia los contextos activos a su estado por defecto (generalmente todos los disponibles).
+     * @return static
+     */
     public function resetContexts(): static
     {
-        // <--- CAMBIO: Resetear a TODAS las claves de contexto disponibles
-        $this->currentIncludedContextKeys = $this->getContextKeys();
-        $this->currentExcludedContextKeys = []; // <--- CAMBIO: Limpiamos las exclusiones
-        $this->filteredEntitiesCache = null; 
+        $this->setIncludedContextKeys($this->getContextKeys());
+        $this->currentExcludedContextKeys = []; // Limpiamos las exclusiones
+        $this->filteredEntitiesCache = null; // Invalida la caché
         return $this;
     }
 
+    /**
+     * Excluye contextos específicos. Los demás se mantienen activos.
+     * @param string|array $contextKeys Una o más claves de contexto a excluir.
+     * @return static
+     */
     public function excludeContexts(string|array $contextKeys): static
     {
         $excluded = (array) $contextKeys;
         $allContexts = $this->getContextKeys();
-        // <--- CAMBIO: currentIncludedContextKeys serán todas las claves excepto las excluidas
-        $this->currentIncludedContextKeys = array_values(array_diff($allContexts, $excluded)); 
-        $this->currentExcludedContextKeys = []; // <--- CAMBIO: Limpiamos las exclusiones (ya no son necesarias para la lógica)
-        $this->filteredEntitiesCache = null; 
+        $this->setIncludedContextKeys(array_values(array_diff($allContexts, $excluded)));
+        $this->currentExcludedContextKeys = []; // Limpiamos las exclusiones
+        $this->filteredEntitiesCache = null; // Invalida la caché
         return $this;
     }
 
+    /**
+     * Reinicia todos los filtros configurados en la instancia actual del orquestador.
+     * @return static
+     */
     public function resetFilters(): static
     {
         $this->resetQueryState();
-        // <--- IMPORTANTE: Después de resetQueryState, volvemos a inicializar con todos los contextos
-        $this->currentIncludedContextKeys = $this->getContextKeys(); 
+        $this->setIncludedContextKeys($this->getContextKeys()); // Vuelve a inicializar con todos los contextos
         return $this;
     }
 
@@ -158,6 +241,65 @@ trait VarsOrchestratorTrait
         return $this->forUser($userId);
     }
 
+    //--- NUEVOS FILTROS SOLICITADOS ---
+
+    /**
+     * Filtra para mostrar solo los archivos de un contexto específico (o varios).
+     * Esto carga solo los contextos indicados.
+     *
+     * @param string|array $contextKeys La clave o claves de contexto a incluir.
+     * @return static
+     */
+    public function filterOnlyFiles(string|array $contextKeys): static
+    {
+        return $this->loadContexts($contextKeys);
+    }
+
+    /**
+     * Filtra para mostrar todas las rutas/archivos de todos los contextos disponibles.
+     * Es un alias de `loadAllContexts()`.
+     * @return static
+     */
+    public function filterAllFiles(): static
+    {
+        return $this->loadAllContexts();
+    }
+
+    /**
+     * Configura el orquestador para filtrar las rutas para el usuario autenticado actual.
+     * Es un alias de `prepareForUser()`.
+     * @return static
+     * @throws RuntimeException Si no hay usuario autenticado.
+     */
+    public function filterForCurrentUser(): static
+    {
+        return $this->prepareForUser();
+    }
+
+    /**
+     * Configura el filtro de profundidad. Alias de `withDepth()`.
+     * @param int|null $level El nivel de profundidad.
+     * @return static
+     */
+    public function filterByDepth(?int $level = null): static
+    {
+        return $this->withDepth($level);
+    }
+
+    /**
+     * Controla si los nodos grupo sin ítems (hijos) se deben incluir en el resultado final.
+     * Por defecto, no se incluyen a menos que se llame a este método con `true`.
+     * @param bool $value `true` para forzar la inclusión de grupos vacíos, `false` para omitirlos.
+     * @return static
+     */
+    public function setEmptyGroupsIncluded(bool $value = true): static
+    {
+        $this->forceEmptyGroups = $value;
+        $this->filteredEntitiesCache = null; // Invalida la caché
+        return $this;
+    }
+
+
     //---
 
     ### **Data Retrieval Methods (Apply filters and return data)**
@@ -171,47 +313,67 @@ trait VarsOrchestratorTrait
      */
     public function all(): Collection
     {
-        // Ahora, 'all()' simplemente usa getFlattenedEntitiesByActiveContexts() que ya
-        // se basa en currentIncludedContextKeys.
+        // Si el arreglo de contextos incluidos está vacío, entonces setearlo a que
+        // incluya todos los contextos disponibles, pero solo si no está vacío.
+        if (empty($this->currentIncludedContextKeys) && !empty($this->getContextKeys())) {
+            $this->setIncludedContextKeys($this->getContextKeys());
+        }
+
+        // Si se llama a `all()` no se aplican los filtros de `forceEmptyGroups`
+        // por lo que temporalmente se fuerza a true y luego se restaura.
+        $originalForceEmptyGroups = $this->forceEmptyGroups;
+        $this->forceEmptyGroups = true; // Para `all()`, los grupos vacíos pueden ser relevantes.
+
         $flattenedEntities = $this->getFlattenedEntitiesByActiveContexts();
-        
-        return $this->buildTreeFromFlattened($flattenedEntities);
+        $tree = $this->buildTreeFromFlattened($flattenedEntities);
+
+        // Restaurar el valor original para no afectar llamadas futuras de `get()`
+        $this->forceEmptyGroups = $originalForceEmptyGroups;
+
+        return $tree;
     }
 
     /**
      * Obtiene el árbol de entidades aplicando todos los filtros configurados
-     * (usuario, profundidad, contextos incluidos/excluidos).
+     * (usuario, profundidad, contextos incluidos/excluidos, grupos vacíos).
      * Este es el método final para obtener el resultado de una query.
      *
      * @return Collection El árbol de entidades filtrado.
      */
     public function get(): Collection
     {
+        // Si ya tenemos un resultado cacheado para los filtros actuales, lo devolvemos.
         if ($this->filteredEntitiesCache !== null) {
             return $this->filteredEntitiesCache;
         }
 
-     //   dd($this->currentIncludedContextKeys);
-        
+        // Si currentIncludedContextKeys está vacío al llamar a get(), significa que no se especificaron contextos
+        // explícitamente a través de loadContexts o excludeContexts. En este caso, asumimos que
+        // se deben cargar todos los contextos disponibles.
+        if (empty($this->currentIncludedContextKeys) && !empty($this->getContextKeys())) {
+            $this->setIncludedContextKeys($this->getContextKeys());
+        }
+
         // Paso 1: Cargar todas las entidades aplanadas de los contextos relevantes.
-        // Esto respeta currentIncludedContextKeys (que ahora siempre es un array poblado).
+        // Esto respeta currentIncludedContextKeys.
         $flattenedEntities = $this->getFlattenedEntitiesByActiveContexts();
-        
+
         // Paso 2: Reconstruir el árbol a partir de las entidades aplanadas.
         $tree = $this->buildTreeFromFlattened($flattenedEntities);
 
-        // Paso 3: Aplicar filtro de usuario/permisos y marcar nodos activos (condicionalmente)
+        // Paso 3: Aplicar filtro de usuario/permisos y marcar nodos activos
         if ($this->currentUserFilterId !== null) {
             $user = User::find($this->currentUserFilterId);
             if ($user) {
                 $permissions = $user->roles->flatMap(fn($role) => $role->permissions->pluck('name'))
                     ->unique()->values()->all();
-                $tree = $this->applyPermissionAndActiveFilter($tree, $permissions, request()->route()?->getName());
+                $tree = $this->applyPermissionAndActiveFilter($tree, $permissions, request()->route()?->getName(), $this->forceEmptyGroups);
             } else {
-                $tree = collect();
+                $tree = collect(); // Si el usuario no existe, no hay permisos, por lo tanto, no hay rutas
             }
         } else {
-            $tree = $this->markActiveNodesAndSetGroupUrls($tree, request()->route()?->getName());
+            // Si no hay filtro de usuario, aplicamos la marcación de activos y la lógica de grupos.
+            $tree = $this->markActiveNodesAndSetGroupUrls($tree, request()->route()?->getName(), $this->forceEmptyGroups);
         }
 
         // Paso 4: Aplicar filtro de profundidad
@@ -219,43 +381,52 @@ trait VarsOrchestratorTrait
             $tree = $this->filterTreeByDepth($tree, 0, $this->currentDepthFilterLevel);
         }
 
+        // Cacheamos el resultado final antes de devolverlo
         $this->filteredEntitiesCache = $tree;
-        
+
         return $this->filteredEntitiesCache;
     }
 
     /**
-     * Recursively marks active nodes and sets group URLs based on children,
-     * without applying permission filters.
+     * Recursively marks active nodes and sets group URLs based on their child items,
+     * considering whether empty groups should be included.
      *
      * @param Collection|array $nodes The nodes of the tree to process.
-     * @param string|null $activeRouteName El nombre de la ruta activa actual.
+     * @param string|null $activeRouteName The name of the active route.
+     * @param bool $forceEmptyGroups If true, groups with no items will be included.
      * @return Collection The processed tree with active nodes marked and group URLs set.
      */
-    protected function markActiveNodesAndSetGroupUrls(array|Collection $nodes, ?string $activeRouteName = null): Collection
+    protected function markActiveNodesAndSetGroupUrls(array|Collection $nodes, ?string $activeRouteName = null, bool $forceEmptyGroups = false): Collection
     {
         $processed = collect();
 
         foreach ($nodes as $node) {
             $clonedNode = clone $node;
 
-            // Procesar hijos recursivamente
-            $children = $this->markActiveNodesAndSetGroupUrls($clonedNode->getChildrens(), $activeRouteName);
+            // Procesar items recursivamente
+            $items = $this->markActiveNodesAndSetGroupUrls($clonedNode->getItems(), $activeRouteName, $forceEmptyGroups);
 
-            // Si es un grupo y tiene hijos, intenta establecer su URL
-            if ($clonedNode->isGroup && $children->isNotEmpty()) {
-                $this->setGroupUrlFromFirstChild($clonedNode, $children);
+            // Si es un grupo y tiene items, intenta establecer su URL
+            if ($clonedNode->isGroup && $items->isNotEmpty()) {
+                $this->setGroupUrlFromFirstChild($clonedNode, $items);
             }
 
-            // Marcar el nodo como activo si su URL o ID coincide con la ruta activa, o si alguno de sus hijos está activo
-            $nodeIsActive = $clonedNode->getUrlName() === $activeRouteName || $clonedNode->getId() === $activeRouteName;
-            $childrenAreActive = $children->contains(fn($child) => $child->isActive());
-            $clonedNode->setIsActive($nodeIsActive || $childrenAreActive);
+            // Marcar el nodo como activo si su URL o ID coincide con la ruta activa, o si alguno de sus items está activo
+            $nodeIsActive = ($clonedNode->getUrlName() && $clonedNode->getUrlName() === $activeRouteName) || $clonedNode->getId() === $activeRouteName;
+            $itemsAreActive = $items->contains(fn($item) => $item->isActive());
+            $clonedNode->setIsActive($nodeIsActive || $itemsAreActive);
 
-            // Reconstruir la colección de hijos del nodo clonado
-            $clonedNode->setChildrens(new Collection());
-            foreach ($children as $child) {
-                $clonedNode->addChild($child);
+            // Lógica para grupos vacíos:
+            // Si es un grupo y no tiene ítems Y NO estamos forzando la inclusión de grupos vacíos,
+            // entonces NO lo incluimos en el resultado.
+            if ($clonedNode->isGroup && $items->isEmpty() && !$forceEmptyGroups) {
+                continue;
+            }
+
+            // Reconstruir la colección de items del nodo clonado
+            $clonedNode->setItems(new Collection());
+            foreach ($items as $item) {
+                $clonedNode->addItem($item);
             }
             $processed->push($clonedNode);
         }
@@ -264,7 +435,7 @@ trait VarsOrchestratorTrait
 
     /**
      * Obtiene el árbol de entidades filtrado para el usuario autenticado actual.
-     * Es un atajo para `prepareForUser()->get()`.
+     * Es un atajo para `filterForCurrentUser()->get()`.
      *
      * @return Collection
      * @throws RuntimeException Si no hay usuario autenticado.
@@ -272,7 +443,7 @@ trait VarsOrchestratorTrait
     public function getForCurrentUser(): Collection
     {
         $this->prepareForUser();
-        return $this->get(); 
+        return $this->get();
     }
 
     /**
@@ -297,13 +468,14 @@ trait VarsOrchestratorTrait
     protected function getFlattenedEntitiesByActiveContexts(): Collection
     {
         $flattened = collect();
-//dd($this->currentIncludedContextKeys);
-        // <--- CAMBIO: Iteramos directamente sobre currentIncludedContextKeys
+
         foreach ($this->currentIncludedContextKeys as $key) {
             try {
+                // Aquí es donde se aplica la carga perezosa y se usa la caché contextual.
+                // Si ya está cacheado, se devuelve. Si no, se carga y se cachea.
                 $flattened = $flattened->merge($this->getRawEntitiesByContext($key));
-            } catch (RuntimeException $e) {
-                // Log o maneja el error si un contexto no puede ser cargado
+            } catch (RuntimeException | \Exception $e) { // Se añade \Exception para capturar más tipos de errores
+                error_log("Error loading context '{$key}': " . $e->getMessage());
             }
         }
         return $flattened;
@@ -318,17 +490,17 @@ trait VarsOrchestratorTrait
      */
     public function getSubBranch(string $rootEntityId): Collection
     {
-        $fullFilteredTree = $this->get();
+        $fullFilteredTree = $this->get(); // Obtiene el árbol completo filtrado por el estado actual
 
         $flattenedFilteredTree = $this->flattenTree($fullFilteredTree);
-        
+
         if (!$flattenedFilteredTree->has($rootEntityId)) {
             return collect();
         }
 
         $rootEntity = clone $flattenedFilteredTree->get($rootEntityId);
         $rootEntity->setParentId(null);
-        $rootEntity->setChildrens(new Collection()); 
+        $rootEntity->setItems(new Collection());
 
         $subTree = collect([$rootEntity]);
         $this->buildSubTreeRecursive($rootEntity, $flattenedFilteredTree);
@@ -348,8 +520,9 @@ trait VarsOrchestratorTrait
      */
     protected function getRawGlobalTree(): Collection
     {
+        // Carga perezosa para el árbol global completo
         if ($this->globalTreeAllEntities === null) {
-            $flattened = $this->getRawGlobalFlattened(); 
+            $flattened = $this->getRawGlobalFlattened();
             $this->globalTreeAllEntities = $this->buildTreeFromFlattened($flattened);
         }
         return $this->globalTreeAllEntities;
@@ -362,13 +535,14 @@ trait VarsOrchestratorTrait
      */
     protected function getRawGlobalFlattened(): Collection
     {
+        // Carga perezosa para la lista aplanada global completa
         if ($this->globalFlattenedAllEntities === null) {
             $this->globalFlattenedAllEntities = collect();
-            foreach ($this->getContextKeys() as $key) { 
+            foreach ($this->getContextKeys() as $key) {
                 try {
                     $this->globalFlattenedAllEntities = $this->globalFlattenedAllEntities->merge($this->getRawEntitiesByContext($key));
-                } catch (RuntimeException $e) {
-                    // Log o maneja el error si un contexto no puede ser cargado
+                } catch (RuntimeException | \Exception $e) { // Se añade \Exception
+                    error_log("Error loading global context '{$key}': " . $e->getMessage());
                 }
             }
         }
@@ -388,7 +562,7 @@ trait VarsOrchestratorTrait
 
         foreach ($flat as $entity) {
             $clonedEntity = clone $entity;
-            $clonedEntity->setChildrens(new Collection());
+            $clonedEntity->setItems(new Collection());
 
             if ($clonedEntity->getMakerMethod() === 'makeSelf') {
                 $originalId = $clonedEntity->getId();
@@ -401,7 +575,7 @@ trait VarsOrchestratorTrait
                 $clonedSource->setId($originalId);
                 $clonedSource->setMakerMethod('makeSelf');
                 $clonedEntity = $clonedSource;
-                $clonedEntity->setChildrens(new Collection());
+                $clonedEntity->setItems(new Collection());
             }
             $entitiesById->put($clonedEntity->getId(), $clonedEntity);
         }
@@ -411,7 +585,7 @@ trait VarsOrchestratorTrait
             $parentId = $entity->getParentId();
             if ($parentId !== null && $entitiesById->has($parentId)) {
                 $parent = $entitiesById->get($parentId);
-                $parent->addChild($entity);
+                $parent->addItem($entity);
             } else {
                 $tree->push($entity);
             }
@@ -422,7 +596,7 @@ trait VarsOrchestratorTrait
     /**
      * Recursive helper to build a sub-tree from a flattened collection.
      *
-     * @param FpEntityInterface $currentNode The current node to build children for.
+     * @param FpEntityInterface $currentNode The current node to build items for.
      * @param Collection $allEntitiesFlattened All entities in flattened form (from the source tree).
      */
     protected function buildSubTreeRecursive(FpEntityInterface $currentNode, Collection $allEntitiesFlattened): void
@@ -430,8 +604,8 @@ trait VarsOrchestratorTrait
         foreach ($allEntitiesFlattened as $entity) {
             if ($entity->getParentId() === $currentNode->getId()) {
                 $clonedChild = clone $entity;
-                $clonedChild->setChildrens(new Collection());
-                $currentNode->addChild($clonedChild);
+                $clonedChild->setItems(new Collection());
+                $currentNode->addItem($clonedChild);
                 $this->buildSubTreeRecursive($clonedChild, $allEntitiesFlattened);
             }
         }
@@ -452,12 +626,12 @@ trait VarsOrchestratorTrait
         foreach ($nodes as $node) {
             if ($currentLevel <= $maxDepth) {
                 $clonedNode = clone $node;
-                $clonedNode->setChildrens(new Collection()); 
+                $clonedNode->setItems(new Collection());
 
                 if ($currentLevel < $maxDepth) {
-                    $filteredChildren = $this->filterTreeByDepth($node->getChildrens(), $currentLevel + 1, $maxDepth);
-                    foreach ($filteredChildren as $child) {
-                        $clonedNode->addChild($child);
+                    $filteredItems = $this->filterTreeByDepth($node->getItems(), $currentLevel + 1, $maxDepth);
+                    foreach ($filteredItems as $item) {
+                        $clonedNode->addItem($item);
                     }
                 }
                 $filteredNodes->push($clonedNode);
@@ -467,56 +641,60 @@ trait VarsOrchestratorTrait
     }
 
     /**
-     * Recursively filters a tree by user permissions and marks active nodes.
+     * Recursively filters a tree by user permissions and marks active nodes,
+     * considering whether empty groups should be included.
      *
      * @param Collection|array $nodes The nodes of the tree to filter.
      * @param array $allowedPermissions Permisos permitidos para el usuario actual.
      * @param string|null $activeRouteName El nombre de la ruta activa actual.
+     * @param bool $forceEmptyGroups If true, groups with no items will be included.
      * @return Collection El árbol filtrado y con nodos activos marcados.
      */
-    protected function applyPermissionAndActiveFilter(array|Collection $nodes, array $allowedPermissions, ?string $activeRouteName = null): Collection
+    protected function applyPermissionAndActiveFilter(array|Collection $nodes, array $allowedPermissions, ?string $activeRouteName = null, bool $forceEmptyGroups = false): Collection
     {
         $filtered = collect();
 
         foreach ($nodes as $node) {
             $clonedNode = clone $node;
 
-            $children = $this->applyPermissionAndActiveFilter($clonedNode->getChildrens(), $allowedPermissions, $activeRouteName);
+            $items = $this->applyPermissionAndActiveFilter($clonedNode->getItems(), $allowedPermissions, $activeRouteName, $forceEmptyGroups);
 
-            if ($clonedNode->isGroup && $children->isNotEmpty()) {
-                $this->setGroupUrlFromFirstChild($clonedNode, $children);
+            if ($clonedNode->isGroup && $items->isNotEmpty()) {
+                $this->setGroupUrlFromFirstChild($clonedNode, $items);
             }
 
-            $nodeIsActive = $clonedNode->getUrlName() === $activeRouteName || $clonedNode->getId() === $activeRouteName;
-            $childrenAreActive = $children->contains(fn($child) => $child->isActive());
-            $clonedNode->setIsActive($nodeIsActive || $childrenAreActive);
+            $nodeIsActive = ($clonedNode->getUrlName() && $clonedNode->getUrlName() === $activeRouteName) || $clonedNode->getId() === $activeRouteName;
+            $itemsAreActive = $items->contains(fn($item) => $item->isActive());
+            $clonedNode->setIsActive($nodeIsActive || $itemsAreActive);
 
             $hasPermission = $this->hasValidPermission($clonedNode, $allowedPermissions);
-            $shouldInclude = ($hasPermission || $clonedNode->isGroup || $children->isNotEmpty());
+            $shouldInclude = ($hasPermission || $clonedNode->isGroup || $items->isNotEmpty() || ($clonedNode->isGroup && $forceEmptyGroups));
 
+            // Si no debe incluirse Y no es un grupo O es un grupo sin hijos y no se fuerza su inclusión, continuar.
             if (!$shouldInclude && !$clonedNode->isGroup) {
                 continue;
             }
 
-            if ($clonedNode->isGroup && $children->isEmpty() && !$hasPermission) {
+            // Si es un grupo y no tiene hijos Y no tiene permisos Y NO estamos forzando la inclusión, omitirlo.
+            if ($clonedNode->isGroup && $items->isEmpty() && !$hasPermission && !$forceEmptyGroups) {
                 continue;
             }
 
-            $clonedNode->setChildrens(new Collection()); 
-            foreach ($children as $child) {
-                $clonedNode->addChild($child);
+            $clonedNode->setItems(new Collection());
+            foreach ($items as $item) {
+                $clonedNode->addItem($item);
             }
             $filtered->push($clonedNode);
         }
         return $filtered;
     }
 
-    protected function setGroupUrlFromFirstChild($node, Collection $children): void
+    protected function setGroupUrlFromFirstChild($node, Collection $items): void
     {
-        $firstChildWithUrl = $children->first(fn($child) => $child->getUrl() !== null);
-        if ($firstChildWithUrl) {
-            $node->setUrl($firstChildWithUrl->getUrl());
-            $node->setUrlName($firstChildWithUrl->getUrlName());
+        $firstItemWithUrl = $items->first(fn($item) => $item->getUrl() !== null);
+        if ($firstItemWithUrl) {
+            $node->setUrl($firstItemWithUrl->getUrl());
+            $node->setUrlName($firstItemWithUrl->getUrlName());
         }
     }
 
@@ -561,7 +739,7 @@ trait VarsOrchestratorTrait
      * Gets the active branch (the current entity and its active ancestors/descendants)
      * from the tree resulting from the current query chain.
      *
-     * @param string|null $activeRouteName The name of the active route. If null, attempts to get from request.
+     * @param string|null $activeRouteName The name of the active route. If null, attempts to get from Laravel's request.
      * @return Fp\FullRoute\Contracts\FpEntityInterface|null The root entity of the active branch, or null if not found.
      */
     public function getActiveBranch(?string $activeRouteName = null): ?FpEntityInterface
@@ -597,6 +775,41 @@ trait VarsOrchestratorTrait
     }
 
     /**
+     * **NUEVO:** Obtiene las migas de pan para la ruta activa actual.
+     * Aplica los filtros configurados en la cadena de consulta actual.
+     *
+     * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, se intenta obtener de la solicitud de Laravel.
+     * @return Collection Una colección de entidades que representan las migas de pan para la ruta activa.
+     */
+    public function getBreadcrumbsForCurrentRoute(?string $activeRouteName = null): Collection
+    {
+        $activeRouteName = $activeRouteName ?? request()->route()?->getName();
+
+        if (!$activeRouteName) {
+            return collect(); // Si no hay ruta activa, no hay migas de pan.
+        }
+
+        // Obtiene el árbol completo ya filtrado por la cadena de consulta actual
+        $sourceTree = $this->get();
+
+        // Aplana el árbol filtrado para una búsqueda eficiente
+        $flattenedSource = $this->flattenTree($sourceTree);
+
+        // Intenta encontrar la entidad correspondiente a la ruta activa por su ID o urlName
+        $activeEntity = $flattenedSource->first(function ($entity) use ($activeRouteName) {
+            return $entity->getId() === $activeRouteName || $entity->getUrlName() === $activeRouteName;
+        });
+
+        if (!$activeEntity) {
+            return collect(); // Si no se encuentra la entidad, no hay migas de pan.
+        }
+
+        // Reutiliza la lógica existente de getBreadcrumbs con la entidad encontrada
+        return $this->getBreadcrumbs($activeEntity);
+    }
+
+
+    /**
      * Flattens a tree (Collection of entities) for easy lookup by ID.
      * @param Collection $tree The tree to flatten.
      * @return Collection A flattened collection of entities, keyed by ID.
@@ -606,8 +819,8 @@ trait VarsOrchestratorTrait
         $flattened = collect();
         foreach ($tree as $node) {
             $flattened->put($node->getId(), $node);
-            if ($node->getChildrens()->isNotEmpty()) {
-                $flattened = $flattened->merge($this->flattenTree($node->getChildrens()));
+            if ($node->getItems()->isNotEmpty()) {
+                $flattened = $flattened->merge($this->flattenTree($node->getItems()));
             }
         }
         return $flattened;
