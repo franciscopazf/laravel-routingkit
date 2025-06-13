@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Fp\RoutingKit\Clases\RoutingKit;
+use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
 use Illuminate\Support\Collection;
 use Orchestra\Testbench\TestCase;
 
-class FullRouteFeatureTest extends TestCase
+class RoutingKitFeatureTest extends TestCase
 {
     protected string $tempFile;
 
@@ -23,10 +23,10 @@ class FullRouteFeatureTest extends TestCase
             <<<PHP
 <?php
 
-use Fp\\FullRoute\\Clases\\FullRoute;
+use Fp\\RoutingKit\\Clases\\RoutingKit;
 
 return [
-    FullRoute::make('test')
+    RoutingKit::make('test')
         ->setPermission('admin')
         ->setTitle('Dashboard3')
         ->setDescription('Dashboard de la aplicacion')
@@ -59,7 +59,7 @@ PHP
     {
         $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
-        $newRoute = FullRoute::make('route-1')
+        $newRoute = RoutingKit::make('route-1')
             ->setPermission('admin')
             ->setTitle('Dashboard3')
             ->setDescription('Dashboard de la aplicacion')
@@ -102,13 +102,13 @@ PHP
     {
         $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
-        $routeFrom = FullRoute::make('route-1')
+        $routeFrom = RoutingKit::make('route-1')
             ->setTitle('From')
             ->setUrlMethod('GET')
             ->setUrlName('name')
             ->setUrl('/from');
 
-        $routeTo   = FullRoute::make('route-2')
+        $routeTo   = RoutingKit::make('route-2')
             ->setTitle('To')
             ->setUrlMethod('GET')
             ->setUrlName('name2')
@@ -130,7 +130,7 @@ PHP
     {
         $context = RouteStrategyFactory::make('file_array', $this->tempFile);
 
-        $route = FullRoute::make('route-delete')
+        $route = RoutingKit::make('route-delete')
             ->setPermission('admin')
             ->setUrlMethod('GET')
             ->setTitle('Eliminar')

@@ -1,13 +1,13 @@
 <?php
 
-namespace Fp\FullRoute\Services\Navigator;
+namespace Fp\RoutingKit\Services\Navigator;
 
-use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
-use Fp\FullRoute\Services\Navigator\FileBrowser;
-use Fp\FullRoute\Services\Navigator\NamespaceResolver;
-use Fp\FullRoute\Services\Navigator\ClassInspector;
+use Fp\RoutingKit\Contracts\FpEntityInterface as RoutingKit;
+use Fp\RoutingKit\Services\Navigator\FileBrowser;
+use Fp\RoutingKit\Services\Navigator\NamespaceResolver;
+use Fp\RoutingKit\Services\Navigator\ClassInspector;
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Services\Navigator\TreeNavigator;
+use Fp\RoutingKit\Services\Navigator\TreeNavigator;
 
 use function Laravel\Prompts\select;
 
@@ -74,7 +74,7 @@ class Navigator
 
     public function treeNavigator(
         Collection|array $rutas,
-        ?FullRoute $nodoActual = null,
+        ?RoutingKit $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
     ): ?string {

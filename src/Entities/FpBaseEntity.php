@@ -1,10 +1,10 @@
 <?php
 
-namespace Fp\FullRoute\Entities;
+namespace Fp\RoutingKit\Entities;
 
-use Fp\FullRoute\Contracts\FpEntityInterface;
-use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Traits\HasDynamicAccessors;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 use RuntimeException;
 

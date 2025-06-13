@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services\Transformer\Transformers;
+namespace Fp\RoutingKit\Services\Transformer\Transformers;
 
 use Countable;
 use Closure;

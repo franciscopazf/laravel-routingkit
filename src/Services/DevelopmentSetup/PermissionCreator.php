@@ -1,9 +1,9 @@
 <?php
 
 
-namespace Fp\FullRoute\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Services\DevelopmentSetup;
 
-use Fp\FullRoute\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Facades; // Asegúrate de que el namespace sea correcto para tu paquete
+namespace Fp\RoutingKit\Facades; // Asegúrate de que el namespace sea correcto para tu paquete
 
 use Illuminate\Support\Facades\Facade; // Importa la clase base Facade de Laravel
 

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Fp\FullRoute\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Services\DevelopmentSetup;
 
 use App\Models\User;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services\Navigator;
+namespace Fp\RoutingKit\Services\Navigator;
 
 class NamespaceResolver
 {

@@ -1,9 +1,9 @@
 <?php
 
-namespace Fp\FullRoute\Services\Navigator;
+namespace Fp\RoutingKit\Services\Navigator;
 
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
+use Fp\RoutingKit\Contracts\FpEntityInterface as RoutingKit;
 use function Laravel\Prompts\select;
 
 class TreeNavigator
@@ -27,17 +27,17 @@ class TreeNavigator
 
 
     /**
-     * Navega interactivamente por una colección de rutas FullRoute.
+     * Navega interactivamente por una colección de rutas RoutingKit.
      *
      * @param Collection|array $rutas
-     * @param FullRoute|null $nodoActual
+     * @param RoutingKit|null $nodoActual
      * @param array $pila
      * @param string|null $omitId
      * @return string|null
      */
     public function navegar(
         Collection|array $rutas,
-        ?FullRoute $nodoActual = null,
+        ?RoutingKit $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
     ): ?string {

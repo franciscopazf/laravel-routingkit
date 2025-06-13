@@ -1,9 +1,9 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route;
+namespace Fp\RoutingKit\Services\Route;
 
-use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\RouteStrategyInterface;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
 
 use Illuminate\Support\Collection;
 

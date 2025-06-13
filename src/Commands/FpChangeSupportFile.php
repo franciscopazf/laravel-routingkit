@@ -1,15 +1,15 @@
 <?php
 
-namespace Fp\FullRoute\Commands;
+namespace Fp\RoutingKit\Commands;
 
-use Fp\FullRoute\Services\Route\FullRouteInteractive;
+use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
 use Illuminate\Console\Command;
 use function Laravel\Prompts\select;
 
-use Fp\FullRoute\Helpers\Navigator;
-use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\Navigator\Navigator as NNavigator;
-use Fp\FullRoute\Services\Route\RouteOrchestrator;
+use Fp\RoutingKit\Helpers\Navigator;
+use Fp\RoutingKit\Clases\RoutingKit;
+use Fp\RoutingKit\Services\Navigator\Navigator as NNavigator;
+use Fp\RoutingKit\Services\Route\RouteOrchestrator;
 
 class FpChangeSupportFile extends Command
 {
@@ -19,7 +19,7 @@ class FpChangeSupportFile extends Command
 
     protected $description = 'Esta orden reconstruye las rutas de la aplicación.';
 
-    protected FullRouteInteractive $interactive;
+    protected RoutingKitInteractive $interactive;
 
     public function handle()
     {

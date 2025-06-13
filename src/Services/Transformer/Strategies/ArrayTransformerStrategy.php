@@ -1,11 +1,11 @@
 <?php
 
-namespace Fp\FullRoute\Services\Transformer\Strategies;
+namespace Fp\RoutingKit\Services\Transformer\Strategies;
 
-use Fp\FullRoute\Contracts\FpEntityInterface as FullRoute;
-use Fp\FullRoute\Services\Transformer\TransformerStrategyInterface;
-use Fp\FullRoute\Services\Transformer\Transformers\BlockBuilder;
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Contracts\FpEntityInterface as RoutingKit;
+use Fp\RoutingKit\Services\Transformer\TransformerStrategyInterface;
+use Fp\RoutingKit\Services\Transformer\Transformers\BlockBuilder;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 use Illuminate\Support\Collection;
 
 class ArrayTransformerStrategy implements TransformerStrategyInterface
@@ -46,7 +46,7 @@ class ArrayTransformerStrategy implements TransformerStrategyInterface
         return $finalNewContent;
     }
 
-    private function transformRoute(FullRoute $route): string
+    private function transformRoute(RoutingKit $route): string
     {
         $block = $this->blockBuilder->getBlock($route);
         $block = $this->blockBuilder->sanitizeForArray($block, $route);

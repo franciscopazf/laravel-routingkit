@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Services\Transformer;
+namespace Fp\RoutingKit\Services\Transformer;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\RoutingKit\Clases\RoutingKit;
 use Illuminate\Support\Collection;
 
 interface TransformerStrategyInterface

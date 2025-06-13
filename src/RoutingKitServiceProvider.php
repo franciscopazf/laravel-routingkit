@@ -1,14 +1,15 @@
 <?php
 
-namespace Fp\FullRoute;
+namespace Fp\RoutingKit;
 
+use Fp\RoutingKit\Commands\FpRouteCommand;
+use Fp\RoutingKit\Commands\FpNavigationCommand;
+use Fp\RoutingKit\Commands\FpAcces;
+
+use Fp\RoutingKit\Entities\FpNavigation;
 use Illuminate\Support\ServiceProvider;
-use Fp\FullRoute\Commands\FpRouteCommand;
-use Fp\FullRoute\Commands\FpNavigationCommand;
-use Fp\FullRoute\Commands\FpAcces;
-use Fp\FullRoute\Entities\FpNavigation;
 
-class FullRouteServiceProvider extends ServiceProvider
+class RoutingKitServiceProvider extends ServiceProvider
 {
     public function register()
     {
@@ -32,12 +33,12 @@ class FullRouteServiceProvider extends ServiceProvider
             ]);
         }
 
-        if (file_exists($helperFile = __DIR__ . '/Support/helpers.php')) {
+        if (file_exists($helperFile = __DIR__ . '/Support/Helpers/helpers.php')) {
             
             require_once $helperFile;
         }
 
 
-        #  $this->loadRoutesFrom(__DIR__ . '/routes/FullRoutesLoader.php');
+        #  $this->loadRoutesFrom(__DIR__ . '/routes/RoutingKitsLoader.php');
     }
 }

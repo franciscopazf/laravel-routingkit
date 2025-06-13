@@ -1,12 +1,12 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route;
+namespace Fp\RoutingKit\Services\Route;
 
-use Fp\FullRoute\Clases\FullRoute;
-use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Fp\RoutingKit\Clases\RoutingKit;
+use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Services\Route\Strategies\TreeFileRouteStrategy;
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Services\Route\Strategies\TreeFileRouteStrategy;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 
 use League\CommonMark\Extension\CommonMark\Node\Inline\Code;
 
@@ -70,11 +70,11 @@ class RouteOrchestrator
         }
     }
 
-    public function addRoute(FullRoute $newRoute, FullRoute|string|null $parenRoute = null): void
+    public function addRoute(RoutingKit $newRoute, RoutingKit|string|null $parenRoute = null): void
     {
         // Si el valor es null, se interpreta como ruta raíz (sin padre)
 
-        if ($parenRoute instanceof FullRoute) {
+        if ($parenRoute instanceof RoutingKit) {
             $parenRouteId = $parenRoute->getId();
             $newRoute->setParentId($parenRoute->getId());
         } else {
@@ -106,7 +106,7 @@ class RouteOrchestrator
     }
 
 
-    public function findRoute(string $routeId): FullRoute|null
+    public function findRoute(string $routeId): RoutingKit|null
     {
         // Buscar en el índice de rutas
         if (isset($this->routeMap[$routeId]))
@@ -155,9 +155,9 @@ class RouteOrchestrator
         return $this->routeMap[$routeId] ?? null;
     }
 
-    public function getBreadcrumbs(string|FullRoute $routeId): Collection
+    public function getBreadcrumbs(string|RoutingKit $routeId): Collection
     {
-        if ($routeId instanceof FullRoute) {
+        if ($routeId instanceof RoutingKit) {
             $routeId = $routeId->getId();
         } 
 

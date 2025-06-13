@@ -1,13 +1,13 @@
 <?php
 
-namespace Fp\FullRoute\Entities;
+namespace Fp\RoutingKit\Entities;
 
-use Fp\FullRoute\Contracts\FpEntityInterface;
-use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Helpers\RegisterRouter;
-use Fp\FullRoute\Services\Navigator\Navigator;
-use Fp\FullRoute\Services\Route\Orchestrator\RouteOrchestrator;
-use Fp\FullRoute\Traits\HasDynamicAccessors;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Helpers\RegisterRouter;
+use Fp\RoutingKit\Services\Navigator\Navigator;
+use Fp\RoutingKit\Services\Route\Orchestrator\RouteOrchestrator;
+use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 
 class FpRoute extends FpBaseEntity

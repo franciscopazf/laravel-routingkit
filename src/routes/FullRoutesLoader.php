@@ -1,3 +1,3 @@
 <?php
 
-namespace Fp\FullRoute\Routes;
+namespace Fp\RoutingKit\Routes;

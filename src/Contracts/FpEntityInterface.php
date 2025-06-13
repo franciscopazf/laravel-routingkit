@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Contracts;
+namespace Fp\RoutingKit\Contracts;
 
-use Fp\FullRoute\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
 use Illuminate\Support\Collection;
 
 

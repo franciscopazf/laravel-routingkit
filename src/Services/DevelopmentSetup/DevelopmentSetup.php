@@ -1,13 +1,13 @@
 <?php
 
-namespace Fp\FullRoute\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Services\DevelopmentSetup;
 
 use App\Models\User;
-use Fp\FullRoute\Entities\FpRoute;
-use Fp\FullRoute\Services\DevelopmentSetup\PermissionCreator;
-use Fp\FullRoute\Services\DevelopmentSetup\RoleCreator;
-use Fp\FullRoute\Services\DevelopmentSetup\RoleAssigner;
-use Fp\FullRoute\Services\DevelopmentSetup\UserCreator;
+use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Services\DevelopmentSetup\PermissionCreator;
+use Fp\RoutingKit\Services\DevelopmentSetup\RoleCreator;
+use Fp\RoutingKit\Services\DevelopmentSetup\RoleAssigner;
+use Fp\RoutingKit\Services\DevelopmentSetup\UserCreator;
 
 class DevelopmentSetup
 {

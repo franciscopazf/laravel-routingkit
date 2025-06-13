@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Tests\Unit;
+namespace Fp\RoutingKit\Tests\Unit;
 
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 use Orchestra\Testbench\TestCase;
 
 class RouteFileManagerTest extends TestCase

@@ -1,14 +1,14 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route;
+namespace Fp\RoutingKit\Services\Route;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\RoutingKit\Clases\RoutingKit;
 use Illuminate\Support\Collection;
 
 class RouteValidationService
 {
     protected Collection $routes;
-    protected FullRoute $route;
+    protected RoutingKit $route;
 
     /**
      * Constructor privado para obligar el uso de make()
@@ -28,7 +28,7 @@ class RouteValidationService
      *
      * @throws \Exception
      */
-    public function validateRoute(FullRoute $route, Collection $routes): void
+    public function validateRoute(RoutingKit $route, Collection $routes): void
     {
         $this->route = $route;
         $this->routes = $routes;
@@ -44,7 +44,7 @@ class RouteValidationService
      *
      * @throws \Exception
      */
-    public function validateInsertRoute(FullRoute $route): void
+    public function validateInsertRoute(RoutingKit $route): void
     {
         $this->route = $route;
 
@@ -58,7 +58,7 @@ class RouteValidationService
      *
      * @throws \Exception
      */
-    public function validateDeleteRoute(FullRoute $route): void
+    public function validateDeleteRoute(RoutingKit $route): void
     {
         $this->route = $route;
         $this->validateIdIsNotEmpty();
@@ -71,7 +71,7 @@ class RouteValidationService
      *
      * @throws \Exception
      */
-    public function validateMoveRoute(FullRoute $route, Collection $routes): void
+    public function validateMoveRoute(RoutingKit $route, Collection $routes): void
     {
         $this->route = $route;
         $this->routes = $routes;

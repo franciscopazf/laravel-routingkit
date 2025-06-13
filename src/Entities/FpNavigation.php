@@ -1,15 +1,15 @@
 <?php
 
-namespace Fp\FullRoute\Entities;
+namespace Fp\RoutingKit\Entities;
 
 
-use Fp\FullRoute\Contracts\FpEntityInterface;
-use Fp\FullRoute\Entities\FpRoute;
-use Fp\FullRoute\Traits\HasDynamicAccessors;
-use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Services\Route\Orchestrator\NavigatorOrchestrator;
-use Fp\FullRoute\Services\Route\Orchestrator\RouteOrchestrator;
-use Fp\FullRoute\Services\Navigator\Navigator;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Traits\HasDynamicAccessors;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Services\Route\Orchestrator\NavigatorOrchestrator;
+use Fp\RoutingKit\Services\Route\Orchestrator\RouteOrchestrator;
+use Fp\RoutingKit\Services\Navigator\Navigator;
 
 use Illuminate\Support\Collection;
 

@@ -1,11 +1,11 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Orchestrator;
+namespace Fp\RoutingKit\Services\Route\Orchestrator;
 
-use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Contracts\RouteStrategyInterface; 
-use Fp\FullRoute\Contracts\FpEntityInterface; 
-use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\RouteStrategyInterface; 
+use Fp\RoutingKit\Contracts\FpEntityInterface; 
+use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
 use Illuminate\Support\Collection;
 use RuntimeException;
 

@@ -1,9 +1,9 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Orchestrator;
+namespace Fp\RoutingKit\Services\Route\Orchestrator;
 
 use App\Models\User;
-use Fp\FullRoute\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -795,7 +795,7 @@ trait VarsOrchestratorTrait
      * from the tree resulting from the current query chain.
      *
      * @param string|null $activeRouteName The name of the active route. If null, attempts to get from Laravel's request.
-     * @return Fp\FullRoute\Contracts\FpEntityInterface|null The root entity of the active branch, or null if not found.
+     * @return Fp\RoutingKit\Contracts\FpEntityInterface|null The root entity of the active branch, or null if not found.
      */
     public function getActiveBranch(?string $activeRouteName = null): ?FpEntityInterface
     {

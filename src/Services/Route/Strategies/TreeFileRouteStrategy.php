@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Strategies;
+namespace Fp\RoutingKit\Services\Route\Strategies;
 
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\RoutingKit\Clases\RoutingKit;
 use Illuminate\Support\Collection;
 
 class TreeFileRouteStrategy extends BaseRouteStrategy

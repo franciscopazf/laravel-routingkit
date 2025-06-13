@@ -1,6 +1,6 @@
 {
-    "name": "fp/route-kit-dev",
-    "description": "Development beta combining route-kit core and CLI features. Intended for testing and feedback before splitting into modules.",
+    "name": "fp/routing-kit",
+    "description": "Beta release of Routing Kit: a modular Laravel toolkit for full-featured route management, middleware resolution, permission handling, and interactive CLI navigation.",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -20,28 +20,25 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
-        "orchestra/testbench": "^9.14"  
+        "orchestra/testbench": "^9.14"
     },
     "autoload": {
         "psr-4": {
-            "Fp\\FullRoute\\": "src/"
-        },
-        "files": [
-            "src/helpers.php"
-        ]
+            "Fp\\RoutingKit\\": "src/"
+        }
     },
     "autoload-dev": {
         "psr-4": {
-            "Fp\\FullRoute\\Tests\\": "tests/"
+            "Fp\\RoutingKit\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Fp\\FullRoute\\FullRouteServiceProvider"
+                "Fp\\RoutingKit\\RoutingKitServiceProvider"
             ],
             "aliases": {
-                "Fp": "Fp\\FullRoute\\Facades\\Fp"
+                "FpNavigation": "Fp\\RoutingKit\\Support\\Facades\\FpNavigation"
             }
         }
     },

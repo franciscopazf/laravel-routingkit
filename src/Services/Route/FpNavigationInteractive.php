@@ -1,15 +1,15 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route;
+namespace Fp\RoutingKit\Services\Route;
 
 use function Laravel\Prompts\Text;
 use function Laravel\Prompts\Select;
 use function Laravel\Prompts\Multiselect;
 use function Laravel\Prompts\Confirm;
 
-use Fp\FullRoute\Entities\FpNavigation;
-use Fp\FullRoute\Entities\FpRoute;
-use Fp\FullRoute\Services\Navigator\Navigator;
+use Fp\RoutingKit\Entities\FpNavigation;
+use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Services\Navigator\Navigator;
 
 class FpNavigationInteractive
 {

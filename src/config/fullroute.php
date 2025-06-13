@@ -33,7 +33,7 @@ return [
      * 
      * @var string
      */
-    'model_ussage' => \Fp\FullRoute\Clases\FullRoute::class,
+    'model_ussage' => \Fp\RoutingKit\Clases\RoutingKit::class,
 
 
     /*
@@ -41,7 +41,7 @@ return [
      * 
      * @var string
      */
-    'model_route' =>  \Fp\FullRoute\Clases\Route::class,
+    'model_route' =>  \Fp\RoutingKit\Clases\Route::class,
 
 
     /*
@@ -49,7 +49,7 @@ return [
      * 
      * @var string
      */
-    'model_navbar' => \Fp\FullRoute\Clases\Navbar::class,
+    'model_navbar' => \Fp\RoutingKit\Clases\Navbar::class,
 
     /*
      * Route usage
@@ -58,7 +58,7 @@ return [
      * @var array
      */
     'routes_fyle_path' => [
-        'web' => base_path('config/fullroute_config.php'),
+        'web' => base_path('config/RoutingKit_config.php'),
     ],
 
     /*
@@ -66,7 +66,7 @@ return [
      * 
      * @var string
      */
-    'permission_class' => \Fp\FullRoute\Clases\Permission::class,
+    'permission_class' => \Fp\RoutingKit\Clases\Permission::class,
 
 
     /*
@@ -74,7 +74,7 @@ return [
      * 
      * @var string
      */
-    'role_class' => \Fp\FullRoute\Clases\Role::class,
+    'role_class' => \Fp\RoutingKit\Clases\Role::class,
 
 
     /*

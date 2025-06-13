@@ -1,12 +1,12 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Strategies;
+namespace Fp\RoutingKit\Services\Route\Strategies;
 
-use Fp\FullRoute\Contracts\RouteStrategyInterface;
-use Fp\FullRoute\Services\Route\RouteContext;
-use Fp\FullRoute\Services\Route\Strategies\ArrayFileRouteStrategy;
-use Fp\FullRoute\Services\Route\Strategies\TreeFileRouteStrategy;
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Contracts\RouteStrategyInterface;
+use Fp\RoutingKit\Services\Route\RouteContext;
+use Fp\RoutingKit\Services\Route\Strategies\ArrayFileRouteStrategy;
+use Fp\RoutingKit\Services\Route\Strategies\TreeFileRouteStrategy;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 
 class RouteStrategyFactory
 {

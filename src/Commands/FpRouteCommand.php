@@ -1,11 +1,11 @@
 <?php
 
-namespace Fp\FullRoute\Commands;
+namespace Fp\RoutingKit\Commands;
 
-use Fp\FullRoute\Entities\FpNavigation;
-use Fp\FullRoute\Services\DevelopmentSetup\DevelopmentSetup;
-use Fp\FullRoute\Entities\FpRoute;
-use Fp\FullRoute\Services\Route\FullRouteInteractive;
+use Fp\RoutingKit\Entities\FpNavigation;
+use Fp\RoutingKit\Services\DevelopmentSetup\DevelopmentSetup;
+use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use function Laravel\Prompts\select;
@@ -21,9 +21,9 @@ class FpRouteCommand extends Command
                             {--id= : ID de la ruta a procesar} 
                             {--parentId= : ID del padre (opcional)}';
 
-    protected $description = 'Comando para gestionar rutas FpFullRoute';
+    protected $description = 'Comando para gestionar rutas FpRoutingKit';
 
-    protected FullRouteInteractive $interactive;
+    protected RoutingKitInteractive $interactive;
 
     public function handle()
     {
@@ -39,7 +39,7 @@ class FpRouteCommand extends Command
 
         // dd($routes);
 
-        $this->interactive = new FullRouteInteractive();
+        $this->interactive = new RoutingKitInteractive();
 
         // --delete, --new, --move
         if ($this->option('delete')) {
@@ -62,7 +62,7 @@ class FpRouteCommand extends Command
 
         $this->menuInteractivo();
         // Otros casos como --new, --move irán aquí...
-        $this->info('¡Hola desde tu paquete FullRoute!');
+        $this->info('¡Hola desde tu paquete RoutingKit!');
     }
 
     protected function menuInteractivo()

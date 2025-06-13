@@ -1,9 +1,9 @@
 <?php
 
-namespace Fp\FullRoute\Services\Transformer\Transformers;
+namespace Fp\RoutingKit\Services\Transformer\Transformers;
 
-use Fp\FullRoute\Contracts\FpEntityInterface;
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;

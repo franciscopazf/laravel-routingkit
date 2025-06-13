@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\FullRoute\Services\Transformer;
+namespace Fp\RoutingKit\Services\Transformer;
 
-use Fp\FullRoute\Services\Route\Strategies\RouteContentManager;
+use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 use Illuminate\Support\Collection;
 
 class TransformerContext

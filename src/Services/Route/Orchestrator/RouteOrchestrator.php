@@ -1,12 +1,12 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Orchestrator;
+namespace Fp\RoutingKit\Services\Route\Orchestrator;
 
-use Fp\FullRoute\Contracts\OrchestratorInterface;
-use Fp\FullRoute\Contracts\RouteStrategyInterface; // Usar el contrato RouteStrategyInterface directamente
-use Fp\FullRoute\Services\Route\Strategies\RouteStrategyFactory;
+use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\RouteStrategyInterface; // Usar el contrato RouteStrategyInterface directamente
+use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
 // Si RouteContext es tu implementación concreta de RouteStrategyInterface, y no otra interfaz:
-// use Fp\FullRoute\Services\Route\RouteContext;
+// use Fp\RoutingKit\Services\Route\RouteContext;
 use RuntimeException;
 
 class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterface
@@ -32,7 +32,7 @@ class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterfac
      */
     protected function getContextsConfigPath(): string
     {
-        return 'fproute.routes_file_path.items'; // La ruta a tu array de configuraciones de contextos
+        return 'routingkit.routes_file_path.items'; // La ruta a tu array de configuraciones de contextos
     }
 
     
@@ -43,7 +43,7 @@ class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterfac
      */
     public function getDefaultContextKey(): ?string
     {
-        $position = config('fproute.routes_file_path.defaul_file_path_position', 0);
+        $position = config('routingkit.routes_file_path.defaul_file_path_position', 0);
         $keys = $this->getContextKeys();
 
         if (isset($keys[$position])) {

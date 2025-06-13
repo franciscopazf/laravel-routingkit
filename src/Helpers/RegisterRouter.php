@@ -1,15 +1,15 @@
 <?php
 
-namespace Fp\FullRoute\Helpers;
+namespace Fp\RoutingKit\Helpers;
 
 use Illuminate\Support\Facades\Route;
-use Fp\FullRoute\Entities\FpRoute;
+use Fp\RoutingKit\Entities\FpRoute;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
  * Registra una ruta y sus hijos de forma recursiva
- * @param FullRoute $route
+ * @param RoutingKit $route
  */
 class RegisterRouter
 {
@@ -20,11 +20,11 @@ class RegisterRouter
         }
         $routes->each(function ($route) {
             if ($route instanceof FpRoute)
-                static::registerFullRoute($route);
+                static::registerRoutingKit($route);
         });
     }
 
-    public static function registerFullRoute(FpRoute $route)
+    public static function registerRoutingKit(FpRoute $route)
     {
         //echo "Registering route: {$route->id} ({$route->urlMethod})\n";
         $hasItems = !empty($route->items);
@@ -57,7 +57,7 @@ class RegisterRouter
             Route::middleware($middleware)->group(function () use ($route) {
                 foreach ($route->items as $childRoute)
                     if ($childRoute instanceof FpRoute)
-                        static::registerFullRoute($childRoute);
+                        static::registerRoutingKit($childRoute);
             });
     }
 

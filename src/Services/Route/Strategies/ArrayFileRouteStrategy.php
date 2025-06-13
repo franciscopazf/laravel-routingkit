@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\FullRoute\Services\Route\Strategies;
+namespace Fp\RoutingKit\Services\Route\Strategies;
 
 use Illuminate\Support\Collection;
 

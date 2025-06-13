@@ -1,11 +1,11 @@
 <?php
 
-namespace Fp\FullRoute\Helpers;
+namespace Fp\RoutingKit\Helpers;
 
 use Illuminate\Support\Facades\File;
 use function Laravel\Prompts\select;
 use Illuminate\Support\Collection;
-use Fp\FullRoute\Clases\FullRoute;
+use Fp\RoutingKit\Clases\RoutingKit;
 
 use ReflectionClass;
 
@@ -228,17 +228,17 @@ class Navigator
 
 
     /**
-     * Navega interactivamente por una colección de rutas FullRoute.
+     * Navega interactivamente por una colección de rutas RoutingKit.
      *
-     * @param Collection|array $rutas Colección o arreglo de FullRoute
-     * @param FullRoute|null $nodoActual Nodo actual para mostrar sus hijos
+     * @param Collection|array $rutas Colección o arreglo de RoutingKit
+     * @param RoutingKit|null $nodoActual Nodo actual para mostrar sus hijos
      * @param array $pila Pila para retroceder en la navegación
      * @param string|null $omitId ID de la ruta que se debe omitir de la navegación
      * @return string Id de la ruta seleccionada
      */
     public static function navegar(
         Collection|array $rutas,
-        ?FullRoute $nodoActual = null,
+        ?RoutingKit $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
     ): ?string {

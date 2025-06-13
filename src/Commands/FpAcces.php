@@ -1,11 +1,11 @@
 <?php
 
-namespace Fp\FullRoute\Commands;
+namespace Fp\RoutingKit\Commands;
 
-use Fp\FullRoute\Entities\FpNavigation;
-use Fp\FullRoute\Services\DevelopmentSetup\DevelopmentSetup;
-use Fp\FullRoute\Entities\FpRoute;
-use Fp\FullRoute\Services\Route\FullRouteInteractive;
+use Fp\RoutingKit\Entities\FpNavigation;
+use Fp\RoutingKit\Services\DevelopmentSetup\DevelopmentSetup;
+use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use function Laravel\Prompts\select;
@@ -27,7 +27,7 @@ class FpAcces extends Command
 
     protected $description = 'Comando para sincronizar accesos de rutas FpRoute';
 
-    protected FullRouteInteractive $interactive;
+    protected RoutingKitInteractive $interactive;
 
     public function handle()
     {
