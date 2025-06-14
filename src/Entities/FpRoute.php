@@ -3,7 +3,7 @@
 namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
-use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
 use Fp\RoutingKit\Helpers\RegisterRouter;
 use Fp\RoutingKit\Services\Navigator\Navigator;
 use Fp\RoutingKit\Services\Route\Orchestrator\RouteOrchestrator;
@@ -108,7 +108,7 @@ class FpRoute extends FpBaseEntity
     }
 
 
-    public static function getOrchestrator(): OrchestratorInterface
+    public static function getOrchestrator(): FpOrchestratorInterface
     {
         return RouteOrchestrator::make();
     }

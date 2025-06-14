@@ -1,15 +1,12 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Route\Orchestrator;
+namespace Fp\RoutingKit\Features\DataOrchestratorFeature;
 
 use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
-use Fp\RoutingKit\Contracts\RouteStrategyInterface; // Usar el contrato RouteStrategyInterface directamente
-use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
-// Si RouteContext es tu implementación concreta de RouteStrategyInterface, y no otra interfaz:
-// use Fp\RoutingKit\Services\Route\RouteContext;
+use Fp\RoutingKit\Contracts\FpContextEntitiesInterface;
 use RuntimeException;
 
-class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorInterface
+class FpRouteOrchestrator extends FpBaseOrchestrator implements FpOrchestratorInterface
 {
     protected static ?self $instance = null;
 
@@ -19,6 +16,7 @@ class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorIn
      */
     public static function make(): self
     {
+        
         if (self::$instance === null) {
             self::$instance = new self();
         }
@@ -32,7 +30,7 @@ class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorIn
      */
     protected function getContextsConfigPath(): string
     {
-        return 'routingkit.navigators_file_path.items'; // La ruta a tu array de configuraciones de contextos
+        return 'routingkit.routes_file_path.items'; // La ruta a tu array de configuraciones de contextos
     }
 
     
@@ -43,7 +41,7 @@ class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorIn
      */
     public function getDefaultContextKey(): ?string
     {
-        $position = config('navigators_file_path.defaul_file_path_position', 0);
+        $position = config('routingkit.routes_file_path.defaul_file_path_position', 0);
         $keys = $this->getContextKeys();
 
         if (isset($keys[$position])) {
@@ -54,9 +52,9 @@ class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorIn
 
     /**
      * Obtiene la instancia del contexto por defecto.
-     * @return RouteStrategyInterface|null // Usando la interfaz directamente
+     * @return FpContextEntitiesInterface|null // Usando la interfaz directamente
      */
-    public function getDefaultContext(): ?RouteStrategyInterface // Usando la interfaz directamente
+    public function getDefaultContext(): ?FpContextEntitiesInterface
     {
         $defaultKey = $this->getDefaultContextKey();
         if ($defaultKey) {
@@ -71,15 +69,6 @@ class NavigatorOrchestrator extends BaseOrchestrator implements FpOrchestratorIn
         return null;
     }
 
-    // Los métodos getAllOnlyRolHasPermissions y getAllInPermissionsList
-    // siguen lanzando una excepción si no están implementados.
-    public function getAllOnlyRolHasPermissions($role): array
-    {
-        throw new \BadMethodCallException(__FUNCTION__ . " no está implementado o ha sido reemplazado. Usa 'getFilteredWithPermissions' o 'getAllOfCurrenUser'.");
-    }
+    
 
-    public function getAllInPermissionsList(array $permissions): array
-    {
-        throw new \BadMethodCallException(__FUNCTION__ . " no está implementado o ha sido reemplazado. Usa 'getFilteredWithPermissions'.");
-    }
 }

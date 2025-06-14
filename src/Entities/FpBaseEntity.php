@@ -3,7 +3,7 @@
 namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
-use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -19,7 +19,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     /**
      * @var array Cache de las instancias del orquestador por clase derivada (Singleton por Orchestrator).
      * Key: FQCN de la clase derivada (ej. FpNavigation::class)
-     * Value: OrchestratorInterface
+     * Value: FpOrchestratorInterface
      */
     protected static array $orchestratorInstances = [];
 
@@ -102,18 +102,18 @@ abstract class FpBaseEntity implements FpEntityInterface
      * Each concrete subclass (e.g., FpNavigation, FpRoute) must implement this
      * to specify which Orchestrator it should use.
      *
-     * @return OrchestratorInterface
+     * @return FpOrchestratorInterface
      */
-    abstract public static function getOrchestrator(): OrchestratorInterface;
+    abstract public static function getOrchestrator(): FpOrchestratorInterface;
 
     /**
      * Returns the singleton instance of the Orchestrator for the specific derived class.
      * If an instance doesn't exist, it creates one using `getOrchestrator()` and
      * immediately calls `newQuery()` on it to ensure a fresh state for filtering.
      *
-     * @return OrchestratorInterface
+     * @return FpOrchestratorInterface
      */
-    protected static function getOrchestratorSingleton(): OrchestratorInterface
+    protected static function getOrchestratorSingleton(): FpOrchestratorInterface
     {
         $class = static::class;
         if (!isset(static::$orchestratorInstances[$class])) {
@@ -126,9 +126,9 @@ abstract class FpBaseEntity implements FpEntityInterface
      * Reinicia la instancia del orquestador para la clase actual.
      * Esto es útil para forzar un nuevo estado de filtro para una nueva cadena de consulta.
      *
-     * @return OrchestratorInterface Una nueva instancia de orquestador limpia.
+     * @return FpOrchestratorInterface Una nueva instancia de orquestador limpia.
      */
-    protected static function resetOrchestratorSingleton(): OrchestratorInterface
+    protected static function resetOrchestratorSingleton(): FpOrchestratorInterface
     {
         $class = static::class;
         static::$orchestratorInstances[$class] = static::getOrchestrator()->newQuery();
@@ -290,6 +290,9 @@ abstract class FpBaseEntity implements FpEntityInterface
      */
     public function getItems(): Collection
     {
+        if (!($this->items instanceof Collection)) {
+            $this->items = new Collection($this->items);
+        }
         return $this->items;
     }
 

@@ -240,15 +240,7 @@ abstract class BaseRouteStrategy implements RouteStrategyInterface
     {
         return $this->findRoute($routeId) !== null;
     }
-    /**
-     * Mueve una ruta de un lugar a otro.
-     *
-     * @param FpEntityInterface $fromRoute La ruta de origen.
-     * @param FpEntityInterface $toRoute La ruta de destino.
-     * @throws \Exception Si la ruta no es válida o si ocurre un error al mover la ruta.
-     */
-    public function moveRoute(FpEntityInterface $fromRoute, FpEntityInterface $toRoute): void {}
-
+    
     protected function addRouteRecursive(Collection $routes, FpEntityInterface $newRoute, string $parentId): Collection
     {
         return $routes->map(function ($route) use ($newRoute, $parentId) {

@@ -2,14 +2,14 @@
 
 namespace Fp\RoutingKit\Services\Route\Orchestrator;
 
-use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
 use Fp\RoutingKit\Contracts\RouteStrategyInterface; // Usar el contrato RouteStrategyInterface directamente
 use Fp\RoutingKit\Services\Route\Strategies\RouteStrategyFactory;
 // Si RouteContext es tu implementación concreta de RouteStrategyInterface, y no otra interfaz:
 // use Fp\RoutingKit\Services\Route\RouteContext;
 use RuntimeException;
 
-class RouteOrchestrator extends BaseOrchestrator implements OrchestratorInterface
+class RouteOrchestrator extends BaseOrchestrator implements FpOrchestratorInterface
 {
     protected static ?self $instance = null;
 

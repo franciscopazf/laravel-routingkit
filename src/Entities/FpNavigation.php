@@ -6,7 +6,7 @@ namespace Fp\RoutingKit\Entities;
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Entities\FpRoute;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
-use Fp\RoutingKit\Contracts\OrchestratorInterface;
+use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
 use Fp\RoutingKit\Services\Route\Orchestrator\NavigatorOrchestrator;
 use Fp\RoutingKit\Services\Route\Orchestrator\RouteOrchestrator;
 use Fp\RoutingKit\Services\Navigator\Navigator;
@@ -192,7 +192,7 @@ class FpNavigation extends FpBaseEntity
         return null;
     }
 
-    public static function getOrchestrator(): OrchestratorInterface
+    public static function getOrchestrator(): FpOrchestratorInterface
     {
         return NavigatorOrchestrator::make();
     }

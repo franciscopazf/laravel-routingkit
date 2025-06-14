@@ -4,7 +4,6 @@ namespace Fp\RoutingKit\Helpers;
 
 use Illuminate\Support\Facades\Route;
 use Fp\RoutingKit\Entities\FpRoute;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
