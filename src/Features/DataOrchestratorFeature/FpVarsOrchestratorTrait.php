@@ -19,7 +19,7 @@ trait FpVarsOrchestratorTrait
     protected ?string $currentUserFilterId = null;
     protected array $currentExcludedContextKeys = [];
     protected array $currentIncludedContextKeys = [];
-    protected bool $forceEmptyGroups = false; // <--- NUEVO: Para controlar si los grupos vacíos deben mostrarse
+    protected bool $forceEmptyGroups = false; 
 
     // //--- Filtered Result Cache (Per Query Chain) //---
     protected ?Collection $filteredEntitiesCache = null;
@@ -35,14 +35,7 @@ trait FpVarsOrchestratorTrait
     public function __construct()
     {
         $this->contextualCachedEntities = new Collection();
-        $this->resetQueryState(); // Asegura que los filtros están limpios al inicio
-
-        // `loadAllContextConfigurations()` se asume que se llama en el constructor de BaseOrchestrator
-        // antes de que se intente usar `getContextKeys()`.
-
-        // NOTA: La inicialización de currentIncludedContextKeys a todos los contextos ahora
-        // se maneja en el constructor de BaseOrchestrator para asegurar que `loadAllContextConfigurations()`
-        // ya se haya ejecutado y `getContextKeys()` sea válido.
+        $this->resetQueryState(); 
     }
 
     /**

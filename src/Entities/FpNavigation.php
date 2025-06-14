@@ -9,8 +9,7 @@ use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Fp\RoutingKit\Services\Navigator\Navigator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
-use RoutingKit\Features\InteractiveNavigatorFeature\FpInteractiveNavigator;
-use RoutingKit\Features\InteractiveNavigatorFeature\FpTreeNavigator;
+use Fp\RoutingKit\Features\InteractiveFeature\FpTreeNavigator;
 
 class FpNavigation extends FpBaseEntity
 {
@@ -20,7 +19,7 @@ class FpNavigation extends FpBaseEntity
      * @var string
      */
     public string $id;
-
+    
     public string $makerMethod = 'make';
 
     public ?string $instanceRouteId = null;
@@ -98,7 +97,7 @@ class FpNavigation extends FpBaseEntity
         return $instance;
     }
 
-    
+
     public function loadData(): self
     {
         if (FpRoute::exists($this->instanceRouteId)) {
@@ -196,7 +195,7 @@ class FpNavigation extends FpBaseEntity
 
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
-        FpInteractiveNavigator::make()
-            ->treeNavigator(FpRoute::all());
+        return FpTreeNavigator::make()
+            ->navegar(static::all(), null, [], $omitId);
     }
 }

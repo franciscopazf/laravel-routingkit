@@ -3,110 +3,77 @@
 namespace Fp\RoutingKit\Features\InteractiveFeature;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
-use Fp\RoutingKit\Features\InteractiveFeature\FpFileBrowser;
-use Fp\RoutingKit\Features\InteractiveFeature\FpNamespaceResolver;
-use Fp\RoutingKit\Features\InteractiveFeature\FpClassInspector;
-use Fp\RoutingKit\Features\InteractiveFeature\TreeNavigator;
+use Fp\RoutingKit\Contracts\FpInteractiveInterface;
 
-use Illuminate\Support\Collection;
-use function Laravel\Prompts\select;
+use function Laravel\Prompts\confirm;
 
+class FpInteractiveNavigator implements FpInteractiveInterface
+{
+    protected string $entityClass;
 
-
-class FpInteractiveNavigator
-{ 
-     public function __construct(
-        protected ?FpFileBrowser $FpFileBrowser = null,
-        protected ?FpNamespaceResolver $FpNamespaceResolver = null,
-        protected ?FpClassInspector $inspector = null
-    ) {
-        $this->FpFileBrowser = $FpFileBrowser ?? FpFileBrowser::make();
-        $this->FpNamespaceResolver = $FpNamespaceResolver ?? FpNamespaceResolver::make();
-        $this->inspector = $inspector ?? FpClassInspector::make();
-    }
-
-    public static function make(
-        ?FpFileBrowser $FpFileBrowser = null,
-        ?FpNamespaceResolver $FpNamespaceResolver = null,
-        ?FpClassInspector $inspector = null
-    ) {
-        return new self($FpFileBrowser, $FpNamespaceResolver, $inspector);
-    }
-
-    public function selectFolderInfo(string $basePath): object
+    public function __construct(string $entityClass)
     {
-        // dd("Seleccionando carpeta en: " . $basePath);
-        $fullBasePath = base_path() . DIRECTORY_SEPARATOR . $basePath;
+        if (!class_exists($entityClass)) {
+            throw new \InvalidArgumentException("La clase {$entityClass} no existe.");
+        }
 
-        $folder = $this->FpFileBrowser->browseFolder($fullBasePath);
-        // dd("Folder seleccionado: " . $folder);
-        $namespace = $this->FpNamespaceResolver->getBaseNamespace($folder);
+        if (!is_subclass_of($entityClass, FpEntityInterface::class)) {
+            throw new \InvalidArgumentException("La clase {$entityClass} debe implementar la interface FpEntityInterface.");
+        }
 
-
-        return (object)[
-            'path'      => $folder,
-            'namespace' => $namespace,
-        ];
+        $this->entityClass = $entityClass;
     }
 
-    public function selectFileInfo(string $basePath): object
+    public static function make(string $entityClass): self
     {
-        $fullBasePath = base_path($basePath);
-        $namespace = $this->FpNamespaceResolver->getBaseNamespace($fullBasePath);
-
-        $filePath = $this->FpFileBrowser->browsePhpFile($fullBasePath);
-        $fullClass = $this->FpNamespaceResolver->pathToNamespace($fullBasePath, $filePath, $namespace);
-        $className = class_basename($fullClass);
-        $methods = $this->inspector->getPublicMethods($fullClass);
-
-        return (object)[
-            'full'      => $fullClass,
-            'namespace' => substr($fullClass, 0, strrpos($fullClass, '\\')),
-            'className' => $className,
-            'methods'   => $methods,
-            'path'      => $filePath,
-        ];
+        return new self($entityClass);
     }
 
-    public function selectMethod(string $fullClass): string
+    public function eliminar(?string $id = null)
     {
-        $methods = $this->inspector->getPublicMethods($fullClass);
-        return select('🔧 Selecciona un método:', array_combine($methods, $methods));
+        $entityClass = $this->entityClass;
+
+        $id = $id ?? $entityClass::seleccionar(label: '🗑️ Selecciona la ruta a eliminar');
+        $ruta = $entityClass::findById($id);
+
+        if (!$ruta) {
+            return $this->error("❌ No se encontró la ruta con ID '{$id}'.");
+        }
+
+        $this->confirmar("⚠️ ¿Estás seguro de que deseas eliminar la ruta con ID '{$id}'? Esta acción no se puede deshacer.");
+        $ruta->delete();
     }
 
-    public function treeNavigator(
-        Collection|array $rutas,
-        ?FpEntityInterface $nodoActual = null,
-        array $pila = [],
-        ?string $omitId = null
-    ): ?string {
-        return FpTreeNavigator::make()
-            ->navegar($rutas, $nodoActual, $pila, $omitId);
-    }
-
-
-
-    public  function getControllerRouteParams(): object
+    public function reescribir()
     {
-        $basePath = select(
-            label: '📂 Selecciona la carpeta del controlador',
-            options: config('routingkit.controllers_path')
+        $entityClass = $this->entityClass;
 
-        );
-
-        $class = self::make()
-            ->selectFileInfo($basePath)
-            ->full;
-
-        $method = $basePath === 'app/Livewire'
-            ? 'livewire'
-            : self::make()
-            ->selectMethod($class);
-
-        return (object) [
-            'controller' => $class,
-            'action'     => $method,
-        ];
+        $this->confirmar("🔄 ¿Estás seguro de que deseas reescribir las rutas? Esto actualizará todas las rutas existentes.");
+        $entityClass::rewriteAllContext();
+        $this->info("✅ Rutas reescritas correctamente.");
     }
 
+    protected function confirmar(
+        string $mensaje,
+        string $messageYes = 'Opción Aceptada',
+        string $messageNo = 'Opción Cancelada',
+    ): mixed {
+        $confirmacion = confirm($mensaje, default: false);
+        if (!$confirmacion) {
+            $this->error($messageNo);
+            die();
+        }
+        $this->info($messageYes);
+        return $confirmacion;
+    }
+
+    protected function info(string $mensaje): void
+    {
+        echo "\e[32m{$mensaje}\e[0m\n"; // Verde
+    }
+
+    protected function error(string $mensaje): void
+    {
+        echo "\e[31m{$mensaje}\e[0m\n"; // Rojo
+    }
 }

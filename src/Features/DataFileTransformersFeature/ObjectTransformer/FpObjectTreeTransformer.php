@@ -11,4 +11,9 @@ class FpObjectTreeTransformer extends FpBaseObjectTransformer implements FpFileT
         parent::__construct($fileString, $onlyStringSupport);
     }
 
+    public function transform(): string
+    {
+        dd("Hola");
+    }
+
 }

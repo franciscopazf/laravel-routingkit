@@ -83,6 +83,7 @@ class FpFileDataContext implements FpContextEntitiesInterface
             if ($entity->getParentId() === null && $parentId !== null) {
                 $entity->setParentId($parentId);
             }
+            $entity->setContextKey($this->id);
             $flat->put($entity->getId(), $entity);
             $items = collect($entity->getItems() ?? []);
             if ($items->isNotEmpty()) {
@@ -178,7 +179,7 @@ class FpFileDataContext implements FpContextEntitiesInterface
      *
      * @param string|FpEntityInterface $entityId El ID o la entidad a eliminar.
      */
-    public function removeEntity(string|FpEntityInterface $entityId): self
+    public function removeEntity(string|FpEntityInterface $entityId): bool
     {
         $idToRemove = $entityId instanceof FpEntityInterface ? $entityId->getId() : $entityId;
         $currentTree = $this->getTreeEntitys();
@@ -186,8 +187,8 @@ class FpFileDataContext implements FpContextEntitiesInterface
 
         $this->treeEntitys = $updatedTree;
         $this->flattenedEntitys = $this->flattenedEntitys->forget($idToRemove); // Elimina la entidad de la colección aplanada
-        //$this->fpRepository->rewrite($this->treeEntitys);
-        return $this;
+        $this->fpRepository->rewrite($this->treeEntitys);
+        return true;
     }
 
     /**

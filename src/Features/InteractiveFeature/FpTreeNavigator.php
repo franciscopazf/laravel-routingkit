@@ -4,6 +4,7 @@ namespace Fp\RoutingKit\Features\InteractiveFeature;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Illuminate\Support\Collection;
+
 use function Laravel\Prompts\select;
 
 class FpTreeNavigator
@@ -38,7 +39,7 @@ class FpTreeNavigator
     public function navegar(
         Collection|array $rutas,
         ?FpEntityInterface $nodoActual = null,
-        array $pila = [],
+        ?array $pila = [],
         ?string $omitId = null
     ): ?string {
 

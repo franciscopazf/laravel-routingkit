@@ -18,6 +18,7 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
 {
     use HasDynamicAccessors;
 
+
     /**
      * @var array Cache de las instancias del orquestador por clase derivada (Singleton por Orchestrator).
      * Key: FQCN de la clase derivada (ej. FpNavigation::class)
@@ -45,6 +46,9 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
      * @var string
      */
     public string $id;
+
+    
+    // ... constructor, setters, getters existentes ...
 
     /**
      * The creation method used for this entity ('make', 'makeGroup', etc.).
@@ -110,6 +114,9 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
     {
         return FpBaseOrchestrator::make(static::getOrchestratorConfig());
     }
+
+     
+   
 
 
     /**

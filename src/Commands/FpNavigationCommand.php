@@ -2,6 +2,7 @@
 
 namespace Fp\RoutingKit\Commands;
 
+use Fp\RoutingKit\Entities\FpNavigation;
 use Fp\RoutingKit\Features\InteractiveFeature\FpInteractiveNavigator;
 
 use Illuminate\Console\Command;
@@ -24,7 +25,9 @@ class FpNavigationCommand extends Command
 
     public function handle()
     {
-        $this->interactive = FpInteractiveNavigator::make();
+        $this->interactive = FpInteractiveNavigator::make(
+            FpNavigation::class,
+        );
 
         // --delete, --new, --move
         if ($this->option('delete')) {
