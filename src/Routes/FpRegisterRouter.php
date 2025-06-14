@@ -1,16 +1,19 @@
 <?php
 
-namespace Fp\RoutingKit\Helpers;
+namespace Fp\RoutingKit\Routes;
+
+
 
 use Illuminate\Support\Facades\Route;
 use Fp\RoutingKit\Entities\FpRoute;
 use Illuminate\Support\Collection;
 
+
 /**
  * Registra una ruta y sus hijos de forma recursiva
  * @param RoutingKit $route
  */
-class RegisterRouter
+class FpRegisterRouter
 {
     public static function registerRoutes(array|Collection|null $routes = null)
     {

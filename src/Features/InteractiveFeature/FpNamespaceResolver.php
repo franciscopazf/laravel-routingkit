@@ -1,8 +1,8 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Navigator;
+namespace Fp\RoutingKit\Features\InteractiveFeature;
 
-class NamespaceResolver
+class FpNamespaceResolver
 {
     public function __construct()
     {

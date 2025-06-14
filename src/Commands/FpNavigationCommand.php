@@ -2,12 +2,9 @@
 
 namespace Fp\RoutingKit\Commands;
 
-use Fp\RoutingKit\Entities\FpNavigation;
-use Fp\RoutingKit\Services\DevelopmentSetup\DevelopmentSetup;
-use Fp\RoutingKit\Entities\FpRoute;
-use Fp\RoutingKit\Services\Route\FpNavigationInteractive;
+use Fp\RoutingKit\Features\InteractiveFeature\FpInteractiveNavigator;
+
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use function Laravel\Prompts\select;
 
 
@@ -23,20 +20,11 @@ class FpNavigationCommand extends Command
 
     protected $description = 'Comando para gestionar rutas FpRoutingKit';
 
-    protected FpNavigationInteractive $interactive;
+    protected FpInteractiveNavigator $interactive;
 
     public function handle()
     {
-
-
-        $data = FpNavigation::loadContexts(['key2','dashboard_context'])
-        ->withDepth(1)
-        ->get();
-
-
-        dd($data);
-
-        $this->interactive = new FpNavigationInteractive();
+        $this->interactive = FpInteractiveNavigator::make();
 
         // --delete, --new, --move
         if ($this->option('delete')) {

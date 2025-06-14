@@ -1,34 +1,36 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Navigator;
+namespace Fp\RoutingKit\Features\InteractiveFeature;
 
-use Fp\RoutingKit\Contracts\FpEntityInterface as RoutingKit;
-use Fp\RoutingKit\Services\Navigator\FileBrowser;
-use Fp\RoutingKit\Services\Navigator\NamespaceResolver;
-use Fp\RoutingKit\Services\Navigator\ClassInspector;
+use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Features\InteractiveFeature\FpFileBrowser;
+use Fp\RoutingKit\Features\InteractiveFeature\FpNamespaceResolver;
+use Fp\RoutingKit\Features\InteractiveFeature\FpClassInspector;
+use Fp\RoutingKit\Features\InteractiveFeature\TreeNavigator;
+
 use Illuminate\Support\Collection;
-use Fp\RoutingKit\Services\Navigator\TreeNavigator;
-
 use function Laravel\Prompts\select;
 
-class Navigator
-{
-    public function __construct(
-        protected ?FileBrowser $fileBrowser = null,
-        protected ?NamespaceResolver $namespaceResolver = null,
-        protected ?ClassInspector $inspector = null
+
+
+class FpInteractiveNavigator
+{ 
+     public function __construct(
+        protected ?FpFileBrowser $FpFileBrowser = null,
+        protected ?FpNamespaceResolver $FpNamespaceResolver = null,
+        protected ?FpClassInspector $inspector = null
     ) {
-        $this->fileBrowser = $fileBrowser ?? FileBrowser::make();
-        $this->namespaceResolver = $namespaceResolver ?? NamespaceResolver::make();
-        $this->inspector = $inspector ?? ClassInspector::make();
+        $this->FpFileBrowser = $FpFileBrowser ?? FpFileBrowser::make();
+        $this->FpNamespaceResolver = $FpNamespaceResolver ?? FpNamespaceResolver::make();
+        $this->inspector = $inspector ?? FpClassInspector::make();
     }
 
     public static function make(
-        ?FileBrowser $fileBrowser = null,
-        ?NamespaceResolver $namespaceResolver = null,
-        ?ClassInspector $inspector = null
+        ?FpFileBrowser $FpFileBrowser = null,
+        ?FpNamespaceResolver $FpNamespaceResolver = null,
+        ?FpClassInspector $inspector = null
     ) {
-        return new self($fileBrowser, $namespaceResolver, $inspector);
+        return new self($FpFileBrowser, $FpNamespaceResolver, $inspector);
     }
 
     public function selectFolderInfo(string $basePath): object
@@ -36,9 +38,9 @@ class Navigator
         // dd("Seleccionando carpeta en: " . $basePath);
         $fullBasePath = base_path() . DIRECTORY_SEPARATOR . $basePath;
 
-        $folder = $this->fileBrowser->browseFolder($fullBasePath);
+        $folder = $this->FpFileBrowser->browseFolder($fullBasePath);
         // dd("Folder seleccionado: " . $folder);
-        $namespace = $this->namespaceResolver->getBaseNamespace($folder);
+        $namespace = $this->FpNamespaceResolver->getBaseNamespace($folder);
 
 
         return (object)[
@@ -50,10 +52,10 @@ class Navigator
     public function selectFileInfo(string $basePath): object
     {
         $fullBasePath = base_path($basePath);
-        $namespace = $this->namespaceResolver->getBaseNamespace($fullBasePath);
+        $namespace = $this->FpNamespaceResolver->getBaseNamespace($fullBasePath);
 
-        $filePath = $this->fileBrowser->browsePhpFile($fullBasePath);
-        $fullClass = $this->namespaceResolver->pathToNamespace($fullBasePath, $filePath, $namespace);
+        $filePath = $this->FpFileBrowser->browsePhpFile($fullBasePath);
+        $fullClass = $this->FpNamespaceResolver->pathToNamespace($fullBasePath, $filePath, $namespace);
         $className = class_basename($fullClass);
         $methods = $this->inspector->getPublicMethods($fullClass);
 
@@ -74,11 +76,11 @@ class Navigator
 
     public function treeNavigator(
         Collection|array $rutas,
-        ?RoutingKit $nodoActual = null,
+        ?FpEntityInterface $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
     ): ?string {
-        return TreeNavigator::make()
+        return FpTreeNavigator::make()
             ->navegar($rutas, $nodoActual, $pila, $omitId);
     }
 
@@ -88,7 +90,7 @@ class Navigator
     {
         $basePath = select(
             label: '📂 Selecciona la carpeta del controlador',
-            options: config('fproute.controllers_path')
+            options: config('routingkit.controllers_path')
 
         );
 
@@ -106,4 +108,5 @@ class Navigator
             'action'     => $method,
         ];
     }
+
 }

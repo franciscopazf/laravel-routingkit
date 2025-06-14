@@ -1,12 +1,11 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Navigator;
-
+namespace Fp\RoutingKit\Features\InteractiveFeature;
 use ReflectionClass;
 use ReflectionMethod;
 
-class ClassInspector
-{   
+class FpClassInspector
+{
     public function __construct()
     {
         // Constructor can be used for dependency injection if needed

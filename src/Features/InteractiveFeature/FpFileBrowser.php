@@ -1,10 +1,10 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Navigator;
+namespace Fp\RoutingKit\Features\InteractiveFeature;
 
 use Illuminate\Support\Facades\File;
 
-class FileBrowser
+class FpFileBrowser
 {
     public function __construct()
     {

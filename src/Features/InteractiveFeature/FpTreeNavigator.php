@@ -1,12 +1,12 @@
 <?php
 
-namespace Fp\RoutingKit\Services\Navigator;
+namespace Fp\RoutingKit\Features\InteractiveFeature;
 
+use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Illuminate\Support\Collection;
-use Fp\RoutingKit\Contracts\FpEntityInterface as RoutingKit;
 use function Laravel\Prompts\select;
 
-class TreeNavigator
+class FpTreeNavigator
 {
     /**
      * Crea una nueva instancia de TreeNavigator.
@@ -30,14 +30,14 @@ class TreeNavigator
      * Navega interactivamente por una colección de rutas RoutingKit.
      *
      * @param Collection|array $rutas
-     * @param RoutingKit|null $nodoActual
+     * @param FpEntityInterface|null $nodoActual
      * @param array $pila
      * @param string|null $omitId
      * @return string|null
      */
     public function navegar(
         Collection|array $rutas,
-        ?RoutingKit $nodoActual = null,
+        ?FpEntityInterface $nodoActual = null,
         array $pila = [],
         ?string $omitId = null
     ): ?string {
@@ -46,13 +46,13 @@ class TreeNavigator
         $opciones = [];
 
         if ($nodoActual) {
-            $hijos = is_array($nodoActual->getChildrens()) ?
-                collect($nodoActual->getChildrens()) :
-                $nodoActual->getChildrens();
+            $hijos = is_array($nodoActual->getItems()) ?
+                collect($nodoActual->getItems()) :
+                $nodoActual->getItems();
 
-            foreach ($hijos as $child) {
-                if ($child->id === $omitId) continue;
-                $opciones[$child->id] = '📁 ' . $child->id;
+            foreach ($hijos as $item) {
+                if ($item->id === $omitId) continue;
+                $opciones[$item->id] = '📁 ' . $item->id;
             }
 
             $opciones['__seleccionar__'] = '✅ Seleccionar esta ruta';
@@ -87,7 +87,7 @@ class TreeNavigator
             '__atras__' => self::navegar($rutas, array_pop($pila), $pila, $omitId),
             default => self::navegar(
                 $rutas,
-                ($nodoActual ? collect($nodoActual->getChildrens()) : $rutas)->firstWhere(fn($r) => $r->id === $seleccion),
+                ($nodoActual ? collect($nodoActual->getItems()) : $rutas)->firstWhere(fn($r) => $r->id === $seleccion),
                 array_merge($pila, [$nodoActual]),
                 $omitId
             ),

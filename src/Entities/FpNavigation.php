@@ -6,15 +6,11 @@ namespace Fp\RoutingKit\Entities;
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Entities\FpRoute;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
-use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
-use Fp\RoutingKit\Services\Route\Orchestrator\NavigatorOrchestrator;
-use Fp\RoutingKit\Services\Route\Orchestrator\RouteOrchestrator;
 use Fp\RoutingKit\Services\Navigator\Navigator;
-
 use Illuminate\Support\Collection;
-
-use Illuminate\Support\Facades\Route; // ¡Importante!
-
+use Illuminate\Support\Facades\Route;
+use RoutingKit\Features\InteractiveNavigatorFeature\FpInteractiveNavigator;
+use RoutingKit\Features\InteractiveNavigatorFeature\FpTreeNavigator;
 
 class FpNavigation extends FpBaseEntity
 {
@@ -192,14 +188,15 @@ class FpNavigation extends FpBaseEntity
         return null;
     }
 
-    public static function getOrchestrator(): FpOrchestratorInterface
+    public static function getOrchestratorConfig(): array
     {
-        return NavigatorOrchestrator::make();
+        return config('routingkit.navigators_file_path');
     }
+
 
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
-        return Navigator::make()
-            ->treeNavigator(FpNavigation::all());
+        FpInteractiveNavigator::make()
+            ->treeNavigator(FpRoute::all());
     }
 }

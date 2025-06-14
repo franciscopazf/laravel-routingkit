@@ -8,6 +8,7 @@ use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
 
 use Illuminate\Console\Command;
 use Fp\RoutingKit\Features\DataContextFeature\FpDataContextFactory;
+use Fp\RoutingKit\Features\DataOrchestratorFeature\FpBaseOrchestrator;
 use Fp\RoutingKit\Features\DataOrchestratorFeature\FpRouteOrchestrator;
 
 class FpAcces extends Command
@@ -30,23 +31,6 @@ class FpAcces extends Command
 
     public function handle()
     {
-        $orchestrator = FpRouteOrchestrator::make()
-            ->all();
-
-            dd($orchestrator);
-      
-             // new FpNavigation();
-        $filePath = base_path('routingkit/Navigation/arrayNavigation.php');
-        $fileSave = 'object_file_tree';
-        $onlyStringSupport = false;
-        
-        $fpRepository = FpDataRepositoryFactory::getRepository($filePath, $fileSave, $onlyStringSupport);
-        $fpDataContext = FpDataContextFactory::getDataContextFromRepository(
-            'fp:acces',
-            $fpRepository
-        );
-        dd($fpDataContext->getFlattenedEntitys());
-
 
 
         // confirmar si se desea continuar

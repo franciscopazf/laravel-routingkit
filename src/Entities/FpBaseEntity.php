@@ -3,7 +3,9 @@
 namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Contracts\FpIsOrchestrableInterface;
 use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
+use Fp\RoutingKit\Features\DataOrchestratorFeature\FpBaseOrchestrator;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -12,7 +14,7 @@ use RuntimeException;
  * Abstract base class for all Fp entities, providing common properties,
  * CRUD operations, and a query builder pattern for filtering entities.
  */
-abstract class FpBaseEntity implements FpEntityInterface
+abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterface
 {
     use HasDynamicAccessors;
 
@@ -104,7 +106,20 @@ abstract class FpBaseEntity implements FpEntityInterface
      *
      * @return FpOrchestratorInterface
      */
-    abstract public static function getOrchestrator(): FpOrchestratorInterface;
+    public static function getOrchestrator(): FpOrchestratorInterface
+    {
+        return FpBaseOrchestrator::make(static::getOrchestratorConfig());
+    }
+
+
+    /**
+     * Returns the configuration for the orchestrator.
+     * This method should be implemented by each concrete entity class to
+     * provide the specific configuration needed for the orchestrator.
+     *
+     * @return array The configuration array for the orchestrator.
+     */
+    abstract public static function getOrchestratorConfig(): array;
 
     /**
      * Returns the singleton instance of the Orchestrator for the specific derived class.
@@ -117,7 +132,7 @@ abstract class FpBaseEntity implements FpEntityInterface
     {
         $class = static::class;
         if (!isset(static::$orchestratorInstances[$class])) {
-           static::$orchestratorInstances[$class] = static::getOrchestrator();
+            static::$orchestratorInstances[$class] = static::getOrchestrator();
         }
         return static::$orchestratorInstances[$class];
     }

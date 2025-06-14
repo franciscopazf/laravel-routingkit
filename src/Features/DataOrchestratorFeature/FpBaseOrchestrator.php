@@ -14,7 +14,7 @@ use Fp\RoutingKit\Features\DataContextFeature\FpDataContextFactory;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
-abstract class FpBaseOrchestrator implements FpOrchestratorInterface
+class FpBaseOrchestrator implements FpOrchestratorInterface
 {
     use FpVarsOrchestratorTrait {
         __construct as private initializeVarsOrchestratorTrait;
@@ -26,51 +26,44 @@ abstract class FpBaseOrchestrator implements FpOrchestratorInterface
      */
     protected array $contextConfigurations = [];
 
+    protected array $configurations;
+
     /**
      * Constructor del Orchestrator.
      */
-    public function __construct()
+    public function __construct(array $configurations)
     {
+        $this->configurations = $configurations;
         $this->initializeVarsOrchestratorTrait();
         $this->loadAllContextConfigurations();
         $this->currentIncludedContextKeys = $this->getContextKeys();
     }
 
-    /**
-     * Método abstracto que debe ser implementado por las clases derivadas
-     * para especificar la ruta del archivo de configuración donde se encuentran
-     * las definiciones de todos los contextos para este orquestador.
-     *
-     * Ejemplo: 'fproute.navigators_file_path.items'
-     * @return string
-     */
-    abstract protected function getContextsConfigPath(): string;
+    public static function make(array $configurations): FpOrchestratorInterface
+    {
+        return new static($configurations);
+    }
 
     /**
-     * Carga todas las configuraciones de los contextos desde el archivo de configuración.
-     * Esto llena $this->contextConfigurations.
-     * Este método se llama en el constructor de BaseOrchestrator.
+     * Carga todas las configuraciones de los contextos desde el arreglo recibido.
      */
     protected function loadAllContextConfigurations(): void
     {
-        $configPath = $this->getContextsConfigPath();
-        $configs = config($configPath);
+        $configs = $this->configurations['items'] ?? [];
 
         if (!is_array($configs)) {
-            throw new RuntimeException("La ruta de configuración '{$configPath}' no devuelve un array válido.");
+            throw new RuntimeException("La configuración 'items' no es un array válido.");
         }
 
         $this->contextConfigurations = $configs;
     }
 
     /**
-     * Devuelve una lista de todas las claves de contexto disponibles
-     * basadas en las configuraciones cargadas.
+     * Devuelve una lista de todas las claves de contexto disponibles.
      * @return array
      */
     public function getContextKeys(): array
     {
-       // dd($this->contextConfigurations);
         return array_keys($this->contextConfigurations);
     }
 
@@ -78,59 +71,96 @@ abstract class FpBaseOrchestrator implements FpOrchestratorInterface
      * Retorna una instancia del contexto de ruta para una clave dada.
      * @param string $key
      * @return FpContextEntitiesInterface
-     * @throws RuntimeException Si el contexto no puede ser instanciado o configurado.
      */
     protected function getContextInstance(string $key): FpContextEntitiesInterface
     {
-     //   dd($this->contextConfigurations, $key);
         if (!isset($this->contextConfigurations[$key])) {
-          //  dd("Hola");
             throw new RuntimeException("Configuración de contexto para la clave '{$key}' no encontrada.");
         }
+
         $contextData = $this->contextConfigurations[$key];
-        $contextData['key'] = $key; 
-        $context = $this->prepareContext($contextData);
-       // dd($context);
-        return $context;
+        $contextData['key'] = $key;
+
+        return $this->prepareContext($contextData);
     }
 
     /**
-     * Implementa el método abstracto de BaseOrchestrator.
-     * Prepara una instancia de RouteStrategyInterface a partir de los datos de configuración.
-     *
-     * @param array $contextData Array de configuración para un contexto específico.
+     * Prepara una instancia del contexto a partir de los datos de configuración.
+     * @param array $contextData
      * @return FpContextEntitiesInterface
-     * @throws RuntimeException Si la configuración no es válida.
      */
     protected function prepareContext(array $contextData): FpContextEntitiesInterface
     {
         if (!isset($contextData['support_file']) || !isset($contextData['path'])) {
-            throw new RuntimeException("Configuración de contexto inválida: 'support_file' o 'path' faltantes para el contexto.");
+            throw new RuntimeException("Configuración de contexto inválida: 'support_file' o 'path' faltantes.");
         }
 
-        $context = FpDataContextFactory::getDataContext(
+        return FpDataContextFactory::getDataContext(
             $contextData['key'],
             $contextData['path'],
             $contextData['support_file'],
             $contextData['only_string_support'] ?? false
         );
-        
-        return $context;
     }
 
-    // --- Otros métodos implementados o abstractos requeridos por OrchestratorInterface ---
+    /**
+     * Obtiene la clave del contexto por defecto.
+     * @return string|null
+     */
+    public function getDefaultContextKey(): ?string
+    {
+        $position = $this->configurations['default_file'] ?? 0;
+        $keys = $this->getContextKeys();
 
+        return $keys[$position] ?? null;
+    }
+
+    /**
+     * Obtiene la instancia del contexto por defecto.
+     * @return FpContextEntitiesInterface|null
+     */
+    public function getDefaultContext(): ?FpContextEntitiesInterface
+    {
+        $defaultKey = $this->getDefaultContextKey();
+
+        if ($defaultKey) {
+            try {
+                return $this->getContextInstance($defaultKey);
+            } catch (RuntimeException $e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Ya no se utiliza, pero se mantiene si la interfaz lo exige.
+     */
+    protected function getContextsConfigPath(): string
+    {
+        return '';
+    }
+
+    /**
+     * Guarda una entidad.
+     */
     public function save(FpEntityInterface $entity, string|FpEntityInterface|null $parent = null): void
     {
-        // Lógica para guardar la entidad
+        // Implementación de guardado
     }
 
+    /**
+     * Elimina una entidad.
+     */
     public function delete(FpEntityInterface $entity): bool
     {
-        // Lógica para eliminar la entidad
         return true;
     }
 
+    /**
+     * Busca una entidad por ID en el arreglo plano.
+     */
     public function findById(string $id): ?FpEntityInterface
     {
         $allFlattened = $this->getRawGlobalFlattened();
@@ -138,18 +168,18 @@ abstract class FpBaseOrchestrator implements FpOrchestratorInterface
     }
 
     /**
-     * Encuentra una entidad por su ID, incluyendo sus elementos hijos.
-     *
-     * @param string $id
-     * @return FpEntityInterface|null
+     * Busca una entidad por ID incluyendo sus hijos.
      */
-    public function findByIdWithItems(string $id): ?FpEntityInterface // <-- RENOMBRADO A findByIdWithItems
+    public function findByIdWithItems(string $id): ?FpEntityInterface
     {
         $tree = $this->getRawGlobalTree();
         $flattened = $this->flattenTree($tree);
         return $flattened->get($id);
     }
 
+    /**
+     * Verifica si una entidad existe por ID.
+     */
     public function exists(string $id): bool
     {
         return $this->findById($id) !== null;
