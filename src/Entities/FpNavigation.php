@@ -163,6 +163,7 @@ class FpNavigation extends FpBaseEntity
             'items' => ['omit'],
             'endBlock' => ['omit'],
             'level' => ['omit'],
+            'contextKey' => ['omit'],
         ];
     }
 

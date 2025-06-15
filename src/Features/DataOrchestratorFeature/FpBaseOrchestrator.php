@@ -41,6 +41,9 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
         $this->initializeVarsOrchestratorTrait();
         $this->loadAllContextConfigurations();
         $this->currentIncludedContextKeys = $this->getContextKeys();
+        // Ya no es necesario llamar a loadKeyInConfiguration aquí de esta forma,
+        // ya que la clave se establecerá en loadAllContextConfigurations.
+        // $this->loadKeyInConfiguration($this->configurations);
     }
 
     public static function make(array $configurations): FpOrchestratorInterface
@@ -49,17 +52,56 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
     }
 
     /**
+     * Este método no es necesario si la clave se añade directamente en loadAllContextConfigurations.
+     * Su lógica actual modifica $this->configurations globalmente, no los elementos individuales.
+     */
+    // public function loadKeyInConfiguration(array $config): array
+    // {
+    //     foreach ($config as $key => $value) {
+    //         if (is_array($value)) {
+    //             $this->loadKeyInConfiguration($value);
+    //         } else {
+    //             // Aseguramos que la clave esté presente en la configuración
+    //             if (!isset($this->configurations[$key])) {
+    //                 $this->configurations[$key] = $value;
+    //             }
+    //         }
+    //     }
+    //     return $this->configurations;
+    // }
+
+    /**
      * Carga todas las configuraciones de los contextos desde el arreglo recibido.
+     * La clave del arreglo externo se asigna a cada configuración de contexto individual.
      */
     protected function loadAllContextConfigurations(): void
     {
-        $configs = $this->configurations['items'] ?? [];
+        $configsFromInput = $this->configurations['items'] ?? [];
 
-        if (!is_array($configs)) {
+        if (!is_array($configsFromInput)) {
             throw new RuntimeException("La configuración 'items' no es un array válido.");
         }
 
-        $this->contextConfigurations = $configs;
+        foreach ($configsFromInput as $contextKey => $config) {
+            if (!isset($config['path']) || !isset($config['support_file'])) {
+                throw new RuntimeException("Configuración de contexto inválida para la clave '{$contextKey}'. Debe contener 'path' y 'support_file'.");
+            }
+
+            // Aseguramos que la clave del arreglo externo (contextKey)
+            // se establezca dentro del propio arreglo de configuración del contexto.
+            $config['key'] = $contextKey;
+
+            // Aseguramos que la clave sea única en la caché de configuraciones.
+            if (isset($this->contextConfigurations[$contextKey])) {
+                throw new RuntimeException("La clave de contexto '{$contextKey}' ya está definida.");
+            }
+
+            // Asignamos la configuración modificada al arreglo de contextos del orquestador.
+            $this->contextConfigurations[$contextKey] = $config;
+        }
+
+        // Ya no sobrescribimos this->contextConfigurations con $configsFromInput,
+        // ya que lo hemos llenado elemento por elemento con la clave asignada.
     }
 
     /**
@@ -93,7 +135,7 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
         }
 
         $contextData = $this->contextConfigurations[$key];
-        $contextData['key'] = $key;
+
 
         // Preparamos la nueva instancia del contexto
         $instance = $this->prepareContext($contextData);
@@ -111,8 +153,13 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
      */
     protected function prepareContext(array $contextData): FpContextEntitiesInterface
     {
+        // dd("Preparando contexto con datos:", $contextData); // Puedes descomentar para depurar
         if (!isset($contextData['support_file']) || !isset($contextData['path'])) {
             throw new RuntimeException("Configuración de contexto inválida: 'support_file' o 'path' faltantes.");
+        }
+        // Asegúrate de que 'key' esté presente en $contextData
+        if (!isset($contextData['key'])) {
+            throw new RuntimeException("La clave de contexto ('key') no está presente en los datos de configuración. Esto debería haberse establecido en loadAllContextConfigurations.");
         }
 
         return FpDataContextFactory::getDataContext(
@@ -202,7 +249,7 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
     public function delete(FpEntityInterface $entity): bool
     {
         $contextKey = $entity->getContextKey();
-        
+
         if ($contextKey === null) {
             throw new RuntimeException("La entidad '{$entity->getId()}' no tiene asignado un contextKey. Asegúrate de que las entidades se carguen correctamente con su contexto.");
         }
@@ -270,6 +317,34 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
         $flattened = $this->flattenTree($tree);
         return $flattened->get($id);
     }
+
+    // reescribe todos los contextos en cache para reescribirlos
+    public function rewriteAllContext(array $contextKeys = []): void
+    {
+        // Si se pasan claves de contexto, solo reescribimos esos contextos.
+        if (!empty($contextKeys)) {
+            foreach ($contextKeys as $key) {
+                if (isset($this->contextInstancesCache[$key])) {
+                    $this->contextInstancesCache[$key]->rewriteAllEntities();
+                }
+            }
+            return;
+        }
+
+        // Si no se pasan claves, reescribimos todos los contextos sin importar si están cacheados o no.
+        foreach ($this->contextConfigurations as $key => $config) {
+            // dd("Reescribiendo contexto: {$key}", $config); // Puedes descomentar para depurar
+            if (isset($this->contextInstancesCache[$key])) {
+                $this->contextInstancesCache[$key]->rewriteAllEntities();
+            } else {
+                // Si no está en caché, lo creamos y reescribimos.
+                $context = $this->prepareContext($config);
+                $context->rewriteAllEntities();
+                $this->contextInstancesCache[$key] = $context;
+            }
+        }
+    }
+
 
     /**
      * Verifica si una entidad existe por ID.

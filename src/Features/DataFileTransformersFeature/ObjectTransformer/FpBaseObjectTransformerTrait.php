@@ -5,22 +5,27 @@ namespace Fp\RoutingKit\Features\DataFileTransformersFeature\ObjectTransformer;
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
 use Fp\RoutingKit\Contracts\FpFileTransformerInterface;
-use Fp\RoutingKit\Features\DataValidationsFeature\FpAtributteOmitter;
+use Fp\RoutingKit\Features\DataValidationsFeature\FpAttributeOmitter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use ReflectionClass;
 
 
-class FpBaseObjectTransformer implements FpFileTransformerInterface
+trait FpBaseObjectTransformerTrait
 {
 
-    public function __construct(private string $contentString, private bool $onlyStringSupport = true) 
-    {
-    }
+    public function __construct(private string $contentString, private bool $onlyStringSupport = true) {}
 
     public static function make(string $contentString, bool $onlyStringSupport = true): self
     {
         return new self($contentString, $onlyStringSupport);
+    }
+
+    public function transform(Collection $entitys): string
+    {
+        $finalNewContent = $this->getFinalContent($entitys);
+
+        return $finalNewContent;
     }
 
     public function getBlock(FpEntityInterface $entity): string
@@ -74,13 +79,13 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
     public function sanitizeForArray(string $block, FpEntityInterface $entity): string
     {
         return preg_replace_callback(
-            $this->getChildrenPattern($entity->getId()),
+            $this->getItemPattern($entity->getId()),
             fn() => "->setItems([])\n->setEndBlock('{$entity->getId()}')",
             $block
         );
     }
 
-    public function insertChildren(string $block, string $Item, FpEntityInterface $entity, int $level): string
+    public function insertItem(string $block, string $Item, FpEntityInterface $entity, int $level): string
     {
         $indent = str_repeat("    ", $level + 1);
 
@@ -90,7 +95,7 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
         $end = $indent . "->setEndBlock('{$entity->getId()}')";
 
         return preg_replace_callback(
-            $this->getChildrenPattern($entity->getId()),
+            $this->getItemPattern($entity->getId()),
             fn() => $Item . $end,
             $block
         );
@@ -113,14 +118,17 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
 
     private function rebuildRouteContent(FpEntityInterface $entity, bool $setParent = false): string
     {
-        $props = collect($entity->getProperties());
+        // Obtener solo las propiedades públicas del objeto
+        $publicProps = get_object_vars($entity);
+        $props = collect($publicProps);
+
         // Usamos getMakerCallLiteral para la creación de la cadena literal
         $code = $this->getMakerCallLiteral($entity) . "\n";
 
         // Asegúrate de que AttributeOmitter esté definido o incluido si es una clase externa.
         // Si no está definido, esto causará un error fatal.
         // Por ahora, asumiré que AttributeOmitter existe y es accesible.
-        $validator = FpAtributteOmitter::make(object: $entity);
+        $validator = FpAttributeOmitter::make(object: $entity);
         $filtered = $props->reject(function ($value, $key) use ($validator) {
             // Puedes añadir lógica adicional aquí para omitir las propiedades que ya se usaron
             // en el método maker si lo deseas.
@@ -327,6 +335,7 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
     public function getHeaderBlock(): string
     {
         $file =  $this->contentString;
+        //dd($file);
 
         if (!preg_match($this->getHeaderPatterns(), $file, $matches))
             throw new \Exception("No se encontró el bloque de encabezado");
@@ -344,7 +353,7 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
     // funcion que recive un parametro un string y
     // retorna el patron que permite buscar rutas
     // en el archivo de rutas.
-    public function getChildrenPattern(string $entityId): string
+    public function getItemPattern(string $entityId): string
     {
         return '/
         ->setItems\((.*?)\)                     # Grupo 1: contenido dentro del setItems(...)
@@ -373,6 +382,8 @@ class FpBaseObjectTransformer implements FpFileTransformerInterface
     /sx';
     }
 
-
-    
+    private function getFooterBlock(): string
+    {
+        return "\n];\n";
+    }
 }

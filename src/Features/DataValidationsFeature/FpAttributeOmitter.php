@@ -57,6 +57,11 @@ class FpAttributeOmitter
      */
     public function validate(): bool
     {
+        // si un atributo es un objeto se omite por defecto
+        if ($this->attribute !== null && is_object($this->getAttributeValue($this->attribute))) {
+            return true; // Si el atributo es un objeto, lo omitimos por defecto.
+        }
+
         // Si el valor del atributo principal es null, lo omitimos por defecto
         if ($this->attribute !== null && $this->getAttributeValue($this->attribute) === null) {
             return true;
