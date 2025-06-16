@@ -1,13 +1,13 @@
 <?php
 
-namespace Fp\RoutingKit\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use App\Models\User;
 use Fp\RoutingKit\Entities\FpRoute;
-use Fp\RoutingKit\Services\DevelopmentSetup\PermissionCreator;
-use Fp\RoutingKit\Services\DevelopmentSetup\RoleCreator;
-use Fp\RoutingKit\Services\DevelopmentSetup\RoleAssigner;
-use Fp\RoutingKit\Services\DevelopmentSetup\UserCreator;
+use Fp\RoutingKit\Features\RolesAndPermissionsFeature\PermissionCreator;
+use Fp\RoutingKit\Features\RolesAndPermissionsFeature\RoleCreator;
+use Fp\RoutingKit\Features\RolesAndPermissionsFeature\RoleAssigner;
+use Fp\RoutingKit\Features\RolesAndPermissionsFeature\UserCreator;
 
 class DevelopmentSetup
 {
@@ -55,8 +55,8 @@ class DevelopmentSetup
     public function run(): void
     {
         //dd('Running development setup...');
-        $roles = config('fproute.roles');
-        $users = config('fproute.development_users');
+        $roles = config('routingkit.roles');
+        $users = config('routingkit.development_users');
 
         $this->roleCreator
             ->create($roles);

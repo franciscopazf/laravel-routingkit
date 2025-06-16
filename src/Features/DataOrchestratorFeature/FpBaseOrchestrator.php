@@ -176,10 +176,18 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
      */
     public function getDefaultContextKey(): ?string
     {
-        $position = $this->configurations['default_file'] ?? 0;
-        $keys = $this->getContextKeys();
+        // Verifica si 'default_file' está configurado en las configuraciones
+        if (!isset($this->configurations['default_file']) || !is_string($this->configurations['default_file'])) {
+            // si no existe tomar la posicion 0 del arreglo de claves
+            $keys = $this->getContextKeys();
+            if (empty($keys)) {
+                return null; // No hay claves de contexto disponibles
+            }
+            $position = 0; // Por defecto tomamos la primera posición
+            return $keys[$position] ?? null; // Retorna la primera clave o null si no hay claves
+        }
 
-        return $keys[$position] ?? null;
+        return $this->configurations['default_file']; // Retorna la clave del contexto por defecto
     }
 
     /**
@@ -190,7 +198,7 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
     public function getDefaultContext(bool $forceNew = false): ?FpContextEntitiesInterface
     {
         $defaultKey = $this->getDefaultContextKey();
-
+        
         if ($defaultKey) {
             try {
                 // Ahora usa el método getContextInstance con la opción forceNew
@@ -203,40 +211,47 @@ class FpBaseOrchestrator implements FpOrchestratorInterface
         return null;
     }
 
+    public function getParent(FpEntityInterface $entity): ?FpEntityInterface
+    { 
+        $parentId = $entity->getParentId();
+        if ($parentId === null) {
+            return null; // No tiene padre
+        }
+        return $this->findById($parentId);
+    }
+
     /**
      * Agrega una entidad al contexto al que se supone que pertenece.
      *
      * @param FpEntityInterface $entity La entidad a agregar.
-     * @param string|null $contextKey Opcional. La clave del contexto al que se debe agregar la entidad.
-     * Si es null, intentará usar el contextKey de la entidad, o el contexto por defecto.
      * @return bool True si la entidad fue agregada con éxito, false en caso contrario.
      * @throws RuntimeException Si no se puede determinar el contexto o el contexto no soporta 'add'.
      */
-    public function add(FpEntityInterface $entity, ?string $contextKey = null): bool
+    public function save(FpEntityInterface $entity): bool
     {
-        if ($contextKey === null) {
-            $contextKey = $entity->getContextKey() ?? $this->getDefaultContextKey();
-        }
+        // para guardar primero se debe optener el context key del padre
+        $parent = $entity->getParent();
+        $contextKey = null;
 
-        if ($contextKey === null) {
-            throw new RuntimeException("No se pudo determinar el contexto para agregar la entidad '{$entity->getId()}'. Especifique un contextKey o asegúrese de que la entidad lo tenga.");
+        if ($parent instanceof FpEntityInterface) {
+            $contextKey = $parent->getContextKey();
         }
 
         // Obtener la instancia del contexto (ahora cacheada por defecto)
-        $context = $this->getContextInstance($contextKey);
+        $context = $contextKey
+            ? $this->getContextInstance($contextKey)
+            : $this->getDefaultContext();
 
-        if (!($context instanceof FpContextEntitiesInterface) || !method_exists($context, 'add')) {
-            throw new RuntimeException("El contexto '{$contextKey}' no implementa el método 'add' necesario para agregar entidades.");
+        $contextKey = $context->getId();
+
+        if (!($context instanceof FpContextEntitiesInterface) || !method_exists($context, 'addEntity')) {
+            throw new RuntimeException("El contexto '{$contextKey}' no implementa el método 'addEntity' necesario para agregar entidades.");
         }
 
-        $isAdded = $context->add($entity);
-
-        // Si la adición fue exitosa, invalidar las cachés relevantes del orquestador
-        if ($isAdded) {
-            $this->invalidateOrchestratorCaches($contextKey);
-        }
-
-        return $isAdded;
+        $context->addEntity($entity, $entity->getParent() ?? null);
+        $this->invalidateOrchestratorCaches($contextKey);
+        
+        return true;
     }
 
     /**

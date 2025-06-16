@@ -477,12 +477,12 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
     public function save(string|FpEntityInterface|null $parent = null): static
     {
         if ($parent instanceof FpEntityInterface) {
-            $parent = $parent->getId();
-        } elseif ($parent === null) {
-            $parent = $this->getParentId();
+            $this->parentId = $parent->getId();
+        } else if (is_string($parent)) {
+            $this->parentId = $parent;
         }
         
-        static::getOrchestratorSingleton()->save($this, $parent);
+        static::getOrchestratorSingleton()->save($this);
         return $this;
     }
 
@@ -913,10 +913,16 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
 
         $instance = new static($data['id']);
 
+        // Asignar los atributos del array a la instancia
         foreach ($data as $key => $value) {
             if ($key === 'id') {
                 continue;
             }
+
+            if ((is_string($value) && trim($value) === '') || (is_array($value) && empty($value))) {
+                continue; 
+            }
+            
             if ($key === 'items' && is_array($value)) {
                 $instance->{$key} = new Collection($value);
             } else {

@@ -4,6 +4,7 @@ namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Features\InteractiveFeature\FpFileBrowser;
+use Fp\RoutingKit\Features\InteractiveFeature\FpParameterOrchestrator;
 use Fp\RoutingKit\Routes\FpRegisterRouter;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
@@ -57,9 +58,9 @@ class FpRoute extends FpBaseEntity
         return $instance;
     }
 
-    public static function createConsoleAtributte(): array
+    public static function createConsoleAtributte(array $data): array
     {
-        return [
+         $attributes =  [
             'id' => [
                 'type' => 'string',
                 'description' => 'Identificador único de la ruta.',
@@ -94,14 +95,10 @@ class FpRoute extends FpBaseEntity
                 'type' => 'array_multiple',
                 'description' => 'Roles asociados a la ruta, si es un grupo.',
                 'rules' => ['nullable', 'array', 'in:'. implode(',', config('routingkit.roles', []))],
-            ],
-            'addNavigation' => [
-                'type' => 'boolean',
-                'description' => 'Desea agregar una navegacion a la ruta?',
-                'rules' => ['required', 'boolean'],
-                'closure' => fn() => true, // Por defecto true
-            ],
+            ]
         ];
+        return FpParameterOrchestrator::make()
+            ->processParameters($data, $attributes);
     }
 
 

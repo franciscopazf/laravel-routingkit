@@ -340,6 +340,7 @@ trait FpBaseObjectTransformerTrait
         if (!preg_match($this->getHeaderPatterns(), $file, $matches))
             throw new \Exception("No se encontró el bloque de encabezado");
 
+            
         return $matches[0] . "\n";
     }
 

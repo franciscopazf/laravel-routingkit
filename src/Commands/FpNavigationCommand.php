@@ -51,7 +51,6 @@ class FpNavigationCommand extends Command
         }
 
         $this->menuInteractivo();
-        // Otros casos como --new, --move irán aquí...
         $this->info('¡Hola desde tu paquete RoutingKit!');
     }
 

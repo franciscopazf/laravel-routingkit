@@ -4,6 +4,7 @@ namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Entities\FpRoute;
+use Fp\RoutingKit\Features\InteractiveFeature\FpParameterOrchestrator;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -166,31 +167,41 @@ class FpNavigation extends FpBaseEntity
         return config('routingkit.navigators_file_path');
     }
 
-    public static function createConsoleAtributte(): array
+    public static function createConsoleAtributte(array $data): array
     {
-        return [
-
+        $attributes =  [
             'instanceRouteId' => [
                 'type' => 'string_select',
-                'description' => 'Ruta de instancia asociada',
                 'rules' => ['string'],
                 'closure' => fn() => FpRoute::seleccionar(null, 'Selecciona la ruta de instancia'),
             ],
-            
+
             'id' => [
                 'type' => 'string',
-                'description' => 'Seleccion el ID de la ruta',
-                'rules' => ['required', 'string', 'expect_false' => fn($value) => FpNavigation::exists($value)],
-                'closure' => fn() => FpRoute::seleccionar(null, 'Selecciona el ID de la ruta'),
+                'rules' => [
+                    'required',
+                    'string',
+                    'expect_false' => function($value) {
+                        return FpNavigation::exists($value);
+                    }
+                ],
+                'closure' => function($parametros){
+                    if (!FpNavigation::exists($parametros['instanceRouteId'])) {
+                       return $parametros['instanceRouteId'];
+                    }
+                }
             ],
 
             'parentId' => [
                 'type' => 'string_select',
                 'description' => 'Padre de la ruta seleccionado',
-                'rules' => ['nullable', 'string', 'expect_false' => fn($value) => $value === null || !FpNavigation::exists($value)],
+                'rules' => ['nullable', 'string'],
                 'closure' => fn() => FpNavigation::seleccionar(null, 'Selecciona el padre de la ruta'),
             ]
         ];
+
+        return FpParameterOrchestrator::make()
+            ->processParameters($data, $attributes);
     }
 
     public function getOmmittedAttributes(): array

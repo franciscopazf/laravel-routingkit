@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Fp\RoutingKit\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Illuminate\Database\Eloquent\Collection;

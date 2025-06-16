@@ -37,6 +37,11 @@ class FpFileDataContext implements FpContextEntitiesInterface
         return new static($id, $fpRepository);
     }
 
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
     /**
      * Obtiene una colección aplanada de todas las entidades.
      *

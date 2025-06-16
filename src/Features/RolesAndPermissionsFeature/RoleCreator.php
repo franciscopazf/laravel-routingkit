@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\RoutingKit\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use Spatie\Permission\Models\Role;
 

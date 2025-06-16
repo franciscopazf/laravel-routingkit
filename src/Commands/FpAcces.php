@@ -2,14 +2,8 @@
 
 namespace Fp\RoutingKit\Commands;
 
-use Fp\RoutingKit\Services\DevelopmentSetup\DevelopmentSetup;
-use Fp\RoutingKit\Features\DataRepositoryFeature\FpDataRepositoryFactory;
-use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
-
+use Fp\RoutingKit\Features\RolesAndPermissionsFeature\DevelopmentSetup;
 use Illuminate\Console\Command;
-use Fp\RoutingKit\Features\DataContextFeature\FpDataContextFactory;
-use Fp\RoutingKit\Features\DataOrchestratorFeature\FpBaseOrchestrator;
-use Fp\RoutingKit\Features\DataOrchestratorFeature\FpRouteOrchestrator;
 
 class FpAcces extends Command
 {
@@ -26,8 +20,6 @@ class FpAcces extends Command
 ';
 
     protected $description = 'Comando para sincronizar accesos de rutas FpRoute';
-
-    protected RoutingKitInteractive $interactive;
 
     public function handle()
     {

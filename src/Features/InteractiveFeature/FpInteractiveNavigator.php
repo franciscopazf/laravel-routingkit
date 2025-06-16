@@ -31,11 +31,9 @@ class FpInteractiveNavigator implements FpInteractiveInterface
 
     public function crear(array $data = []): FpEntityInterface
     {
-        FpParameterOrchestrator::make()
-            ->processParameters($data, $this->entityClass::createConsoleAtributte());
-            
+        $data = $this->entityClass::createConsoleAtributte($data);
         $entity = $this->entityClass::buildFromArray($data);
-        $entity->save();
+        $entity->save($entity->getParentId());
         $this->info("✅ Ruta '{$entity->id}' creada correctamente.");
         return $entity;
     }

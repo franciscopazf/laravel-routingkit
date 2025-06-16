@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Fp\RoutingKit\Services\DevelopmentSetup;
+namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
