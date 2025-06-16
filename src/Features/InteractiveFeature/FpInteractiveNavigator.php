@@ -29,6 +29,17 @@ class FpInteractiveNavigator implements FpInteractiveInterface
         return new self($entityClass);
     }
 
+    public function crear(array $data = []): FpEntityInterface
+    {
+        FpParameterOrchestrator::make()
+            ->processParameters($data, $this->entityClass::createConsoleAtributte());
+            
+        $entity = $this->entityClass::buildFromArray($data);
+        $entity->save();
+        $this->info("✅ Ruta '{$entity->id}' creada correctamente.");
+        return $entity;
+    }
+
     public function eliminar(?string $id = null)
     {
         $entityClass = $this->entityClass;

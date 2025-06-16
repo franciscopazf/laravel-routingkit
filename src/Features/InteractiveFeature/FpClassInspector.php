@@ -1,11 +1,13 @@
 <?php
 
 namespace Fp\RoutingKit\Features\InteractiveFeature;
+
 use ReflectionClass;
 use ReflectionMethod;
 
 class FpClassInspector
 {
+
     public function __construct()
     {
         // Constructor can be used for dependency injection if needed
@@ -18,6 +20,7 @@ class FpClassInspector
 
     public function getPublicMethods(string $fullClass): array
     {
+
         if (!class_exists($fullClass)) {
             throw new \RuntimeException("La clase {$fullClass} no existe.");
         }
@@ -33,6 +36,7 @@ class FpClassInspector
 
     private function isMagic(string $method): bool
     {
+
         return str_starts_with($method, '__');
     }
 }

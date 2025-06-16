@@ -3,7 +3,10 @@
 namespace Fp\RoutingKit\Commands;
 
 use Fp\RoutingKit\Entities\FpNavigation;
+use Fp\RoutingKit\Entities\FpRoute;
 use Fp\RoutingKit\Features\InteractiveFeature\FpInteractiveNavigator;
+use Fp\RoutingKit\Features\InteractiveFeature\FpParameterOrchestrator;
+
 
 use Illuminate\Console\Command;
 use function Laravel\Prompts\select;
@@ -25,9 +28,8 @@ class FpNavigationCommand extends Command
 
     public function handle()
     {
-        $this->interactive = FpInteractiveNavigator::make(
-            FpNavigation::class,
-        );
+        $this->interactive = FpInteractiveNavigator::make(FpNavigation::class);
+
 
         // --delete, --new, --move
         if ($this->option('delete')) {

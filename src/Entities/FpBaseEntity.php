@@ -6,6 +6,7 @@ use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Contracts\FpIsOrchestrableInterface;
 use Fp\RoutingKit\Contracts\FpOrchestratorInterface;
 use Fp\RoutingKit\Features\DataOrchestratorFeature\FpBaseOrchestrator;
+use Fp\RoutingKit\Features\InteractiveFeature\FpTreeNavigator;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -47,7 +48,7 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
      */
     public string $id;
 
-    
+
     // ... constructor, setters, getters existentes ...
 
     /**
@@ -115,8 +116,8 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
         return FpBaseOrchestrator::make(static::getOrchestratorConfig());
     }
 
-     
-   
+
+
 
 
     /**
@@ -475,6 +476,12 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
      */
     public function save(string|FpEntityInterface|null $parent = null): static
     {
+        if ($parent instanceof FpEntityInterface) {
+            $parent = $parent->getId();
+        } elseif ($parent === null) {
+            $parent = $this->getParentId();
+        }
+        
         static::getOrchestratorSingleton()->save($this, $parent);
         return $this;
     }
@@ -881,5 +888,42 @@ abstract class FpBaseEntity implements FpEntityInterface, FpIsOrchestrableInterf
     public function getOmmittedAttributes(): array
     {
         return [];
+    }
+
+
+    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
+    {
+        return FpTreeNavigator::make()
+            ->navegar(static::all(), null, [], $omitId);
+    }
+
+    /**
+     * Construye una nueva instancia de la entidad (o una subclase) a partir de un array de atributos.
+     * Las claves del array que no corresponden a propiedades definidas se agregarán dinámicamente.
+     *
+     * @param array $data Los atributos para construir la entidad. Debe incluir 'id'.
+     * @return static La instancia de la entidad construida.
+     * @throws RuntimeException Si 'id' no está presente o no es una cadena en el array de datos.
+     */
+    public static function buildFromArray(array $data): static
+    {
+        if (!isset($data['id']) || !is_string($data['id'])) {
+            throw new RuntimeException("Cannot build entity: 'id' must be a string and present in the data array.");
+        }
+
+        $instance = new static($data['id']);
+
+        foreach ($data as $key => $value) {
+            if ($key === 'id') {
+                continue;
+            }
+            if ($key === 'items' && is_array($value)) {
+                $instance->{$key} = new Collection($value);
+            } else {
+                $instance->{$key} = $value;
+            }
+        }
+
+        return $instance;
     }
 }

@@ -2,14 +2,11 @@
 
 namespace Fp\RoutingKit\Entities;
 
-
 use Fp\RoutingKit\Contracts\FpEntityInterface;
 use Fp\RoutingKit\Entities\FpRoute;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
-use Fp\RoutingKit\Services\Navigator\Navigator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
-use Fp\RoutingKit\Features\InteractiveFeature\FpTreeNavigator;
 
 class FpNavigation extends FpBaseEntity
 {
@@ -19,7 +16,7 @@ class FpNavigation extends FpBaseEntity
      * @var string
      */
     public string $id;
-    
+
     public string $makerMethod = 'make';
 
     public ?string $instanceRouteId = null;
@@ -143,30 +140,6 @@ class FpNavigation extends FpBaseEntity
         return $this;
     }
 
-    public function getOmmittedAttributes(): array
-    {
-        return [
-            'id' => ['omit'],
-            'instanceRouteId' => ['omit'], //['same:id', 'isTrue:isFpRoute'],
-            'url' => ['same:FpRoute().url', 'isTrue:isGroup'],
-
-            'makerMethod' => ['omit'],
-            'urlName' => ['same:instanceRouteId'],
-            'accessPermission' => ['same:FpRoute().accessPermission'],
-            'label' => ['same:instanceRouteId'],
-
-            'isFpRoute' => ['omit'],
-            'isGroup' => ['omit'],
-            'isHidden' => ['omit:false'],
-
-            'isActive' => ['omit'],
-            'items' => ['omit'],
-            'endBlock' => ['omit'],
-            'level' => ['omit'],
-            'contextKey' => ['omit'],
-        ];
-    }
-
     public function setIsGroup(bool $isGroup = true): self
     {
         $this->isGroup = $isGroup;
@@ -193,10 +166,54 @@ class FpNavigation extends FpBaseEntity
         return config('routingkit.navigators_file_path');
     }
 
-
-    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
+    public static function createConsoleAtributte(): array
     {
-        return FpTreeNavigator::make()
-            ->navegar(static::all(), null, [], $omitId);
+        return [
+
+            'instanceRouteId' => [
+                'type' => 'string_select',
+                'description' => 'Ruta de instancia asociada',
+                'rules' => ['string'],
+                'closure' => fn() => FpRoute::seleccionar(null, 'Selecciona la ruta de instancia'),
+            ],
+            
+            'id' => [
+                'type' => 'string',
+                'description' => 'Seleccion el ID de la ruta',
+                'rules' => ['required', 'string', 'expect_false' => fn($value) => FpNavigation::exists($value)],
+                'closure' => fn() => FpRoute::seleccionar(null, 'Selecciona el ID de la ruta'),
+            ],
+
+            'parentId' => [
+                'type' => 'string_select',
+                'description' => 'Padre de la ruta seleccionado',
+                'rules' => ['nullable', 'string', 'expect_false' => fn($value) => $value === null || !FpNavigation::exists($value)],
+                'closure' => fn() => FpNavigation::seleccionar(null, 'Selecciona el padre de la ruta'),
+            ]
+        ];
+    }
+
+    public function getOmmittedAttributes(): array
+    {
+        return [
+            'id' => ['omit'],
+            'instanceRouteId' => ['omit'], //['same:id', 'isTrue:isFpRoute'],
+            'url' => ['same:FpRoute().url', 'isTrue:isGroup'],
+
+            'makerMethod' => ['omit'],
+            'urlName' => ['same:instanceRouteId'],
+            'accessPermission' => ['same:FpRoute().accessPermission'],
+            'label' => ['same:instanceRouteId'],
+
+            'isFpRoute' => ['omit'],
+            'isGroup' => ['omit'],
+            'isHidden' => ['omit:false'],
+
+            'isActive' => ['omit'],
+            'items' => ['omit'],
+            'endBlock' => ['omit'],
+            'level' => ['omit'],
+            'contextKey' => ['omit'],
+        ];
     }
 }

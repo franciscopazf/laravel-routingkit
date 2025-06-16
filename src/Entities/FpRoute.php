@@ -3,17 +3,19 @@
 namespace Fp\RoutingKit\Entities;
 
 use Fp\RoutingKit\Contracts\FpEntityInterface;
+use Fp\RoutingKit\Features\InteractiveFeature\FpFileBrowser;
 use Fp\RoutingKit\Routes\FpRegisterRouter;
 use Fp\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule; // Importa Rule para usar Rule::in() si lo deseas
+
 use Fp\RoutingKit\Features\InteractiveNavigatorFeature\FpInteractiveNavigator;
 
-class FpRoute extends FpBaseEntity 
+class FpRoute extends FpBaseEntity
 {
     use HasDynamicAccessors;
 
     public ?string $parentId = null;
-
     public ?string $accessPermission = null;
 
     // Propiedades adicionales (ej. para navegación, puedes expandir con HasDynamicAccessors)
@@ -22,11 +24,8 @@ class FpRoute extends FpBaseEntity
     public bool $isGroup = false; // Indica si la entidad representa un grupo de rutas
     public bool $isActive = false; // Indica si la entidad está activa en la ruta actual
 
-
     public $urlMethod; // omit if is GET
     public $urlController;
-    public $urlAction;
-
 
     public $urlMiddleware = [];
     public $permissions = [];
@@ -52,31 +51,74 @@ class FpRoute extends FpBaseEntity
         $instance->urlName = null; // No URL name for groups
         $instance->urlMethod = null; // No method for groups
         $instance->urlController = null; // No controller for groups
-        $instance->urlAction = null; // No action for groups
         $instance->isGroup = true;
-        
+
         $instance->makerMethod = 'makeGroup';
         return $instance;
     }
+
+    public static function createConsoleAtributte(): array
+    {
+        return [
+            'id' => [
+                'type' => 'string',
+                'description' => 'Identificador único de la ruta.',
+                'rules' => ['required', 'string', 'expect_false' => fn($value) => FpRoute::exists($value)],
+            ],
+            'parentId' => [
+                'type' => 'string_select',
+                'description' => 'Padre de la ruta seleccionado',
+                'rules' => ['nullable', 'string', 'expect_false' => fn($value) => $value === null || !FpRoute::exists($value)],
+                'closure' => fn() => FpRoute::seleccionar(null, 'Selecciona el padre de la ruta'),
+            ],
+            'accessPermission' => [
+                'type' => 'string',
+                'description' => 'Permiso de acceso a la ruta.',
+                'rules' => ['nullable', 'string'],
+            ],
+            'urlController' => [
+                'type' => 'string_select',
+                'description' => 'Controlador asociado a la ruta.',
+                'rules' => ['required', 'string'], 
+                'closure' => fn() => FpFileBrowser::make()->browseFromPaths([
+                    ['path' => base_path('app/Http/Controllers'), 'is_livewire' => false],
+                    ['path' => base_path('app/Livewire'), 'is_livewire' => true],
+                ]),
+            ],
+            'urlMethod' => [
+                'type' => 'array_unique',
+                'description' => 'Método HTTP asociado a la ruta, si es un grupo.',
+                'rules' => ['required', 'string', 'min:1', 'in:get,post,put,delete,patch,options'], 
+            ],
+            'roles' => [
+                'type' => 'array_multiple',
+                'description' => 'Roles asociados a la ruta, si es un grupo.',
+                'rules' => ['nullable', 'array', 'in:'. implode(',', config('routingkit.roles', []))],
+            ],
+            'addNavigation' => [
+                'type' => 'boolean',
+                'description' => 'Desea agregar una navegacion a la ruta?',
+                'rules' => ['required', 'boolean'],
+                'closure' => fn() => true, // Por defecto true
+            ],
+        ];
+    }
+
 
     public function getOmmittedAttributes(): array
     {
         return [
             'id' => ['omit'],
-
             'url' => ['same:id'],
             'urlName' => ['same:id'],
-
             'makerMethod' => ['omit'],
             'level' => ['omit'],
-
             'roles' => ['minElements:1'],
             'urlMiddleware' => ['minElements:1'],
             'permissions' => ['minElements:1'],
-
             'isGroup' => ['omit'],
-
-
+            'isActive' => ['omit'],
+            'contextKey' => ['omit'],
             'childrens' => ['omit'],
             'endBlock' => ['omit'],
         ];
@@ -106,7 +148,7 @@ class FpRoute extends FpBaseEntity
     }
 
 
-  
+
     public static function registerRoutes(): void
     {
         FpRegisterRouter::registerRoutes();
@@ -115,11 +157,5 @@ class FpRoute extends FpBaseEntity
     public static function getOrchestratorConfig(): array
     {
         return config('routingkit.routes_file_path');
-    }
-
-    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
-    {
-        return FpInteractiveNavigator::make()
-            ->treeNavigator(FpRoute::all());
     }
 }

@@ -31,7 +31,6 @@ class FpRegisterRouter
         //echo "Registering route: {$route->id} ({$route->urlMethod})\n";
         $hasItems = !empty($route->items);
         $method = strtolower($route->urlMethod);
-        $isLivewire = $route->urlAction === 'livewire';
         $url = '/' . ltrim($route->getUrl(), '/');
 
 
@@ -47,8 +46,7 @@ class FpRegisterRouter
             Route::match(
                 [$method],
                 $url,
-                $isLivewire ? $route->urlController :
-                    [$route->urlController, $route->urlAction]
+                $route->urlController
             )->name($route->id)
                 ->middleware($middleware);
         }

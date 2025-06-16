@@ -9,6 +9,7 @@ use Fp\RoutingKit\Services\Route\RoutingKitInteractive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use function Laravel\Prompts\select;
+use Fp\RoutingKit\Features\InteractiveFeature\FpInteractiveNavigator;
 
 
 class FpRouteCommand extends Command
@@ -23,23 +24,12 @@ class FpRouteCommand extends Command
 
     protected $description = 'Comando para gestionar rutas FpRoutingKit';
 
-    protected RoutingKitInteractive $interactive;
+    protected FpInteractiveNavigator $interactive;
 
     public function handle()
     {
-        
-
-
-        //$seleccion = FpRoute::seleccionar();
-
-        //dd($seleccion);
-
-
-        //$routes = FpRoute::all();
-
-        // dd($routes);
-
-        $this->interactive = new RoutingKitInteractive();
+         
+       $this->interactive = FpInteractiveNavigator::make(FpRoute::class);
 
         // --delete, --new, --move
         if ($this->option('delete')) {
