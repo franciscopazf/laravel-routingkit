@@ -62,10 +62,10 @@ return [
     |
     */
     'routes_file_path' => [
-        'default_file' => 'array',
+        'default_file' => 'dashboard_routes',
         'items'        => [
             'dashboard_routes' => [
-                'path'              => base_path('routingkit/Routes/arrayroutes.php'),
+                'path'              => base_path('routingkit/Routes/fpRoutes.php'),
                 'support_file'      => "object_file_tree",
                 'only_string_support' => true,
             ],
@@ -92,10 +92,10 @@ return [
     |
     */
     'navigators_file_path' => [
-        'default_file' => 'dashboard',
+        'default_file' => 'dashboard_navigators',
         'items'        => [
             'dashboard_navigators' => [
-                'path'              => base_path('routingkit/Navigation/arrayNavigation.php'),
+                'path'              => base_path('routingkit/Navigation/fpNavigation.php'),
                 'support_file'      => "object_file_plain",
                 'only_string_support' => true,
             ],

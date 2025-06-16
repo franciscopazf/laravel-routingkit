@@ -1,5 +1,5 @@
 {
-    "name": "fp/routing-kit",
+    "name": "franciscopazf/routing-kit",
     "description": "Beta release of Routing Kit: a modular Laravel toolkit for full-featured route management, middleware resolution, permission handling, and interactive CLI navigation.",
     "type": "library",
     "license": "MIT",
@@ -7,6 +7,10 @@
         {
             "name": "Francisco Paz",
             "email": "josepaz3123@gmail.com"
+        },
+        {
+            "name": "Acxel Aplicano",
+            "email": "acxel.aplicano@unah.hn"
         }
     ],
     "require": {

@@ -25,6 +25,20 @@ class RoutingKitServiceProvider extends ServiceProvider
 
     public function boot()
     {
+
+        $this->publishes([
+            __DIR__.'/../config/routingkit.php' => config_path('routingkit.php'),
+        ], 'routingkit-config'); // La etiqueta 'routingkit-config' permite publicar solo la config
+
+        $this->publishes([
+            __DIR__.'/../routingkit' => base_path('routingkit'),
+        ], 'routingkit-assets'); // La etiqueta 'routingkit-assets' permite publicar solo la carpeta
+
+        $this->publishes([
+            __DIR__.'/../config/routingkit.php' => config_path('routingkit.php'),
+            __DIR__.'/../routingkit'            => base_path('routingkit'),
+        ], 'routingkit-full'); // La etiqueta 'routingkit-full' permite publicar todo el contenido del paquete
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 FpRouteCommand::class,
@@ -38,7 +52,5 @@ class RoutingKitServiceProvider extends ServiceProvider
             require_once $helperFile;
         }
 
-
-        #  $this->loadRoutesFrom(__DIR__ . '/routes/RoutingKitsLoader.php');
     }
 }
