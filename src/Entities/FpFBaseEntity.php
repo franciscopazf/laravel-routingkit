@@ -891,9 +891,12 @@ abstract class FpFBaseEntity implements FpFEntityInterface, FpFIsOrchestrableInt
     }
 
 
-    public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
+    public static function seleccionar(?string $omitId = null, 
+    string $label = 'Selecciona una ruta',
+    bool $soloGrupos = false,
+    ): ?string
     {
-        return FpFTreeNavigator::make(soloGrupos:true)
+        return FpFTreeNavigator::make(soloGrupos: $soloGrupos)
             ->navegar(static::all(), null, [], $omitId);
     }
 

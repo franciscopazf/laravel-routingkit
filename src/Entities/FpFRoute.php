@@ -70,7 +70,7 @@ class FpFRoute extends FpFBaseEntity
                 'type' => 'string_select',
                 'description' => 'Padre de la ruta seleccionado',
                 'rules' => ['nullable', 'string', 'expect_false' => fn($value) => $value === null || !FpFRoute::exists($value)],
-                'closure' => fn() => FpFRoute::seleccionar(null, 'Selecciona el padre de la ruta'),
+                'closure' => fn() => FpFRoute::seleccionar(null, 'Selecciona el padre de la ruta', true),
             ],
             'accessPermission' => [
                 'type' => 'string',

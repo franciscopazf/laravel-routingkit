@@ -34,7 +34,9 @@ class FpFTreeNavigator
 
             foreach ($hijos as $item) {
                 if ($item->id === $omitId) continue;
-                $opciones[$item->id] = '📁 ' . $item->id;
+                $tieneHijos = method_exists($item, 'getItems') && count($item->getItems()) > 0;
+                $icono = ($item->isGroup || $tieneHijos) ? '📁 ' : '';
+                $opciones[$item->id] = $icono . $item->id;
             }
 
             $opciones['__seleccionar__'] = '✅ Seleccionar este nodo';
@@ -53,7 +55,9 @@ class FpFTreeNavigator
 
             foreach ($coleccion as $ruta) {
                 if ($ruta->id === $omitId) continue;
-                $opciones[$ruta->id] = '📁 ' . $ruta->id;
+                $tieneHijos = method_exists($ruta, 'getItems') && count($ruta->getItems()) > 0;
+                $icono = ($ruta->isGroup || $tieneHijos) ? '📁 ' : '';
+                $opciones[$ruta->id] = $icono . $ruta->id;
             }
 
             $opciones['__seleccionar__'] = '✅ Seleccionar una raíz';
@@ -81,7 +85,7 @@ class FpFTreeNavigator
 
             '__atras__' => self::make($this->soloGrupos)->navegar(
                 $rutas,
-                array_pop($pila), // ← usamos directamente el nodo que ya estaba en la pila
+                array_pop($pila),
                 $pila,
                 $omitId
             ),
@@ -97,6 +101,8 @@ class FpFTreeNavigator
             ),
         };
     }
+
+
 
     private function crearGrupo(Collection $rutas, ?FpFEntityInterface $nodoActual, array $pila, ?string $omitId): ?string
     {
