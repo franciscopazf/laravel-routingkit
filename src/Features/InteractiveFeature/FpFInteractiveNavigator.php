@@ -34,7 +34,7 @@ class FpFInteractiveNavigator implements FpFInteractiveInterface
         $data = $this->entityClass::createConsoleAtributte($data);
         $entity = $this->entityClass::buildFromArray($data);
         $entity->save($entity->getParentId());
-        $this->info("✅ Ruta '{$entity->id}' creada correctamente.");
+        $this->info("✅'{$entity->id}' creada correctamente.");
         return $entity;
     }
 
@@ -42,24 +42,24 @@ class FpFInteractiveNavigator implements FpFInteractiveInterface
     {
         $entityClass = $this->entityClass;
 
-        $id = $id ?? $entityClass::seleccionar(label: '🗑️ Selecciona la ruta a eliminar');
-        $ruta = $entityClass::findById($id);
+        $id = $id ?? $entityClass::seleccionar(label: '🗑️ Eliminar :', permitirSeleccionarRaiz: false);
+        $entidad = $entityClass::findById($id);
 
-        if (!$ruta) {
-            return $this->error("❌ No se encontró la ruta con ID '{$id}'.");
+        if (!$entidad) {
+            return $this->error("❌ No se encontró la entidad con ID '{$id}'.");
         }
 
-        $this->confirmar("⚠️ ¿Estás seguro de que deseas eliminar la ruta con ID '{$id}'? Esta acción no se puede deshacer.");
-        $ruta->delete();
+        $this->confirmar("⚠️ ¿Estás seguro de que deseas eliminar el elemento con ID '{$id}'? Esta acción no se puede deshacer.");
+        $entidad->delete();
     }
 
     public function reescribir()
     {
         $entityClass = $this->entityClass;
 
-        $this->confirmar("🔄 ¿Estás seguro de que deseas reescribir las rutas? Esto actualizará todas las rutas existentes.");
+        $this->confirmar("🔄 ¿Estás seguro de que deseas reescribir todos los archivos? Esto actualizará todas las entidads existentes.");
         $entityClass::rewriteAllContext();
-        $this->info("✅ Rutas reescritas correctamente.");
+        $this->info("✅ entidades reescritas correctamente.");
     }
 
     protected function confirmar(

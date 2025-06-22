@@ -203,7 +203,7 @@ class FpFParameterOrchestrator
                 return null;
             }
         } else {
-            \Laravel\Prompts\warning("El closure para '{$key}' retornó un tipo de dato inesperado para STRING_SELECT.");
+            \Laravel\Prompts\warning("Se selecciono un valor Nulo para el parámetro: '{$key}' ");
             return null;
         }
     }

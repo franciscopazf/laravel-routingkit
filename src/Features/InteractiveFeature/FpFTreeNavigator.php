@@ -9,20 +9,95 @@ use function Laravel\Prompts\text;
 
 class FpFTreeNavigator
 {
-    public function __construct(public bool $soloGrupos = false) {}
+    private bool $soloGrupos = false;
+    private ?FpFEntityInterface $nodoInicial = null;
+    private array $pilaNavegacion = [];
+    private ?string $idOmitir = null;
+    private string $etiquetaSeleccion = "Selecciona una ruta raíz";
+    private Collection $rutasDisponibles;
+    private bool $permitirSeleccionarRaiz = true; // ¡NUEVA PROPIEDAD!
 
-    public static function make(bool $soloGrupos = false): self
+    public function __construct(Collection|array $rutas)
     {
-        return new self($soloGrupos);
+        $this->rutasDisponibles = is_array($rutas) ? collect($rutas) : $rutas;
     }
 
-    public function navegar(
-        Collection|array $rutas,
-        ?FpFEntityInterface $nodoActual = null,
-        ?array $pila = [],
-        ?string $omitId = null
+    public static function make(Collection|array $rutas): self
+    {
+        return new self($rutas);
+    }
+
+    /**
+     * Configura el navegador para mostrar solo grupos.
+     */
+    public function soloGrupos($bool = true): self
+    {
+        $this->soloGrupos = (bool) $bool;
+        return $this;
+    }
+
+    /**
+     * Establece el nodo inicial desde el cual comenzar la navegación.
+     */
+    public function desdeNodo(FpFEntityInterface $nodo): self
+    {
+        $this->nodoInicial = $nodo;
+        return $this;
+    }
+
+    /**
+     * Establece el ID de un elemento a omitir en la navegación.
+     */
+    public function omitirId(?string $id): self
+    {
+        $this->idOmitir = $id;
+        return $this;
+    }
+
+    /**
+     * Personaliza la etiqueta que se mostrará al usuario para la selección.
+     */
+    public function conEtiqueta(string $label): self
+    {
+        $this->etiquetaSeleccion = $label;
+        return $this;
+    }
+
+    /**
+     * Permite o no seleccionar una ruta raíz en la navegación.
+     * ¡NUEVO MÉTODO!
+     */
+    public function permitirSeleccionarRaiz(bool $permitir = true): self
+    {
+        $this->permitirSeleccionarRaiz = $permitir;
+        return $this;
+    }
+
+    /**
+     * Inicia el proceso de navegación interactiva.
+     */
+    public function navegar(): ?string
+    {
+        return $this->ejecutarNavegacion(
+            $this->rutasDisponibles,
+            $this->nodoInicial,
+            $this->pilaNavegacion,
+            $this->idOmitir,
+            $this->etiquetaSeleccion
+        );
+    }
+
+    /**
+     * Lógica recursiva interna para la navegación.
+     * Este método es privado y se llama desde 'navegar()'.
+     */
+    private function ejecutarNavegacion(
+        Collection $rutas,
+        ?FpFEntityInterface $nodoActual,
+        array $pila,
+        ?string $omitId,
+        string $label
     ): ?string {
-        $rutas = is_array($rutas) ? collect($rutas) : $rutas;
         $opciones = [];
 
         if ($nodoActual) {
@@ -49,6 +124,7 @@ class FpFTreeNavigator
                 $opciones['__crear_grupo__'] = '➕ Crear nuevo grupo aquí';
             }
         } else {
+            // Lógica para la raíz
             $coleccion = $this->soloGrupos
                 ? $rutas->filter(fn($r) => $r->isGroup)
                 : $rutas;
@@ -60,61 +136,78 @@ class FpFTreeNavigator
                 $opciones[$ruta->id] = $icono . $ruta->id;
             }
 
-            $opciones['__seleccionar__'] = '✅ Seleccionar una raíz';
+            if ($this->soloGrupos) {
+                $opciones['__crear_grupo__'] = '➕ Nuevo grupo';
+            }
+
+            if ($this->permitirSeleccionarRaiz) {
+                $opciones['__seleccionar__'] = '✅ Seleccionar(raiz)';
+            }
             $opciones['__salir__'] = '🚪 Salir';
 
-            if ($this->soloGrupos) {
-                $opciones['__crear_grupo__'] = '➕ Crear grupo raíz';
-            }
+            
         }
 
         $breadcrumb = collect($pila)->pluck('id')
             ->push(optional($nodoActual)->id)
             ->filter()
-            ->implode(' > ');
+            ->implode('/');
 
         $seleccion = select(
-            label: $breadcrumb ? "Ruta actual: {$breadcrumb}" : "Selecciona una ruta raíz",
+            label: $breadcrumb ? $label ." Actual: /{$breadcrumb}" : $label ." Actual (raiz): /",
             options: $opciones
         );
 
         return match ($seleccion) {
-            '__salir__' => exit("🚪 Saliendo del navegador de rutas.\n"),
+            '__salir__' => exit("🚪 Saliendo del navegador interactivo.\n"),
 
-            '__seleccionar__' => $nodoActual?->id ?? null,
+            // Modificamos esta parte para que solo devuelva null si no se permite seleccionar la raíz
+            '__seleccionar__' => $nodoActual?->id ?? ($this->permitirSeleccionarRaiz ? null : $this->ejecutarNavegacion($rutas, $nodoActual, $pila, $omitId, $label)),
 
-            '__atras__' => self::make($this->soloGrupos)->navegar(
+            '__atras__' => $this->ejecutarNavegacion(
                 $rutas,
                 array_pop($pila),
                 $pila,
-                $omitId
+                $omitId,
+                $label
             ),
 
-            '__crear_grupo__' => $this->crearGrupo($rutas, $nodoActual, $pila, $omitId),
+            '__crear_grupo__' => $this->crearGrupo($rutas, $nodoActual, $pila, $omitId, $label),
 
-            default => self::make($this->soloGrupos)->navegar(
+            default => $this->ejecutarNavegacion(
                 $rutas,
                 ($nodoActual ? collect($nodoActual->getItems()) : $rutas)
                     ->firstWhere(fn($r) => $r->id === $seleccion),
                 array_merge($pila, [$nodoActual]),
-                $omitId
+                $omitId,
+                $label
             ),
         };
     }
 
-
-
-    private function crearGrupo(Collection $rutas, ?FpFEntityInterface $nodoActual, array $pila, ?string $omitId): ?string
+    private function crearGrupo(Collection $rutas, ?FpFEntityInterface $nodoActual, array $pila, ?string $omitId, string $label): ?string
     {
         $nombreGrupo = text('🆕 Ingresa el ID para el nuevo grupo:');
 
         if (empty($nombreGrupo)) {
-            return $this->navegar($rutas, $nodoActual, $pila, $omitId);
+            return $this->ejecutarNavegacion($rutas, $nodoActual, $pila, $omitId, $label);
         }
 
-        $grupo = $nodoActual
-            ? get_class($nodoActual)::makeGroup($nombreGrupo)
-            : get_class($rutas->first())::makeGroup($nombreGrupo);
+        // Determinar la clase para crear el grupo
+        $claseBase = null;
+        if ($nodoActual) {
+            $claseBase = get_class($nodoActual);
+        } elseif ($rutas->isNotEmpty()) {
+            $claseBase = get_class($rutas->first());
+        }
+
+        if (!$claseBase || !method_exists($claseBase, 'makeGroup')) {
+            // Manejar error si no se puede determinar la clase o no tiene makeGroup
+            // Podrías lanzar una excepción o simplemente regresar a la navegación
+            return $this->ejecutarNavegacion($rutas, $nodoActual, $pila, $omitId, $label);
+        }
+
+        $grupo = $claseBase::makeGroup($nombreGrupo);
 
         if ($nodoActual && method_exists($grupo, 'setParentId')) {
             $grupo->setParentId($nodoActual->id);
@@ -123,13 +216,18 @@ class FpFTreeNavigator
             $rutas->push($grupo);
         }
 
-        $grupo->save(parent: $nodoActual);
+        // Asegúrate de que el método save sea llamado correctamente.
+        // Asumiendo que save puede necesitar el padre para la persistencia.
+        if (method_exists($grupo, 'save')) {
+            $grupo->save(parent: $nodoActual);
+        }
 
-        return self::make($this->soloGrupos)->navegar(
+        return $this->ejecutarNavegacion(
             $rutas,
             $grupo,
             array_merge($pila, [$nodoActual]),
-            $omitId
+            $omitId,
+            $label
         );
     }
 }

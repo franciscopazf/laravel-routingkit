@@ -3,13 +3,11 @@
 namespace FpF\RoutingKit\Commands;
 
 use FpF\RoutingKit\Entities\FpFNavigation;
-use FpF\RoutingKit\Services\DevelopmentSetup\DevelopmentSetup;
 use FpF\RoutingKit\Entities\FpFRoute;
-use FpF\RoutingKit\Services\Route\RoutingKitInteractive;
-use Illuminate\Console\Command;
-use Illuminate\Support\Str;
-use function Laravel\Prompts\select;
 use FpF\RoutingKit\Features\InteractiveFeature\FpFInteractiveNavigator;
+use Illuminate\Console\Command;
+use function Laravel\Prompts\select;
+
 
 
 class FpFRouteCommand extends Command
@@ -28,8 +26,8 @@ class FpFRouteCommand extends Command
 
     public function handle()
     {
-         
-       $this->interactive = FpFInteractiveNavigator::make(FpFRoute::class);
+
+        $this->interactive = FpFInteractiveNavigator::make(FpFRoute::class);
 
         // --delete, --new, --move
         if ($this->option('delete')) {
@@ -42,7 +40,7 @@ class FpFRouteCommand extends Command
             $data['id'] = $this->option('id');
             // parentId
             $data['parentId'] = $this->option('parentId');
-            $this->interactive->crear($data);
+            $this->crearRuta($data);
             return;
         }
         if ($this->option('rewrite')) {
@@ -51,8 +49,7 @@ class FpFRouteCommand extends Command
         }
 
         $this->menuInteractivo();
-        // Otros casos como --new, --move irán aquí...
-        $this->info('¡Hola desde tu paquete RoutingKit!');
+         $this->info('Exito, la operación se ha completado correctamente.');
     }
 
     protected function menuInteractivo()
@@ -68,10 +65,31 @@ class FpFRouteCommand extends Command
         );
 
         match ($opcion) {
-            'nueva' => $this->interactive->crear(),
+            'nueva' => $this->crearRuta(),
             'eliminar' => $this->interactive->eliminar(),
             'reescribir' => $this->interactive->reescribir(),
             'salir' => $this->info('Saliendo...'),
         };
+    }
+
+    protected function crearRuta(array $data = [])
+    {
+        $route = $this->interactive->crear($data);
+        // preguntar si se quiere crear una navegación
+        $crearNavegacion = select(
+            label: '¿Deseas crear una navegación para esta ruta?',
+            options: [
+                'si' => 'Sí, crear navegación',
+                'no' => 'No, solo crear ruta',
+            ]
+        );
+        if ($crearNavegacion === 'si') {
+           $navegacion = FpFInteractiveNavigator::make(FpFNavigation::class)
+                ->crear(data:[
+                    'instanceRouteId' => $route->id,
+                    'id' => $route->id,
+                ]);
+        }
+        return $data;
     }
 }

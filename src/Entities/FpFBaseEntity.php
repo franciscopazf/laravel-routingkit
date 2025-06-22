@@ -481,7 +481,7 @@ abstract class FpFBaseEntity implements FpFEntityInterface, FpFIsOrchestrableInt
         } else if (is_string($parent)) {
             $this->parentId = $parent;
         }
-        
+
         static::getOrchestratorSingleton()->save($this);
         return $this;
     }
@@ -891,17 +891,22 @@ abstract class FpFBaseEntity implements FpFEntityInterface, FpFIsOrchestrableInt
     }
 
 
-    public static function seleccionar(?string $omitId = null, 
-    string $label = 'Selecciona una ruta',
-    bool $soloGrupos = false,
-    ): ?string
-    {
-        return FpFTreeNavigator::make(soloGrupos: $soloGrupos)
-            ->navegar(static::all(), null, [], $omitId);
+    public static function seleccionar(
+        ?string $omitId = '',
+        string $label = 'Selecciona una ruta',
+        bool $soloGrupos = false,
+        bool $permitirSeleccionarRaiz = true
+    ): ?string {
+        return FpFTreeNavigator::make(static::all())
+            ->soloGrupos($soloGrupos)
+            ->permitirSeleccionarRaiz($permitirSeleccionarRaiz)
+            ->omitirId($omitId)
+            ->conEtiqueta($label)
+            ->navegar();
     }
 
 
-    
+
 
     /**
      * Construye una nueva instancia de la entidad (o una subclase) a partir de un array de atributos.
@@ -926,9 +931,9 @@ abstract class FpFBaseEntity implements FpFEntityInterface, FpFIsOrchestrableInt
             }
 
             if ((is_string($value) && trim($value) === '') || (is_array($value) && empty($value))) {
-                continue; 
+                continue;
             }
-            
+
             if ($key === 'items' && is_array($value)) {
                 $instance->{$key} = new Collection($value);
             } else {

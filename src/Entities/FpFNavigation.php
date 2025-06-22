@@ -173,7 +173,7 @@ class FpFNavigation extends FpFBaseEntity
             'instanceRouteId' => [
                 'type' => 'string_select',
                 'rules' => ['string'],
-                'closure' => fn() => FpFRoute::seleccionar(null, 'Selecciona la ruta de instancia'),
+                'closure' => fn() => FpFRoute::seleccionar(null, 'Ruta a Crear Navegacion: '),
             ],
 
             'id' => [
@@ -196,7 +196,7 @@ class FpFNavigation extends FpFBaseEntity
                 'type' => 'string_select',
                 'description' => 'Padre de la ruta seleccionado',
                 'rules' => ['nullable', 'string'],
-                'closure' => fn() => FpFNavigation::seleccionar(null, 'Selecciona el padre de la ruta', true),
+                'closure' => fn() => FpFNavigation::seleccionar(null, 'Insertar en: ', true),
             ]
         ];
 

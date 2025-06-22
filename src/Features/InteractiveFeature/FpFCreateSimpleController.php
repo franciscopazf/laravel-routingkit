@@ -7,6 +7,13 @@ use FpF\RoutingKit\Features\FileCreatorFeature\FpFileCreator;
 use FpF\RoutingKit\Entities\FpFRoute;
 use Illuminate\Support\Str;
 
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\comment;
+use function Laravel\Prompts\warning;
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\progress;
+
+
 class FpFCreateSimpleController
 {
     public static function make(): self
@@ -16,15 +23,18 @@ class FpFCreateSimpleController
 
     public function run(?string $fullPath = null): void
     {
+
+
+        // Paso 1: Preparar datos y crear archivos
+        info('Paso 1: Preparando datos y generando archivos...');
         $data = $this->prepararDatos();
 
         $controllerStub = $this->getControllerStub($data['controller']['namespace']);
         $controllerContent = $this->renderStub($controllerStub, $data['controller']);
-        
-        
+
         $viewStub = $this->getViewStub($data['controller']['namespace']);
         $viewContent = $this->renderStub($viewStub, $data['controller']);
-        
+
         $this->crearArchivo(
             $fullPath ?? $data['controller']['folder'],
             $data['controller']['className'],
@@ -40,24 +50,29 @@ class FpFCreateSimpleController
         );
 
         $controllerId = $this->generarId($data['controller']['className']);
-        
         $accessPermission = 'acceder-' . $controllerId;
 
         $urlController = str_contains($data['controller']['namespace'], 'Livewire')
             ? $data['controller']['namespace'] . '\\' . $data['controller']['className']
             : $data['controller']['namespace'] . '\\' . $data['controller']['className'] . '@index';
 
+
+        // Paso 2: Crear ruta
+        info('Paso 2: Creando ruta...');
         $this->crearRuta($controllerId, $accessPermission, $urlController);
-        
+
+
+        // Paso 3: Crear navegación
+        info('Paso 3: Creando navegación...');
         $this->crearNavegacion($controllerId);
     }
 
-    private function prepararDatos(): array
+    protected function prepararDatos(): array
     {
         return FpFPrepareDataController::make()->run();
     }
 
-    private function getControllerStub(string $namespace): string
+    protected function getControllerStub(string $namespace): string
     {
         $stubDir = __DIR__ . '/stubs';
         return str_contains($namespace, 'Livewire')
@@ -65,7 +80,7 @@ class FpFCreateSimpleController
             : file_get_contents($stubDir . '/SimpleControllerController.stub');
     }
 
-    private function getViewStub(string $namespace): string
+    protected function getViewStub(string $namespace): string
     {
         $stubDir = __DIR__ . '/stubs';
         return str_contains($namespace, 'Livewire')
@@ -73,7 +88,7 @@ class FpFCreateSimpleController
             : file_get_contents($stubDir . '/SimpleControllerView.stub');
     }
 
-    private function renderStub(string $stub, array $vars): string
+    protected function renderStub(string $stub, array $vars): string
     {
         foreach ($vars as $key => $value) {
             $stub = str_replace('{{ $' . $key . ' }}', $value, $stub);
@@ -81,7 +96,7 @@ class FpFCreateSimpleController
         return $stub;
     }
 
-    private function crearArchivo(string $folder, string $fileName, string $content, string $extension): void
+    protected function crearArchivo(string $folder, string $fileName, string $content, string $extension): void
     {
         FpFileCreator::make(
             filePath: $folder,
@@ -91,12 +106,12 @@ class FpFCreateSimpleController
         )->createFile();
     }
 
-    private function generarId(string $className): string
+    protected function generarId(string $className): string
     {
         return strtolower($className) . '_' . Str::random(3);
     }
 
-    private function crearRuta(string $id, string $accessPermission, string $urlController): void
+    protected function crearRuta(string $id, string $accessPermission, string $urlController): void
     {
 
         FpFInteractiveNavigator::make(FpFRoute::class)->crear(data: [
@@ -104,11 +119,10 @@ class FpFCreateSimpleController
             'accessPermission' => $accessPermission,
             'urlController' => $urlController,
             'urlMethod' => 'get',
-            'roles' => []
         ]);
     }
 
-    private function crearNavegacion(string $id): void
+    protected function crearNavegacion(string $id): void
     {
         FpFInteractiveNavigator::make(FpFNavigation::class)->crear(data: [
             'instanceRouteId' => $id,

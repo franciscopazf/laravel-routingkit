@@ -60,10 +60,10 @@ class FpFViewResolver
             return null;
         }
 
-        $basename = basename($fullViewPath); // ejemplo: show.blade.php
-        $basename = preg_replace('/\.blade\.php$/', '', $basename); // eliminamos la extensión
+        $basename = basename($fullViewPath); 
+        $basename = preg_replace('/\.blade\.php$/', '', $basename); 
 
-        return $basename; // ejemplo: "show"
+        return $basename;
     }
 
 

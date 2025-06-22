@@ -2,8 +2,6 @@
 
 namespace FpF\RoutingKit\Routes;
 
-
-
 use Illuminate\Support\Facades\Route;
 use FpF\RoutingKit\Entities\FpFRoute;
 use Illuminate\Support\Collection;

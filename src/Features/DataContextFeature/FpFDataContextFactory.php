@@ -3,7 +3,7 @@
 namespace FpF\RoutingKit\Features\DataContextFeature;
 
 
-use FpF\RoutingKit\Enums\FileSupportEnum;
+use FpF\RoutingKit\Enums\FpFFileSupportEnum;
 use FpF\RoutingKit\Contracts\FpFDataRepositoryInterface;
 use FpF\RoutingKit\Contracts\FpFContextEntitiesInterface;
 use FpF\RoutingKit\Features\DataRepositoryFeature\FpFDataRepositoryFactory;
@@ -19,7 +19,7 @@ class FpFDataContextFactory
     ): FpFContextEntitiesInterface {
 
         switch ($fileSave) {
-            case FileSupportEnum::OBJECT_FILE_TREE || FileSupportEnum::OBJECT_FILE_PLAIN:
+            case FpFFileSupportEnum::OBJECT_FILE_TREE || FpFFileSupportEnum::OBJECT_FILE_PLAIN:
                 return FpFileDataContext::make($contextId, FpFDataRepositoryFactory::getRepository(
                     $filePath,
                     $fileSave,

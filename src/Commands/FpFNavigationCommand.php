@@ -17,9 +17,9 @@ class FpFNavigationCommand extends Command
     // variables necesarias (opcionales)
     protected $signature = 'fpf:navigation
                             {--delete : Eliminar una ruta existente} 
-                            {--rewrite : reescribe todos los archivos de rutas (futuro)}
-                            {--new : Crear una nueva ruta (futuro)}
-                            {--id= : ID de la ruta a procesar} 
+                            {--rewrite : reescribe todos los archivos de navegación}
+                            {--new : Crear una nueva navegación}
+                            {--id= : ID de la navegación (opcional)}
                             {--parentId= : ID del padre (opcional)}';
 
     protected $description = 'Comando para gestionar rutas FpFRoutingKit';
@@ -30,17 +30,13 @@ class FpFNavigationCommand extends Command
     {
         $this->interactive = FpFInteractiveNavigator::make(FpFNavigation::class);
 
-
-        // --delete, --new, --move
         if ($this->option('delete')) {
             $this->interactive->eliminar($this->option('id'));
             return;
         }
 
         if ($this->option('new')) {
-            // id 
             $data['id'] = $this->option('id');
-            // parentId
             $data['parentId'] = $this->option('parentId');
             $this->interactive->crear($data);
             return;
@@ -51,7 +47,7 @@ class FpFNavigationCommand extends Command
         }
 
         $this->menuInteractivo();
-        $this->info('¡Hola desde tu paquete RoutingKit!');
+        $this->info('Exito, la operación se ha completado correctamente.');
     }
 
     protected function menuInteractivo()
@@ -59,9 +55,9 @@ class FpFNavigationCommand extends Command
         $opcion = select(
             label: 'Selecciona una opción',
             options: [
-                'nueva' => '🛠️ Crear nueva ruta',
-                'eliminar' => '🗑️ Eliminar ruta existente',
-                'reescribir' => '🔄 Reescribir rutas',
+                'nueva' => '🛠️ Nueva Navegacion',
+                'eliminar' => '🗑️ Eliminar Navegacion',
+                'reescribir' => '🔄 Reescribir Navegacion',
                 'salir' => '🚪 Salir',
             ]
         );

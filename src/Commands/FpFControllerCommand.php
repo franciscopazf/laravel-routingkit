@@ -8,14 +8,13 @@ use Illuminate\Console\Command;
 
 class FpFControllerCommand extends Command
 {
-    // variables necesarias (opcionales)
-    protected $signature = 'fpf:controller';
-    protected $description = 'Comando para gestionar rutas FpFRoutingKit';
+  // variables necesarias (opcionales)
+  protected $signature = 'fpf:controller';
+  protected $description = 'Comando para gestionar rutas FpFRoutingKit';
 
-    public function handle()
-    {
-      FpFCreateSimpleController::make()
-        ->run();
-    }
-
+  public function handle()
+  {
+    FpFCreateSimpleController::make()
+      ->run();
+  }
 }

@@ -4,14 +4,14 @@ namespace FpF\RoutingKit\Features\DataRepositoryFeature;
 
 use FpF\RoutingKit\Contracts\FpFDataRepositoryInterface;
 use FpF\RoutingKit\Features\DataRepositoryFeature\FpFObjectDataRepository;
-use FpF\RoutingKit\Enums\FileSupportEnum;
+use FpF\RoutingKit\Enums\FpFFileSupportEnum;
 
 class FpFDataRepositoryFactory
 {
     public static function getRepository(string $filePath, string $fileSave, bool $onlyStringSupport = false): FpFDataRepositoryInterface
     {
         switch ($fileSave) {
-            case FileSupportEnum::OBJECT_FILE_TREE || FileSupportEnum::OBJECT_FILE_PLAIN:
+            case FpFFileSupportEnum::OBJECT_FILE_TREE || FpFFileSupportEnum::OBJECT_FILE_PLAIN:
                 return new FpFObjectDataRepository($filePath, $fileSave, $onlyStringSupport);
             default:
                 throw new \InvalidArgumentException("Unsupported transformer type: {$fileSave}");

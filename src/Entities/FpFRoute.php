@@ -70,7 +70,7 @@ class FpFRoute extends FpFBaseEntity
                 'type' => 'string_select',
                 'description' => 'Padre de la ruta seleccionado',
                 'rules' => ['nullable', 'string', 'expect_false' => fn($value) => $value === null || !FpFRoute::exists($value)],
-                'closure' => fn() => FpFRoute::seleccionar(null, 'Selecciona el padre de la ruta', true),
+                'closure' => fn() => FpFRoute::seleccionar(null, 'Insertar en:', true),
             ],
             'accessPermission' => [
                 'type' => 'string',
@@ -93,7 +93,7 @@ class FpFRoute extends FpFBaseEntity
             ],
             'roles' => [
                 'type' => 'array_multiple',
-                'description' => 'Roles asociados a la ruta, si es un grupo.',
+                'description' => 'A que roles permite el acceso a la ruta.',
                 'rules' => ['nullable', 'array', 'in:'. implode(',', config('routingkit.roles', []))],
             ]
         ];
