@@ -1,6 +1,6 @@
 <?php
 
-namespace FpF\RoutingKit\Tests;
+namespace FPJ\RoutingKit\Tests;
 
 use Orchestra\Testbench\TestCase;
 
@@ -14,7 +14,7 @@ class ExampleTest extends TestCase
     protected function getPackageProviders($app)
     {
         return [
-            \FpF\RoutingKit\RoutingKitServiceProvider::class,
+            \FPJ\RoutingKit\RoutingKitServiceProvider::class,
         ];
     }
 }

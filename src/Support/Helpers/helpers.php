@@ -1,20 +1,20 @@
 <?php
 
-//namespace FpF\RoutingKit\Support;
+//namespace FPJ\RoutingKit\Support;
 
 // Importa la clase de tu entidad principal (tu Query Builder)
-use FpF\RoutingKit\Entities\FpFNavigation;
+use FPJ\RoutingKit\Entities\FPJNavigation;
 
-if (!function_exists('fpf_navigation')) {
+if (!function_exists('fpj_navigation')) {
    
     /**
-     * Obtiene una nueva instancia del Query Builder para FpFNavigation.
+     * Obtiene una nueva instancia del Query Builder para FPJNavigation.
      *
-     * @return \FpF\RoutingKit\Entities\FpFNavigation
+     * @return \FPJ\RoutingKit\Entities\FPJNavigation
      */
-    function fpf_navigation(): FpFNavigation
+    function fpj_navigation(): FPJNavigation
     {
 
-        return FpFNavigation::newQuery();
+        return FPJNavigation::newQuery();
     }
 }

@@ -1,8 +1,0 @@
-<?php
-
-namespace FpF\RoutingKit\Contracts;
-
-interface FpFileTransformerInterface
-{
-    
-}

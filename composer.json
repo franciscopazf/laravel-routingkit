@@ -1,5 +1,5 @@
 {
-    "name": "fpf/laravel-routingkit",
+    "name": "fpj/laravel-routingkit",
     "description": "Beta release of Routing Kit: a modular Laravel toolkit for full-featured route management, middleware resolution, permission handling, and interactive CLI navigation.",
     "version": "1.0.0",
     "type": "library",
@@ -25,21 +25,21 @@
     },
     "autoload": {
         "psr-4": {
-            "FpF\\RoutingKit\\": "src/"
+            "FPJ\\RoutingKit\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FpF\\RoutingKit\\Tests\\": "tests/"
+            "FPJ\\RoutingKit\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "FpF\\RoutingKit\\RoutingKitServiceProvider"
+                "FPJ\\RoutingKit\\RoutingKitServiceProvider"
             ],
             "aliases": {
-                "FpFNavigation": "FpF\\RoutingKit\\Support\\Facades\\FpFNavigation"
+                "FPJNavigation": "FPJ\\RoutingKit\\Support\\Facades\\FPJNavigation"
             }
         }
     },
