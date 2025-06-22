@@ -1,40 +1,40 @@
 <?php
 
-namespace Fp\RoutingKit\Features\DataContextFeature;
+namespace FpF\RoutingKit\Features\DataContextFeature;
 
-use Fp\RoutingKit\Contracts\FpContextEntitiesInterface;
-use Fp\RoutingKit\Contracts\FpDataRepositoryInterface;
-use Fp\RoutingKit\Contracts\FpEntityInterface;
+use FpF\RoutingKit\Contracts\FpFContextEntitiesInterface;
+use FpF\RoutingKit\Contracts\FpFDataRepositoryInterface;
+use FpF\RoutingKit\Contracts\FpFEntityInterface;
 use Illuminate\Support\Collection;
 
-class FpFileDataContext implements FpContextEntitiesInterface
+class FpFileDataContext implements FpFContextEntitiesInterface
 {
     protected string $id;
 
-    protected FpDataRepositoryInterface $fpRepository;
+    protected FpFDataRepositoryInterface $fpfRepository;
     protected ?Collection $treeEntitys = null;
     protected ?Collection $flattenedEntitys = null;
 
     /**
      * Construye una nueva instancia de FpFileDataContext.
      *
-     * @param FpDataRepositoryInterface $fpRepository El repositorio de entidades Fp.
+     * @param FpFDataRepositoryInterface $fpfRepository El repositorio de entidades FpF.
      */
-    public function __construct(string $id, FpDataRepositoryInterface $fpRepository)
+    public function __construct(string $id, FpFDataRepositoryInterface $fpfRepository)
     {
         $this->id = $id;
-        $this->fpRepository = $fpRepository;
+        $this->fpfRepository = $fpfRepository;
     }
 
     /**
      * Crea una nueva instancia de FpFileDataContext.
      *
-     * @param FpDataRepositoryInterface $fpRepository El repositorio de entidades Fp.
+     * @param FpFDataRepositoryInterface $fpfRepository El repositorio de entidades FpF.
      * @return static La nueva instancia de DataContext.
      */
-    public static function make(string $id, FpDataRepositoryInterface $fpRepository): static
+    public static function make(string $id, FpFDataRepositoryInterface $fpfRepository): static
     {
-        return new static($id, $fpRepository);
+        return new static($id, $fpfRepository);
     }
 
     public function getId(): string
@@ -50,7 +50,7 @@ class FpFileDataContext implements FpContextEntitiesInterface
     public function getFlattenedEntitys(): Collection
     {
         if ($this->flattenedEntitys === null) {
-            $this->flattenedEntitys = $this->flattenTreeEntities($this->fpRepository->getData());
+            $this->flattenedEntitys = $this->flattenTreeEntities($this->fpfRepository->getData());
         }
         //dd($this->flattenedEntitys);
         return $this->flattenedEntitys;
@@ -82,7 +82,7 @@ class FpFileDataContext implements FpContextEntitiesInterface
     {
         $flat = collect();
         foreach ($tree as $entity) {
-            if (!$entity instanceof FpEntityInterface) {
+            if (!$entity instanceof FpFEntityInterface) {
                 continue;
             }
             if ($entity->getParentId() === null && $parentId !== null) {
@@ -153,19 +153,19 @@ class FpFileDataContext implements FpContextEntitiesInterface
         if ($entities === null) {
             $entities = $this->getTreeEntitys();
         }
-        $this->fpRepository->rewrite($entities);
+        $this->fpfRepository->rewrite($entities);
     }
 
     /**
      * Agrega una entidad al contexto y la guarda a través del repositorio.
      *
-     * @param FpEntityInterface $entity La entidad a agregar.
-     * @param string|FpEntityInterface|null $parent El ID o la entidad padre.
+     * @param FpFEntityInterface $entity La entidad a agregar.
+     * @param string|FpFEntityInterface|null $parent El ID o la entidad padre.
      */
-    public function addEntity(FpEntityInterface $entity, string|FpEntityInterface|null $parent = null): void
+    public function addEntity(FpFEntityInterface $entity, string|FpFEntityInterface|null $parent = null): void
     {
         $currentTree = $this->getTreeEntitys();
-        $parentId = $parent instanceof FpEntityInterface ? $parent->getId() : $parent;
+        $parentId = $parent instanceof FpFEntityInterface ? $parent->getId() : $parent;
 
         if ($parentId !== null) {
             $updatedTree = $this->addFpEntityRecursive($currentTree, $entity, $parentId);
@@ -176,23 +176,23 @@ class FpFileDataContext implements FpContextEntitiesInterface
 
         $this->treeEntitys = $updatedTree;
         $this->flattenedEntitys = null; // Invalida la caché de entidades aplanadas
-        $this->fpRepository->rewrite($this->treeEntitys);
+        $this->fpfRepository->rewrite($this->treeEntitys);
     }
 
     /**
      * Elimina una entidad del contexto por su ID y la guarda a través del repositorio.
      *
-     * @param string|FpEntityInterface $entityId El ID o la entidad a eliminar.
+     * @param string|FpFEntityInterface $entityId El ID o la entidad a eliminar.
      */
-    public function removeEntity(string|FpEntityInterface $entityId): bool
+    public function removeEntity(string|FpFEntityInterface $entityId): bool
     {
-        $idToRemove = $entityId instanceof FpEntityInterface ? $entityId->getId() : $entityId;
+        $idToRemove = $entityId instanceof FpFEntityInterface ? $entityId->getId() : $entityId;
         $currentTree = $this->getTreeEntitys();
         $updatedTree = $this->removeFpEntityRecursive($currentTree, $idToRemove);
 
         $this->treeEntitys = $updatedTree;
         $this->flattenedEntitys = $this->flattenedEntitys->forget($idToRemove); // Elimina la entidad de la colección aplanada
-        $this->fpRepository->rewrite($this->treeEntitys);
+        $this->fpfRepository->rewrite($this->treeEntitys);
         return true;
     }
 
@@ -211,11 +211,11 @@ class FpFileDataContext implements FpContextEntitiesInterface
      * Agrega recursivamente una nueva entidad a un árbol de entidades.
      *
      * @param Collection $entities Colección de entidades actuales.
-     * @param FpEntityInterface $newEntity La nueva entidad a agregar.
+     * @param FpFEntityInterface $newEntity La nueva entidad a agregar.
      * @param string $parentId El ID de la entidad padre donde se agregará la nueva entidad.
      * @return Collection La colección de entidades actualizada.
      */
-    protected function addFpEntityRecursive(Collection $entities, FpEntityInterface $newEntity, string $parentId): Collection
+    protected function addFpEntityRecursive(Collection $entities, FpFEntityInterface $newEntity, string $parentId): Collection
     {
         return $entities->map(function ($entity) use ($newEntity, $parentId) {
             if ($entity->getId() === $parentId) {

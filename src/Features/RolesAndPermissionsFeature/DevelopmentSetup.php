@@ -1,13 +1,13 @@
 <?php
 
-namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
+namespace FpF\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use App\Models\User;
-use Fp\RoutingKit\Entities\FpRoute;
-use Fp\RoutingKit\Features\RolesAndPermissionsFeature\PermissionCreator;
-use Fp\RoutingKit\Features\RolesAndPermissionsFeature\RoleCreator;
-use Fp\RoutingKit\Features\RolesAndPermissionsFeature\RoleAssigner;
-use Fp\RoutingKit\Features\RolesAndPermissionsFeature\UserCreator;
+use FpF\RoutingKit\Entities\FpFRoute;
+use FpF\RoutingKit\Features\RolesAndPermissionsFeature\PermissionCreator;
+use FpF\RoutingKit\Features\RolesAndPermissionsFeature\RoleCreator;
+use FpF\RoutingKit\Features\RolesAndPermissionsFeature\RoleAssigner;
+use FpF\RoutingKit\Features\RolesAndPermissionsFeature\UserCreator;
 
 class DevelopmentSetup
 {
@@ -71,6 +71,6 @@ class DevelopmentSetup
         //dd(User::all());
 
         $this->permissionCreator
-            ->rebuildAll(FpRoute::class);
+            ->rebuildAll(FpFRoute::class);
     }
 }

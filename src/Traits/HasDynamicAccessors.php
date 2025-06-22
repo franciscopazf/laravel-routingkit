@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\RoutingKit\Traits;
+namespace FpF\RoutingKit\Traits;
 
 use Closure;
 use ReflectionClass;

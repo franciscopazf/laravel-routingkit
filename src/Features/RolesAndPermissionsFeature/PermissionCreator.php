@@ -1,9 +1,9 @@
 <?php
 
 
-namespace Fp\RoutingKit\Features\RolesAndPermissionsFeature;
+namespace FpF\RoutingKit\Features\RolesAndPermissionsFeature;
 
-use Fp\RoutingKit\Contracts\FpEntityInterface;
+use FpF\RoutingKit\Contracts\FpFEntityInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -25,14 +25,14 @@ class PermissionCreator
     }
 
     /**
-     * @param class-string<FpEntityInterface> $fpEntityClass
+     * @param class-string<FpFEntityInterface> $fpfEntityClass
      */
-    public function rebuildAll(string $fpEntityClass): void
+    public function rebuildAll(string $fpfEntityClass): void
     {
-        if (!is_subclass_of($fpEntityClass, FpEntityInterface::class))
-            throw new \InvalidArgumentException("Class must implement FpEntityInterface");
+        if (!is_subclass_of($fpfEntityClass, FpFEntityInterface::class))
+            throw new \InvalidArgumentException("Class must implement FpFEntityInterface");
 
-        $routes = $fpEntityClass::allFlattened();
+        $routes = $fpfEntityClass::allFlattened();
 
         // dd($routes);
 

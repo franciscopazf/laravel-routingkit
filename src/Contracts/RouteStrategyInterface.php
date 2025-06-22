@@ -1,10 +1,10 @@
 <?php
 
-namespace Fp\RoutingKit\Contracts;
+namespace FpF\RoutingKit\Contracts;
 
-use Fp\RoutingKit\Contracts\FpEntityInterface;
-use Fp\RoutingKit\Services\Route\Strategies\RouteContentManager;
-use Fp\RoutingKit\Services\Transformer\TransformerContext;
+use FpF\RoutingKit\Contracts\FpFEntityInterface;
+use FpF\RoutingKit\Services\Route\Strategies\RouteContentManager;
+use FpF\RoutingKit\Services\Transformer\TransformerContext;
 
 use Illuminate\Support\Collection;
 

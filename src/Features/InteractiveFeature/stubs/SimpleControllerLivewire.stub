@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ $namespace }};
+
+use Livewire\Component;
+
+class {{ $className }} extends Component
+{
+    public function render()
+    {
+        return view('{{ $viewName }}');
+    }
+}

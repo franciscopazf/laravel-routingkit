@@ -2,7 +2,7 @@
 
 namespace FpF\RoutingKit\Contracts;
 
-interface FpFileTransformerInterface
+
+interface FpFileCreatorInterface
 {
-    
 }

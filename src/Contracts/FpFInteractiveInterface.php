@@ -2,7 +2,6 @@
 
 namespace FpF\RoutingKit\Contracts;
 
-interface FpFileTransformerInterface
+interface FpFInteractiveInterface
 {
-    
 }

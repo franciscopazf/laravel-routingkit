@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\RoutingKit\Features\InteractiveFeature;
+namespace FpF\RoutingKit\Features\InteractiveFeature;
 
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
@@ -22,18 +22,53 @@ class FpFileBrowser
     {
         return new self();
     }
-
-    /**
-     * Permite al usuario navegar por carpetas y seleccionar una.
-     *
-     * @param string $startPath La ruta inicial desde la que empezar a navegar.
-     * @param bool $allowReturnToPreviousLevel Indica si se debe mostrar la opción "Volver atrás" (a la carpeta padre).
-     * @return string La ruta de la carpeta seleccionada, o una señal de navegación.
-     */
-    public function browseFolder(string $startPath, bool $allowReturnToPreviousLevel = true): string
-    {
+    public function browseMultipleFolders(
+        array $startPaths,
+        bool $allowReturnToPreviousLevel = true,
+        bool $allowFolderCreation = true
+    ): string {
         $basePath = base_path();
-        $currentPath = $startPath; // Initialize with startPath
+
+        while (true) {
+            // Mostrar el menú raíz con todas las rutas posibles
+            $options = [];
+
+            foreach ($startPaths as $key => $path) {
+                $label = str_replace($basePath . DIRECTORY_SEPARATOR, '', $path);
+                $options["path:$key"] = "📁 {$label}";
+            }
+
+            $options[self::CANCEL_SIGNAL] = '❌ Cancelar';
+
+            $choice = \Laravel\Prompts\select("📂 Selecciona una ruta base para explorar:", $options);
+
+            if ($choice === self::CANCEL_SIGNAL) {
+                return self::CANCEL_SIGNAL;
+            }
+
+            if (str_starts_with($choice, 'path:')) {
+                $index = intval(substr($choice, 5));
+                $selectedPath = $startPaths[$index];
+
+                // Entrar al explorador de carpetas desde la ruta seleccionada
+                $result = $this->browseFolderWithRootReturn($selectedPath, $allowReturnToPreviousLevel, $allowFolderCreation);
+
+                if ($result === self::BACK_TO_ROOT_SELECTION_SIGNAL) {
+                    continue; // Vuelve al menú principal
+                }
+
+                return $result . '/'; // Devuelve la ruta seleccionada o señal
+            }
+        }
+    }
+
+    public function browseFolderWithRootReturn(
+        string $startPath,
+        bool $allowReturnToPreviousLevel = true,
+        bool $allowFolderCreation = true
+    ): string {
+        $basePath = base_path();
+        $currentPath = $startPath;
 
         while (true) {
             $folders = collect(File::directories($currentPath))
@@ -45,21 +80,22 @@ class FpFileBrowser
 
             $options = [];
 
-            // Opción para seleccionar esta carpeta (si la lógica externa lo requiere, aquí no la usaremos para la base)
             $options['select'] = "✅ Usar esta carpeta ({$currentFolderName})";
 
-            // Agregar subcarpetas
+            if ($allowFolderCreation) {
+                $options['__CREATE_DIR__'] = '📁 Crear nueva carpeta';
+            }
+
             foreach ($folders as $folder) {
                 $options["dir:{$folder}"] = "📂 {$folder}";
             }
 
-            // Agregar volver atrás si no estamos en la raíz y se permite
             if ($currentPath !== $startPath && $allowReturnToPreviousLevel) {
                 $options[self::BACK_SIGNAL] = '🔙 Volver atrás';
             }
 
-            // Opción para cancelar la operación (o volver a la selección de bases si aplica)
-            $options[self::CANCEL_SIGNAL] = '❌ Cancelar / Volver a selección de bases';
+            $options[self::BACK_TO_ROOT_SELECTION_SIGNAL] = '🏠 Volver a selección de rutas base';
+            $options[self::CANCEL_SIGNAL] = '❌ Cancelar';
 
             $choice = \Laravel\Prompts\select("📁 Estás en: {$relativePath}", $options);
 
@@ -67,13 +103,43 @@ class FpFileBrowser
                 return $currentPath;
             }
 
+            if ($choice === '__CREATE_DIR__' && $allowFolderCreation) {
+                $newFolderName = \Laravel\Prompts\text("📝 Escribe el nombre de la nueva carpeta:");
+
+                if (empty($newFolderName)) {
+                    \Laravel\Prompts\warning("⚠️ El nombre no puede estar vacío.");
+                    continue;
+                }
+
+                if (preg_match('/[\/\\\\]/', $newFolderName)) {
+                    \Laravel\Prompts\warning("⚠️ El nombre de la carpeta no puede contener / ni \\.");
+                    continue;
+                }
+
+                $newFolderPath = $currentPath . DIRECTORY_SEPARATOR . $newFolderName;
+
+                if (File::exists($newFolderPath)) {
+                    \Laravel\Prompts\warning("⚠️ Ya existe una carpeta con ese nombre.");
+                    continue;
+                }
+
+                File::makeDirectory($newFolderPath);
+                \Laravel\Prompts\info("✅ Carpeta creada: {$newFolderName}");
+                $currentPath = $newFolderPath;
+                continue;
+            }
+
             if ($choice === self::BACK_SIGNAL) {
                 $currentPath = dirname($currentPath);
                 continue;
             }
 
+            if ($choice === self::BACK_TO_ROOT_SELECTION_SIGNAL) {
+                return self::BACK_TO_ROOT_SELECTION_SIGNAL;
+            }
+
             if ($choice === self::CANCEL_SIGNAL) {
-                return self::CANCEL_SIGNAL; // Indicar cancelación
+                return self::CANCEL_SIGNAL;
             }
 
             if (str_starts_with($choice, 'dir:')) {
@@ -82,6 +148,101 @@ class FpFileBrowser
             }
         }
     }
+
+    /**
+     * Permite al usuario navegar por carpetas y seleccionar una.
+     *
+     * @param string $startPath La ruta inicial desde la que empezar a navegar.
+     * @param bool $allowReturnToPreviousLevel Indica si se debe mostrar la opción "Volver atrás" (a la carpeta padre).
+     * @return string La ruta de la carpeta seleccionada, o una señal de navegación.
+     */
+    public function browseFolder(
+        string $startPath,
+        bool $allowReturnToPreviousLevel = true,
+        bool $allowFolderCreation = true
+    ): string {
+        $basePath = base_path();
+        $currentPath = $startPath;
+
+        while (true) {
+            $folders = collect(File::directories($currentPath))
+                ->map(fn($dir) => basename($dir))
+                ->toArray();
+
+            $relativePath = str_replace($basePath . DIRECTORY_SEPARATOR, '', $currentPath);
+            $currentFolderName = basename($currentPath);
+
+            $options = [];
+
+            // Opción para seleccionar esta carpeta
+            $options['select'] = "✅ Usar esta carpeta ({$currentFolderName})";
+
+            // Opción para crear nueva carpeta (solo si está permitido)
+            if ($allowFolderCreation) {
+                $options['__CREATE_DIR__'] = '📁 Crear nueva carpeta';
+            }
+
+            // Agregar subcarpetas
+            foreach ($folders as $folder) {
+                $options["dir:{$folder}"] = "📂 {$folder}";
+            }
+
+            // Opción para volver atrás
+            if ($currentPath !== $startPath && $allowReturnToPreviousLevel) {
+                $options[self::BACK_SIGNAL] = '🔙 Volver atrás';
+            }
+
+            // Opción para cancelar
+            $options[self::CANCEL_SIGNAL] = '❌ Cancelar / Volver a selección de bases';
+
+            $choice = \Laravel\Prompts\select("📁 Estás en: {$relativePath}", $options);
+
+            if ($choice === 'select') {
+                return $currentPath;
+            }
+
+            if ($choice === '__CREATE_DIR__' && $allowFolderCreation) {
+                $newFolderName = \Laravel\Prompts\text("📝 Escribe el nombre de la nueva carpeta:");
+
+                if (empty($newFolderName)) {
+                    \Laravel\Prompts\warning("⚠️ El nombre no puede estar vacío.");
+                    continue;
+                }
+
+                if (preg_match('/[\/\\\\]/', $newFolderName)) {
+                    \Laravel\Prompts\warning("⚠️ El nombre de la carpeta no puede contener / ni \\.");
+                    continue;
+                }
+
+                $newFolderPath = $currentPath . DIRECTORY_SEPARATOR . $newFolderName;
+
+                if (File::exists($newFolderPath)) {
+                    \Laravel\Prompts\warning("⚠️ Ya existe una carpeta con ese nombre.");
+                    continue;
+                }
+
+                File::makeDirectory($newFolderPath);
+                \Laravel\Prompts\info("✅ Carpeta creada: {$newFolderName}");
+                $currentPath = $newFolderPath;
+                continue;
+            }
+
+            if ($choice === self::BACK_SIGNAL) {
+                $currentPath = dirname($currentPath);
+                continue;
+            }
+
+            if ($choice === self::CANCEL_SIGNAL) {
+                return self::CANCEL_SIGNAL;
+            }
+
+            if (str_starts_with($choice, 'dir:')) {
+                $selectedFolder = substr($choice, 4);
+                $currentPath = $currentPath . DIRECTORY_SEPARATOR . $selectedFolder;
+            }
+        }
+    }
+
 
     /**
      * Permite al usuario navegar por archivos y seleccionar un archivo PHP.
@@ -219,7 +380,7 @@ class FpFileBrowser
                 return $fullClass;
             } else {
                 // Para controladores/clases normales, seleccionamos un método
-                $inspector = FpClassInspector::make();
+                $inspector = FpFClassInspector::make();
                 try {
                     $publicMethods = $inspector->getPublicMethods($fullClass);
                 } catch (\RuntimeException $e) {

@@ -1,9 +1,9 @@
 <?php
 
-namespace Fp\RoutingKit\Traits;
-use Fp\RoutingKit\Interfaces\FpEntityInterface;
+namespace FpF\RoutingKit\Traits;
+use FpF\RoutingKit\Interfaces\FpFEntityInterface;
 
-trait HasOrchestable implements FpEntityInterface
+trait HasOrchestable implements FpFEntityInterface
 {
     
 }

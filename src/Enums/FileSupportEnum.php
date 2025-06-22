@@ -1,6 +1,6 @@
 <?php
 
-namespace Fp\RoutingKit\Enums;
+namespace FpF\RoutingKit\Enums;
 
 class FileSupportEnum
 {

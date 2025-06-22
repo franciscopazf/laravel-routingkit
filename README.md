@@ -1,6 +1,6 @@
-# FpRoutingKit: Gestión Interactiva de Rutas y Navegación para Laravel
+# FpFRoutingKit: Gestión Interactiva de Rutas y Navegación para Laravel
 
-¡Bienvenido a FpRoutingKit! Este paquete Laravel te proporciona una forma intuitiva e interactiva de gestionar tus rutas y la navegación de tu aplicación directamente desde la consola. Olvídate de editar archivos \`web.php\` o \`nav.php\` manualmente para cada nueva ruta o elemento de menú; con FpRoutingKit, puedes hacerlo con comandos de Artisan y una interfaz de consola amigable.
+¡Bienvenido a FpFRoutingKit! Este paquete Laravel te proporciona una forma intuitiva e interactiva de gestionar tus rutas y la navegación de tu aplicación directamente desde la consola. Olvídate de editar archivos \`web.php\` o \`nav.php\` manualmente para cada nueva ruta o elemento de menú; con FpFRoutingKit, puedes hacerlo con comandos de Artisan y una interfaz de consola amigable.
 
 ## ✨ Características Principales
 
@@ -14,7 +14,7 @@
 
 ## 🚀 Instalación
 
-Sigue estos pasos para integrar FpRoutingKit en tu proyecto Laravel.
+Sigue estos pasos para integrar FpFRoutingKit en tu proyecto Laravel.
 
 ### 1. Requisitos Previos
 
@@ -24,7 +24,7 @@ Sigue estos pasos para integrar FpRoutingKit en tu proyecto Laravel.
 composer create-project laravel/laravel nombre-de-tu-proyecto
 \`\`\`
 
-* **spatie/laravel-permission**: Este paquete se integra con \`spatie/laravel-permission\` para la gestión de permisos. Asegúrate de instalarlo y configurarlo correctamente **antes** de usar FpRoutingKit.
+* **spatie/laravel-permission**: Este paquete se integra con \`spatie/laravel-permission\` para la gestión de permisos. Asegúrate de instalarlo y configurarlo correctamente **antes** de usar FpFRoutingKit.
 
 * Instalación:
 
@@ -59,7 +59,7 @@ Durante la fase beta, es necesario cambiar la \`minimum-stability\` en tu archiv
 }
 \`\`\`
 
-### 3. Instalar FpRoutingKit
+### 3. Instalar FpFRoutingKit
 
 \`\`\`bash
 composer require franciscopazf/routing-kit
@@ -68,7 +68,7 @@ composer require franciscopazf/routing-kit
 ### 4. Publicar el Archivo de Configuración y Archivos Base
 
 \`\`\`bash
-php artisan vendor:publish --provider="Fp\\RoutingKit\\YourPackageServiceProvider" --tag="routingkit-full"
+php artisan vendor:publish --provider="FpF\\RoutingKit\\YourPackageServiceProvider" --tag="routingkit-full"
 \`\`\`
 
 > Nota: Asegúrate de reemplazar el provider si tu namespace es diferente.
@@ -89,18 +89,18 @@ El paquete genera un archivo \`config/routingkit.php\` que puedes personalizar:
 1. Registrar rutas FP en \`routes/web.php\`:
 
 \`\`\`php
-use Fp\\RoutingKit\\Routes\\FpRegisterRouter;
+use FpF\\RoutingKit\\Routes\\FpFRegisterRouter;
 
-FpRegisterRouter::registerRoutes();
+FpFRegisterRouter::registerRoutes();
 \`\`\`
 
 2. Comandos interactivos:
 
 \`\`\`bash
-php artisan fp:route
-php artisan fp:ro
-php artisan fp:navigation
-php artisan fp:na
+php artisan fpf:route
+php artisan fpf:ro
+php artisan fpf:navigation
+php artisan fpf:na
 \`\`\`
 
 3. Grupos en rutas y navegación:
@@ -109,11 +109,11 @@ Explicación...
 
 ---
 
-## 👁️ Uso en Vistas (Helper \`fp_navigation()\`)
+## 👁️ Uso en Vistas (Helper \`fpf_navigation()\`)
 
 \`\`\`php
-$allNavItems = fp_navigation()->all();
-$flattenedNavItems = fp_navigation()->allFlattened();
+$allNavItems = fpf_navigation()->all();
+$flattenedNavItems = fpf_navigation()->allFlattened();
 \`\`\`
 
 ---
