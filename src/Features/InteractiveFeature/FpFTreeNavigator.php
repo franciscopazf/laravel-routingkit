@@ -4,75 +4,67 @@ namespace FpF\RoutingKit\Features\InteractiveFeature;
 
 use FpF\RoutingKit\Contracts\FpFEntityInterface;
 use Illuminate\Support\Collection;
-
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
 
 class FpFTreeNavigator
 {
-    /**
-     * Crea una nueva instancia de TreeNavigator.
-     */
-    public function __construct()
+    public function __construct(public bool $soloGrupos = false) {}
+
+    public static function make(bool $soloGrupos = false): self
     {
-        // Constructor vacío
-    }
-    /**
-     * Crea una nueva instancia de TreeNavigator.
-     *
-     * @return self
-     */
-    public static function make(): self
-    {
-        return new self();
+        return new self($soloGrupos);
     }
 
-
-    /**
-     * Navega interactivamente por una colección de rutas RoutingKit.
-     *
-     * @param Collection|array $rutas
-     * @param FpFEntityInterface|null $nodoActual
-     * @param array $pila
-     * @param string|null $omitId
-     * @return string|null
-     */
     public function navegar(
         Collection|array $rutas,
         ?FpFEntityInterface $nodoActual = null,
         ?array $pila = [],
         ?string $omitId = null
     ): ?string {
-
         $rutas = is_array($rutas) ? collect($rutas) : $rutas;
         $opciones = [];
 
         if ($nodoActual) {
-            $hijos = is_array($nodoActual->getItems()) ?
-                collect($nodoActual->getItems()) :
-                $nodoActual->getItems();
+            $hijos = collect($nodoActual->getItems());
+
+            if ($this->soloGrupos) {
+                $hijos = $hijos->filter(fn($item) => $item->isGroup);
+            }
 
             foreach ($hijos as $item) {
                 if ($item->id === $omitId) continue;
                 $opciones[$item->id] = '📁 ' . $item->id;
             }
 
-            $opciones['__seleccionar__'] = '✅ Seleccionar esta ruta';
+            $opciones['__seleccionar__'] = '✅ Seleccionar este nodo';
 
             if (!empty($pila)) {
                 $opciones['__atras__'] = '🔙 Regresar';
             }
+
+            if ($this->soloGrupos && method_exists($nodoActual, 'makeGroup')) {
+                $opciones['__crear_grupo__'] = '➕ Crear nuevo grupo aquí';
+            }
         } else {
-            foreach ($rutas as $ruta) {
+            $coleccion = $this->soloGrupos
+                ? $rutas->filter(fn($r) => $r->isGroup)
+                : $rutas;
+
+            foreach ($coleccion as $ruta) {
                 if ($ruta->id === $omitId) continue;
                 $opciones[$ruta->id] = '📁 ' . $ruta->id;
             }
 
-            $opciones['__seleccionar__'] = '✅ Seleccionar una ruta raíz';
+            $opciones['__seleccionar__'] = '✅ Seleccionar una raíz';
             $opciones['__salir__'] = '🚪 Salir';
+
+            if ($this->soloGrupos) {
+                $opciones['__crear_grupo__'] = '➕ Crear grupo raíz';
+            }
         }
 
-        $breadcrumb = collect($pila)
-            ->pluck('id')
+        $breadcrumb = collect($pila)->pluck('id')
             ->push(optional($nodoActual)->id)
             ->filter()
             ->implode(' > ');
@@ -84,14 +76,54 @@ class FpFTreeNavigator
 
         return match ($seleccion) {
             '__salir__' => exit("🚪 Saliendo del navegador de rutas.\n"),
+
             '__seleccionar__' => $nodoActual?->id ?? null,
-            '__atras__' => self::navegar($rutas, array_pop($pila), $pila, $omitId),
-            default => self::navegar(
+
+            '__atras__' => self::make($this->soloGrupos)->navegar(
                 $rutas,
-                ($nodoActual ? collect($nodoActual->getItems()) : $rutas)->firstWhere(fn($r) => $r->id === $seleccion),
+                array_pop($pila), // ← usamos directamente el nodo que ya estaba en la pila
+                $pila,
+                $omitId
+            ),
+
+            '__crear_grupo__' => $this->crearGrupo($rutas, $nodoActual, $pila, $omitId),
+
+            default => self::make($this->soloGrupos)->navegar(
+                $rutas,
+                ($nodoActual ? collect($nodoActual->getItems()) : $rutas)
+                    ->firstWhere(fn($r) => $r->id === $seleccion),
                 array_merge($pila, [$nodoActual]),
                 $omitId
             ),
         };
+    }
+
+    private function crearGrupo(Collection $rutas, ?FpFEntityInterface $nodoActual, array $pila, ?string $omitId): ?string
+    {
+        $nombreGrupo = text('🆕 Ingresa el ID para el nuevo grupo:');
+
+        if (empty($nombreGrupo)) {
+            return $this->navegar($rutas, $nodoActual, $pila, $omitId);
+        }
+
+        $grupo = $nodoActual
+            ? get_class($nodoActual)::makeGroup($nombreGrupo)
+            : get_class($rutas->first())::makeGroup($nombreGrupo);
+
+        if ($nodoActual && method_exists($grupo, 'setParentId')) {
+            $grupo->setParentId($nodoActual->id);
+            $nodoActual->addItem($grupo);
+        } else {
+            $rutas->push($grupo);
+        }
+
+        $grupo->save(parent: $nodoActual);
+
+        return self::make($this->soloGrupos)->navegar(
+            $rutas,
+            $grupo,
+            array_merge($pila, [$nodoActual]),
+            $omitId
+        );
     }
 }

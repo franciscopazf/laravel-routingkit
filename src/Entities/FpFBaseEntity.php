@@ -893,9 +893,12 @@ abstract class FpFBaseEntity implements FpFEntityInterface, FpFIsOrchestrableInt
 
     public static function seleccionar(?string $omitId = null, string $label = 'Selecciona una ruta'): ?string
     {
-        return FpFTreeNavigator::make()
+        return FpFTreeNavigator::make(soloGrupos:true)
             ->navegar(static::all(), null, [], $omitId);
     }
+
+
+    
 
     /**
      * Construye una nueva instancia de la entidad (o una subclase) a partir de un array de atributos.

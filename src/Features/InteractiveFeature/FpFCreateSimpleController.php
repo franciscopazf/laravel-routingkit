@@ -2,13 +2,13 @@
 
 namespace FpF\RoutingKit\Features\InteractiveFeature;
 
+use FpF\RoutingKit\Entities\FpFNavigation;
 use FpF\RoutingKit\Features\FileCreatorFeature\FpFileCreator;
-use Illuminate\Support\Facades\Artisan;
-
+use FpF\RoutingKit\Entities\FpFRoute;
+use Illuminate\Support\Str;
 
 class FpFCreateSimpleController
 {
-
     public static function make(): self
     {
         return new self();
@@ -16,57 +16,103 @@ class FpFCreateSimpleController
 
     public function run(?string $fullPath = null): void
     {
-        $data = FpFPrepareDataController::make()
-            ->run();
-        //   dd($data);
+        $data = $this->prepararDatos();
 
-        $namespace = $data->controller['namespace'] ?? '';
+        $controllerStub = $this->getControllerStub($data['controller']['namespace']);
+        $controllerContent = $this->renderStub($controllerStub, $data['controller']);
+        
+        
+        $viewStub = $this->getViewStub($data['controller']['namespace']);
+        $viewContent = $this->renderStub($viewStub, $data['controller']);
+        
+        $this->crearArchivo(
+            $fullPath ?? $data['controller']['folder'],
+            $data['controller']['className'],
+            $controllerContent,
+            'php'
+        );
 
-        // Elegir el stub según el tipo
+        $this->crearArchivo(
+            $data['vista']['folder'],
+            $data['vista']['fileName'],
+            $viewContent,
+            'blade.php'
+        );
+
+        $controllerId = $this->generarId($data['controller']['className']);
+        
+        $accessPermission = 'acceder-' . $controllerId;
+
+        $urlController = str_contains($data['controller']['namespace'], 'Livewire')
+            ? $data['controller']['namespace'] . '\\' . $data['controller']['className']
+            : $data['controller']['namespace'] . '\\' . $data['controller']['className'] . '@index';
+
+        $this->crearRuta($controllerId, $accessPermission, $urlController);
+        
+        $this->crearNavegacion($controllerId);
+    }
+
+    private function prepararDatos(): array
+    {
+        return FpFPrepareDataController::make()->run();
+    }
+
+    private function getControllerStub(string $namespace): string
+    {
         $stubDir = __DIR__ . '/stubs';
+        return str_contains($namespace, 'Livewire')
+            ? file_get_contents($stubDir . '/SimpleControllerLivewire.stub')
+            : file_get_contents($stubDir . '/SimpleControllerController.stub');
+    }
 
-        if (str_contains($namespace, 'Livewire')) {
-            $stubPath = $stubDir . '/SimpleControllerLivewire.stub';
-        } else {
-            $stubPath = $stubDir . '/SimpleControllerController.stub';
+    private function getViewStub(string $namespace): string
+    {
+        $stubDir = __DIR__ . '/stubs';
+        return str_contains($namespace, 'Livewire')
+            ? file_get_contents($stubDir . '/SimpleControllerViewLivewire.stub')
+            : file_get_contents($stubDir . '/SimpleControllerView.stub');
+    }
+
+    private function renderStub(string $stub, array $vars): string
+    {
+        foreach ($vars as $key => $value) {
+            $stub = str_replace('{{ $' . $key . ' }}', $value, $stub);
         }
-        // cargar el stub
-        $stub = file_get_contents($stubPath);
+        return $stub;
+    }
 
-        // Reemplazar los marcadores de posición en el stub
-        // recorrer las variables del controller y reemplazar los marcadores de posición
-        foreach ($data->controller as $key => $value) {
-            $stub = str_replace('{{ ' . '$' . $key . ' }}', $value, $stub);
-        }
-
-        // crear el archivo de controlador
+    private function crearArchivo(string $folder, string $fileName, string $content, string $extension): void
+    {
         FpFileCreator::make(
-            filePath: $fullPath ?? $data->controller['folder'],
-            fileName: $data->controller['className'],
-            fileContent: $stub,
-            fileExtension: 'php'
-        )
-        ->createFile();
+            filePath: $folder,
+            fileName: $fileName,
+            fileContent: $content,
+            fileExtension: $extension
+        )->createFile();
+    }
 
-        $viewStub = $stubDir . '/SimpleControllerView.stub';
+    private function generarId(string $className): string
+    {
+        return strtolower($className) . '_' . Str::random(3);
+    }
 
-        // reemplazar los marcadores de posición en el stub de la vista
-        $stub = file_get_contents($viewStub);
-        foreach ($data->controller as $key => $value) {
-            $stub = str_replace('{{ ' . '$' . $key . ' }}', $value, $stub);
-        }
+    private function crearRuta(string $id, string $accessPermission, string $urlController): void
+    {
 
-        // crear el archivo de vista
-        FpFileCreator::make(
-            filePath: $data->vista['folder'],
-            fileName: $data->vista['fileName'],
-            fileContent: $stub,
-            fileExtension: 'blade.php'
-        )
-        ->createFile();
+        FpFInteractiveNavigator::make(FpFRoute::class)->crear(data: [
+            'id' => $id,
+            'accessPermission' => $accessPermission,
+            'urlController' => $urlController,
+            'urlMethod' => 'get',
+            'roles' => []
+        ]);
+    }
 
-        // invocar al comando para crear la ruta
-      //  Artisan::call('fpf:route');
-
+    private function crearNavegacion(string $id): void
+    {
+        FpFInteractiveNavigator::make(FpFNavigation::class)->crear(data: [
+            'instanceRouteId' => $id,
+            'id' => $id
+        ]);
     }
 }

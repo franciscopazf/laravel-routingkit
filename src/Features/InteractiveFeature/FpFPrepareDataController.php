@@ -14,7 +14,7 @@ class FpFPrepareDataController
         return new self();
     }
 
-    public function run(?string $fullPath = null): object
+    public function run(?string $fullPath = null): array
     {
         if ($fullPath !== null) {
             // Resolver valores desde el path completo
@@ -43,7 +43,7 @@ class FpFPrepareDataController
         $rutaVista = FpFViewResolver::make()
             ->resolveViewObjectFromAnySource($carpeta  . $nombreArchivo);
 
-        return (object) [
+        return  [
             'controller' => [
                 'folder' => $carpeta,
                 'className' => $nombre,

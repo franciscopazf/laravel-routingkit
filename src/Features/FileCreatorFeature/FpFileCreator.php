@@ -6,6 +6,8 @@ use FpF\RoutingKit\Contracts\FpFileCreatorInterface;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\warning;
 
 class FpFileCreator implements FpFileCreatorInterface
 {
@@ -44,6 +46,8 @@ class FpFileCreator implements FpFileCreatorInterface
         return new self($filePath, $fileName, $fileContent, $fileExtension);
     }
 
+
+
     public function createFile(): bool
     {
         $directory = rtrim($this->filePath, DIRECTORY_SEPARATOR);
@@ -56,11 +60,20 @@ class FpFileCreator implements FpFileCreatorInterface
 
         // Verificar si el archivo ya existe
         if (File::exists($fullPath)) {
-            return false; // Archivo ya existe
+            $relativePath = Str::after($fullPath, base_path() . DIRECTORY_SEPARATOR);
+            warning("⚠️ El archivo ya existe: {$relativePath}");
+            return false;
         }
 
         // Crear el archivo
-        return File::put($fullPath, $this->fileContent) !== false;
+        if (File::put($fullPath, $this->fileContent) !== false) {
+            $relativePath = Str::after($fullPath, base_path() . DIRECTORY_SEPARATOR);
+            info("✅ Archivo creado exitosamente: {$relativePath}");
+            return true;
+        }
+
+        warning("❌ No se pudo crear el archivo.");
+        return false;
     }
 
 
