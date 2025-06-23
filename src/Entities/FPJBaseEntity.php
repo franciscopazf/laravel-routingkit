@@ -897,7 +897,7 @@ abstract class FPJBaseEntity implements FPJEntityInterface, FPJIsOrchestrableInt
         bool $soloGrupos = false,
         bool $permitirSeleccionarRaiz = true
     ): ?string {
-        return FPJTreeNavigator::make(static::all())
+        return FPJTreeNavigator::make(static::all(), static::class)
             ->soloGrupos($soloGrupos)
             ->permitirSeleccionarRaiz($permitirSeleccionarRaiz)
             ->omitirId($omitId)

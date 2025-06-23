@@ -28,6 +28,8 @@ class FPJRoute extends FPJBaseEntity
     public $urlMethod; // omit if is GET
     public $urlController;
 
+    public ?string $prefix = ''; // Prefijo para la ruta, si es necesario
+
     public $urlMiddleware = [];
     public $permissions = [];
     public $roles = [];
@@ -115,6 +117,7 @@ class FPJRoute extends FPJBaseEntity
             'permissions' => ['minElements:1'],
             'isGroup' => ['omit'],
             'isActive' => ['omit'],
+            'prefix' => ['is_blank'],
             'contextKey' => ['omit'],
             'childrens' => ['omit'],
             'endBlock' => ['omit'],

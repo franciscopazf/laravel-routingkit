@@ -16,15 +16,20 @@ class FPJTreeNavigator
     private string $etiquetaSeleccion = "Selecciona una ruta raíz";
     private Collection $rutasDisponibles;
     private bool $permitirSeleccionarRaiz = true; // ¡NUEVA PROPIEDAD!
+    private string $claseBase;
 
     public function __construct(Collection|array $rutas)
     {
         $this->rutasDisponibles = is_array($rutas) ? collect($rutas) : $rutas;
     }
 
-    public static function make(Collection|array $rutas): self
+    public static function make(Collection|array $rutas, ?string $claseBase = null): self
     {
-        return new self($rutas);
+        $navegador = new self($rutas);
+        if ($claseBase) {
+            $navegador->conClaseBase($claseBase);
+        }
+        return $navegador;
     }
 
     /**
@@ -33,6 +38,15 @@ class FPJTreeNavigator
     public function soloGrupos($bool = true): self
     {
         $this->soloGrupos = (bool) $bool;
+        return $this;
+    }
+
+    /**
+     * Establece la clase base para crear grupos.
+     */
+    public function conClaseBase(string $clase): self
+    {
+        $this->claseBase = $clase;
         return $this;
     }
 
@@ -194,13 +208,7 @@ class FPJTreeNavigator
         }
 
         // Determinar la clase para crear el grupo
-        $claseBase = null;
-        if ($nodoActual) {
-            $claseBase = get_class($nodoActual);
-        } elseif ($rutas->isNotEmpty()) {
-            $claseBase = get_class($rutas->first());
-        }
-
+        $claseBase = $this->claseBase;
         if (!$claseBase || !method_exists($claseBase, 'makeGroup')) {
             // Manejar error si no se puede determinar la clase o no tiene makeGroup
             // Podrías lanzar una excepción o simplemente regresar a la navegación
@@ -209,18 +217,18 @@ class FPJTreeNavigator
 
         $grupo = $claseBase::makeGroup($nombreGrupo);
 
-        if ($nodoActual && method_exists($grupo, 'setParentId')) {
+        if ($nodoActual) {
             $grupo->setParentId($nodoActual->id);
             $nodoActual->addItem($grupo);
         } else {
             $rutas->push($grupo);
         }
 
-        // Asegúrate de que el método save sea llamado correctamente.
-        // Asumiendo que save puede necesitar el padre para la persistencia.
         if (method_exists($grupo, 'save')) {
             $grupo->save(parent: $nodoActual);
         }
+
+        
 
         return $this->ejecutarNavegacion(
             $rutas,
