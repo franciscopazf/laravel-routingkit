@@ -1,9 +1,9 @@
 <?php
 
-namespace FPJ\RoutingKit\Traits;
-use FPJ\RoutingKit\Interfaces\FPJEntityInterface;
+namespace FP\RoutingKit\Traits;
+use FP\RoutingKit\Interfaces\FPEntityInterface;
 
-trait HasOrchestable implements FPJEntityInterface
+trait HasOrchestable implements FPEntityInterface
 {
     
 }

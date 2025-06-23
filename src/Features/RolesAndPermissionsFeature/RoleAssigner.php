@@ -1,7 +1,7 @@
 <?php
 
 
-namespace FPJ\RoutingKit\Features\RolesAndPermissionsFeature;
+namespace FP\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use App\Models\User;
 

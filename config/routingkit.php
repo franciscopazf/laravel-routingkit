@@ -21,7 +21,7 @@ return [
     |
     | Define the base paths where your application's controllers and Livewire
     | components are located. These paths are used, for example, by the
-    | FPJFileBrowser to allow interactive selection of classes.
+    | FPFileBrowser to allow interactive selection of classes.
     |
     | Each key represents a directory path (relative to base_path()),
     | and its value is a user-friendly label for that path.
@@ -38,11 +38,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Specify the fully qualified class name (FQCN) of the model that
-    | represents your routes. This model should extend FPJBaseEntity
+    | represents your routes. This model should extend FPBaseEntity
     | and is used throughout the RoutingKit package for managing route data.
     |
     */
-    'model_ussage' => \FPJ\RoutingKit\Entities\FPJRoute::class,
+    'model_ussage' => \FP\RoutingKit\Entities\FPRoute::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ return [
         'default_file' => 'dashboard_routes',
         'items'        => [
             'dashboard_routes' => [
-                'path'              => base_path('routingkit/Routes/fpjRoutes.php'),
+                'path'              => base_path('routingkit/Routes/fpRoutes.php'),
                 'support_file'      => "object_file_tree",
                 'only_string_support' => true,
             ],
@@ -95,7 +95,7 @@ return [
         'default_file' => 'dashboard_navigators',
         'items'        => [
             'dashboard_navigators' => [
-                'path'              => base_path('routingkit/Navigation/fpjNavigation.php'),
+                'path'              => base_path('routingkit/Navigation/fpNavigation.php'),
                 'support_file'      => "object_file_plain",
                 'only_string_support' => true,
             ],
