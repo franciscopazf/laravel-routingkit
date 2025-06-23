@@ -4,13 +4,9 @@ namespace FP\RoutingKit\Routes;
 
 use Illuminate\Support\Facades\Route;
 use FP\RoutingKit\Entities\FPRoute;
+use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Collection;
 
-
-/**
- * Registra una ruta y sus hijos de forma recursiva
- * @param RoutingKit $route
- */
 class FPRegisterRouter
 {
     public static function registerRoutes(array|Collection|null $routes = null)
@@ -26,45 +22,41 @@ class FPRegisterRouter
         });
     }
 
-    public static function registerRoutingKit(FPRoute $route, string $accumulatedPrefix = '')
+    public static function registerRoutingKit(FPRoute $route): RoutingRoute|null
     {
-        $hasItems = !empty($route->items);
+        $hasItems = $route->getItems()->isNotEmpty();
         $method = strtolower($route->urlMethod ?? 'get');
 
-        // Prefijo local y acumulado, sin barras sobrantes
-        $localPrefix = trim($route->getPrefix(), '/');
-        $fullPrefix = trim(implode('/', array_filter([$accumulatedPrefix, $localPrefix])), '/');
+        // Solo URL relativa; prefix se aplicará automáticamente si está en grupo
+        $finalUrl = '/' . trim($route->getUrl() ?: '', '/');
 
-        // Construcción segura de la URL final evitando dobles slashes
-        $parts = [
-            trim($fullPrefix, '/'),
-            trim($route->getUrl() ?: '', '/'),
-        ];
-        $finalUrl = '/' . implode('/', array_filter($parts));
-
+        // Middleware individual
         $middleware = $route->urlMiddleware ?? [];
         if ($route->accessPermission) {
             $middleware[] = 'permission:' . $route->accessPermission;
         }
 
-        // Si no es grupo puro y tiene URL, registra su propia ruta
+        // Registrar ruta simple
         if (!$route->isGroup && $route->getUrl()) {
-            Route::match([$method], $finalUrl, $route->urlController)
+            return Route::match([$method], $finalUrl, $route->urlController)
                 ->name($route->id)
                 ->middleware($middleware);
+
         }
 
-        // Si tiene hijos o es grupo, registra grupo para rutas hijas con prefijo local
+        // Registrar grupo
         if ($hasItems || $route->isGroup) {
-            Route::prefix($localPrefix)
+            Route::prefix(trim($route->getPrefix(), '/')) 
                 ->middleware($middleware)
-                ->group(function () use ($route, $fullPrefix) {
-                    foreach ($route->items as $childRoute) {
+                ->group(function () use ($route) {
+                    foreach ($route->getItems() as $childRoute) {
                         if ($childRoute instanceof FPRoute) {
-                            static::registerRoutingKit($childRoute, $fullPrefix);
+                            static::registerRoutingKit($childRoute);
                         }
                     }
                 });
         }
+
+        return null;
     }
 }

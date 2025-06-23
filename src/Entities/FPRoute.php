@@ -8,7 +8,7 @@ use FP\RoutingKit\Features\InteractiveFeature\FPParameterOrchestrator;
 use FP\RoutingKit\Routes\FPRegisterRouter;
 use FP\RoutingKit\Traits\HasDynamicAccessors;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule; // Importa Rule para usar Rule::in() si lo deseas
+use Illuminate\Validation\Rule; 
 
 use FP\RoutingKit\Features\InteractiveNavigatorFeature\FPInteractiveNavigator;
 
@@ -19,16 +19,15 @@ class FPRoute extends FPBaseEntity
     public ?string $parentId = null;
     public ?string $accessPermission = null;
 
-    // Propiedades adicionales (ej. para navegación, puedes expandir con HasDynamicAccessors)
     public ?string $url = null;
     public ?string $urlName = null;
-    public bool $isGroup = false; // Indica si la entidad representa un grupo de rutas
-    public bool $isActive = false; // Indica si la entidad está activa en la ruta actual
+    public bool $isGroup = false; 
+    public bool $isActive = false; 
 
-    public $urlMethod; // omit if is GET
+    public $urlMethod; 
     public $urlController;
 
-    public ?string $prefix = ''; // Prefijo para la ruta, si es necesario
+    public ?string $prefix = null; 
 
     public $urlMiddleware = [];
     public $permissions = [];
@@ -117,7 +116,6 @@ class FPRoute extends FPBaseEntity
             'permissions' => ['minElements:1'],
             'isGroup' => ['omit'],
             'isActive' => ['omit'],
-            'prefix' => ['is_blank'],
             'contextKey' => ['omit'],
             'childrens' => ['omit'],
             'endBlock' => ['omit'],
