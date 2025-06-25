@@ -4,9 +4,14 @@ namespace FP\RoutingKit\Traits;
 
 use Closure;
 use ReflectionClass;
+use ReflectionProperty; // Asegúrate de importar esto
 
 trait HasDynamicAccessors
 {
+    /**
+     * @var array Un caché de propiedades dinámicas para evitar re-chequeos de existencia.
+     */
+    protected array $dynamicProperties = [];
 
     /**
      * Permite el acceso dinámico a los métodos de configuración de la ruta.
@@ -33,46 +38,72 @@ trait HasDynamicAccessors
         throw new \BadMethodCallException("Method {$method} does not exist.");
     }
 
+    /**
+     * Maneja la asignación de valores a propiedades.
+     * Crea la propiedad dinámicamente si no existe.
+     *
+     * @param string $property El nombre de la propiedad.
+     * @param mixed $value El valor a asignar.
+     * @return static
+     */
     protected function setters(string $property, mixed $value): static
     {
-        if (!property_exists($this, $property)) {
-            throw new \Exception("Property {$property} does not exist.");
+        // Comprobar si la propiedad ya existe o si ya la hemos registrado como dinámica.
+        // reflectionProperty::isInitialized($this, $property) no funciona para propiedades dinámicas.
+        // Usamos property_exists para propiedades declaradas y luego nuestro propio cache para las dinámicas.
+        if (property_exists($this, $property) || array_key_exists($property, $this->dynamicProperties)) {
+             // Si la propiedad es declarada o ya dinámica
+            if ($value instanceof \Closure) {
+                $this->{$property} = $value($this->{$property} ?? null, $property);
+            } else {
+                $this->{$property} = $value;
+            }
+        } else {
+            // La propiedad no existe, la creamos dinámicamente
+            $this->{$property} = $value instanceof \Closure ? $value(null, $property) : $value;
+            $this->dynamicProperties[$property] = true; // Marcamos como propiedad dinámica
         }
 
-        if ($value instanceof \Closure) {
-            // Paso el valor actual y el nombre de la propiedad
-            $value = $value($this->{$property} ?? null, $property);
-        }
-
-        $this->{$property} = $value;
         return $this;
     }
 
+    /**
+     * Maneja la obtención de valores de propiedades.
+     *
+     * @param string $property El nombre de la propiedad.
+     * @return mixed El valor de la propiedad.
+     * @throws \Exception Si la propiedad no existe (declarada o dinámica).
+     */
     protected function getters(string $property): mixed
     {
-        if (!property_exists($this, $property)) {
-            throw new \Exception("Property {$property} does not exist.");
+        // Comprobar si la propiedad existe como declarada o dinámica
+        if (property_exists($this, $property) || array_key_exists($property, $this->dynamicProperties)) {
+            return $this->{$property};
         }
 
-        return $this->{$property};
+        throw new \Exception("Property {$property} does not exist.");
     }
 
+    /**
+     * Obtiene todas las propiedades (declaradas y dinámicas) del objeto.
+     * @return array
+     */
     public function getProperties(): array
     {
-        $reflect = new \ReflectionClass($this);
-        $props = $reflect->getProperties();
+        $reflect = new ReflectionClass($this);
         $result = [];
 
-        foreach ($props as $prop) {
-            $prop->setAccessible(true);
+        // Obtener propiedades declaradas
+        foreach ($reflect->getProperties(ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED | ReflectionProperty::IS_PRIVATE) as $prop) {
+            $prop->setAccessible(true); // Asegurar accesibilidad
+            $result[$prop->getName()] = $prop->getValue($this);
+        }
 
-            try {
-                $value = $prop->getValue($this);
-            } catch (\Throwable $e) {
-                $value = null;
+        // Añadir propiedades dinámicas que no estén ya en las declaradas
+        foreach ($this->dynamicProperties as $dynamicPropName => $dummy) {
+            if (!isset($result[$dynamicPropName])) {
+                $result[$dynamicPropName] = $this->{$dynamicPropName};
             }
-
-            $result[$prop->getName()] = $value;
         }
 
         return $result;

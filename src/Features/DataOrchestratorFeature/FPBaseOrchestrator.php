@@ -360,6 +360,35 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
         }
     }
 
+    /**
+     * Finds the most specific active node in the tree based on the active route name.
+     * This is the "leaf" active node, or the node that directly matches the active route.
+     *
+     * @param string|null $activeRouteName The name of the active route. If null, attempts to get from Laravel's request.
+     * @return FPEntityInterface|null The current active node, or null if not found.
+     */
+    public function getCurrentActiveNode(?string $activeRouteName = null): ?FPEntityInterface
+    {
+        $activeRouteName = $activeRouteName ?? request()->route()?->getName();
+        if (!$activeRouteName) {
+            return null;
+        }
+
+        // Obtiene el árbol completo filtrado y cacheado
+        $sourceTree = $this->get();
+
+        // Aplanamos el árbol para una búsqueda eficiente por ID
+        $flattenedSource = $this->flattenTree($sourceTree);
+
+        // Si la ruta activa no existe en el árbol aplanado, no hay nodo activo.
+        if (!$flattenedSource->has($activeRouteName)) {
+            return null;
+        }
+
+        // El nodo que coincide directamente con la ruta activa es el "nodo activo actual".
+        return $flattenedSource->get($activeRouteName);
+    }
+
 
     /**
      * Verifica si una entidad existe por ID.

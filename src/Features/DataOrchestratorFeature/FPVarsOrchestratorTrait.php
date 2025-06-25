@@ -856,9 +856,59 @@ trait FPVarsOrchestratorTrait
         return $flattened;
     }
 
-    // Aquí se asume que existe un método `getContextKeys()` y `getContextInstance()`
-    // en la clase que usa este trait o en la clase padre `BaseOrchestrator`.
-    // Ejemplo (añadir si no existen):
-    // abstract protected function getContextKeys(): array;
-    // abstract protected function getContextInstance(string $contextKey): FPEntityInterface; // O la interfaz de tu contexto.
+        /**
+     * Obtiene el nodo padre de una entidad dada por su ID (o nombre de ruta).
+     * Aplica los filtros configurados en la cadena de consulta actual.
+     *
+     * @param string $entityId El ID de la entidad (hija) de la cual se quiere obtener el padre.
+     * @return FPEntityInterface|null El nodo padre, o null si no se encuentra o no tiene padre en el árbol filtrado.
+     */
+    public function getParentNode(string $entityId): ?FPEntityInterface
+    {
+        // Obtiene el árbol completo filtrado y cacheado
+        $filteredTree = $this->get(); // Esto ya aplica todos los filtros activos
+
+        // Aplanamos el árbol para una búsqueda eficiente por ID
+        $flattenedFilteredTree = $this->flattenTree($filteredTree);
+
+        // Si la entidad no existe en el árbol filtrado, no podemos encontrar su padre
+        if (!$flattenedFilteredTree->has($entityId)) {
+            return null;
+        }
+
+        $childEntity = $flattenedFilteredTree->get($entityId);
+        $parentId = $childEntity->getParentId();
+
+        // Si la entidad no tiene padre o el padre no está en el árbol filtrado, devuelve null
+        if ($parentId === null || !$flattenedFilteredTree->has($parentId)) {
+            return null;
+        }
+
+        return $flattenedFilteredTree->get($parentId);
+    }
+
+    /**
+     * Obtiene el nodo padre del nodo activo actual, incluyendo todos sus hijos filtrados.
+     * Esto te dará el padre del nodo activo, con su sub-árbol completo (pero ya filtrado).
+     *
+     * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, intenta obtenerlo de Laravel's request.
+     * @return FPEntityInterface|null El nodo padre del activo actual con sus hijos, o null si no se encuentra.
+     */
+    public function getActiveNodeParentWithChildren(?string $activeRouteName = null): ?FPEntityInterface
+    {
+        $activeRouteName = $activeRouteName ?? request()->route()?->getName();
+        if (!$activeRouteName) {
+            return null;
+        }
+
+        $parentNode = $this->getParentNode($activeRouteName);
+
+        if ($parentNode === null) {
+            return null;
+        }
+
+        $subTree = $this->getSubBranch($parentNode->getId());
+
+        return $subTree->first();
+    }
 }

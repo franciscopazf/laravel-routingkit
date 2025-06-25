@@ -905,6 +905,43 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
             ->navegar();
     }
 
+    /**
+     * Obtiene el nodo activo más específico (el "último" nodo activo) del árbol resultante
+     * de la cadena de consulta actual.
+     *
+     * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, se intenta obtener de la solicitud de Laravel.
+     * @return FPEntityInterface|null El nodo activo actual, o null si no se encuentra.
+     */
+    public static function getCurrentActiveNode(?string $activeRouteName = null): ?FPEntityInterface
+    {
+        return static::getOrchestratorSingleton()->getCurrentActiveNode($activeRouteName);
+    }
+
+     /**
+     * Obtiene el nodo padre de una entidad específica por su ID.
+     * Aplica todos los filtros configurados en la cadena de consulta actual.
+     *
+     * @param string $entityId El ID de la entidad (hija) de la cual se quiere obtener el padre.
+     * @return FPEntityInterface|null El nodo padre, o null si no se encuentra o no tiene padre en el árbol filtrado.
+     */
+    public static function getParentOf(string $entityId): ?FPEntityInterface
+    {
+        return static::getOrchestratorSingleton()->getParentNode($entityId);
+    }
+
+    /**
+     * Obtiene el nodo padre de la ruta activa actual, incluyendo todos sus hijos filtrados.
+     * Esto te permitirá obtener la "sección principal" a la que pertenece la ruta activa.
+     * Aplica todos los filtros configurados en la cadena de consulta actual.
+     *
+     * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, intenta obtenerlo de Laravel's request.
+     * @return FPEntityInterface|null El nodo padre del activo actual con sus hijos, o null si no se encuentra.
+     */
+    public static function getActiveNodeParent(?string $activeRouteName = null): ?FPEntityInterface
+    {
+        return static::getOrchestratorSingleton()->getActiveNodeParentWithChildren($activeRouteName);
+    }
+
 
 
 

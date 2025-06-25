@@ -34,7 +34,15 @@ class FPNavigation extends FPBaseEntity
 
     public ?string $label = null;
 
+    public ?int $bageInt = null;
+    
+    public ?int $acuntBageInt = null;
+
+    public ?string $bageString = null;
+
     public ?string $heroIcon = null;
+
+    public ?string $icon = null;
 
     public bool $isFpRoute = false;
 
@@ -133,7 +141,7 @@ class FPNavigation extends FPBaseEntity
         if (!$route)
             throw new \InvalidArgumentException("Route not found for entity ID: {$this->instanceRouteId}");
 
-        $this->urlName = $route->getId();
+        $this->urlName = $route->getFullUrl();
         $this->accessPermission = $route->getAccessPermission();
         $this->url = $route->getUrl();
         $this->label = $route->getId();
@@ -161,6 +169,23 @@ class FPNavigation extends FPBaseEntity
         }
         return null;
     }
+
+    public function addItem(FPEntityInterface $item): static
+    {
+        if($item instanceof FPNavigation) {
+            // si existe $bageInt entonces se suma al acuntBageInt
+            if ($item->bageInt) {
+                $this->acuntBageInt = ($this->acuntBageInt ?? 0) + $item->bageInt;
+            }
+
+        }
+        
+        parent::addItem($item);
+
+        // 3. Devuelve $this para permitir el encadenamiento de métodos
+        return $this;
+    }
+
 
     public static function getOrchestratorConfig(): array
     {
@@ -208,7 +233,7 @@ class FPNavigation extends FPBaseEntity
     {
         return [
             'id' => ['omit'],
-            'instanceRouteId' => ['omit'], //['same:id', 'isTrue:isFpRoute'],
+            'instanceRouteId' => ['omit'],
             'url' => ['same:FPRoute().url', 'isTrue:isGroup'],
 
             'makerMethod' => ['omit'],
@@ -220,6 +245,7 @@ class FPNavigation extends FPBaseEntity
             'isGroup' => ['omit'],
             'isHidden' => ['omit:false'],
 
+            'acuntBageInt' => ['omit'],
             'isActive' => ['omit'],
             'items' => ['omit'],
             'endBlock' => ['omit'],
