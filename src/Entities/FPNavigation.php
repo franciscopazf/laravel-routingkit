@@ -141,9 +141,9 @@ class FPNavigation extends FPBaseEntity
         if (!$route)
             throw new \InvalidArgumentException("Route not found for entity ID: {$this->instanceRouteId}");
 
-        $this->urlName = $route->getFullUrl();
+        $this->urlName = $route->getId();
         $this->accessPermission = $route->getAccessPermission();
-        $this->url = $route->getUrl();
+        $this->url = $route->getFullUrl();
         $this->label = $route->getId();
 
         return $this;
@@ -244,6 +244,7 @@ class FPNavigation extends FPBaseEntity
             'isFpRoute' => ['omit'],
             'isGroup' => ['omit'],
             'isHidden' => ['omit:false'],
+            
 
             'acuntBageInt' => ['omit'],
             'isActive' => ['omit'],

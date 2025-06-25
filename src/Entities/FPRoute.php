@@ -28,8 +28,8 @@ class FPRoute extends FPBaseEntity
     public $urlMethod;
     public $urlController;
 
-    public ?string $prefix = "";
-    public ?string $fullPrefix = null;
+    public ?string $prefix = null;
+    public ?string $herePrefix = null;
 
     public $urlMiddleware = [];
     public $permissions = [];
@@ -117,7 +117,9 @@ class FPRoute extends FPBaseEntity
             'urlMiddleware' => ['minElements:1'],
             'permissions' => ['minElements:1'],
             'fullUrl' => ['omit'],
-            'fullPrefix' => ['omit'],
+
+            'prefix' => ['isblank'],
+            'herePrefix' => ['omit'],
             'isGroup' => ['omit'],
             'isActive' => ['omit'],
             'contextKey' => ['omit'],
@@ -145,41 +147,39 @@ class FPRoute extends FPBaseEntity
         );
     }
 
+    public function setPrefix(string $prefix): self
+    {
+        $this->prefix = '/' . trim($prefix, '/');
+        $this->herePrefix = $this->prefix; // Aquí se establece el prefijo aquí
+        return $this;
+    }
+
+
+    public function setUrl(?string $url): static
+    {
+        $this->url = $url ? '/' . trim($url, '/') : null;
+        return $this;
+    }
+    
     public function addItem(FPEntityInterface $item): static
     {
-        // 1. Llama al método original de la clase padre
-        // Esto asegura que la lógica base (establecer parentId y añadir a $items) se ejecute.
-
-
-        // 2. Agrega tu lógica adicional específica para FPRoute, manejando los prefijos
-        if ($item instanceof FPRoute) {
-            $prefix = trim($this->prefix, '/');
-            $fullPrefix = trim($this->fullPrefix, '/');
-
-            // Construimos el nuevo fullPrefix solo si hay algo que agregar
-            $segments = [];
-
-            if ($fullPrefix !== '') {
-                $segments[] = $fullPrefix;
-            }
-
-            if ($prefix !== '') {
-                $segments[] = $prefix;
-            }
-
-            $this->fullPrefix = '/' . implode('/', $segments);
-
-            // Propagar solo si hay un fullPrefix válido
-            $item->fullPrefix = $this->fullPrefix;
-
-            // Evitar doble slash en la URL final
-            $url = trim($item->url, '/');
-            $item->fullUrl = rtrim($item->fullPrefix, '/') . ($url !== '' ? '/' . $url : '');
-        }
-
+        // 1. Asegura que la lógica base del padre se ejecute primero
         parent::addItem($item);
 
-        // 3. Devuelve $this para permitir el encadenamiento de métodos
+        // 2. Si el ítem es una ruta, aplicar lógica de prefijos
+        if ($item instanceof FPRoute) {
+            // Limpiar los prefijos
+
+
+
+            // padre // item -> herePrefix
+            // herePrefix // item 
+            $item->herePrefix = $this->herePrefix . $item->prefix;
+            $url = trim($item->url ?? '', '/');
+            $item->fullUrl = rtrim($item->herePrefix ?? '', '/') . ($url !== '' ? '/' . $url : '');
+        }
+
+        // 3. Encadenamiento fluido
         return $this;
     }
 
@@ -187,7 +187,7 @@ class FPRoute extends FPBaseEntity
     {
         // Si la ruta es un grupo, devuelve el prefijo completo
         if ($this->isGroup) {
-            return $this->fullPrefix;
+            return $this->herePrefix;
         }
 
         // Si no es un grupo, devuelve la URL completa
