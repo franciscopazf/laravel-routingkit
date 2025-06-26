@@ -56,7 +56,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      *
      * @var string
      */
-    public string $makerMethod = 'make';
+    public ?string $makerMethod = 'make';
 
     /**
      * Level of the entity in the hierarchy (0-indexed).
@@ -173,7 +173,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
 
         if (!isset(static::$queryBuilderInstances[$class]) || $reset) {
             // Si no existe la instancia o si se solicita un reset, la creamos/reiniciamos.
-            static::$queryBuilderInstances[$class] = new static('temp_id_for_query_builder', null);
+            static::$queryBuilderInstances[$class] = new static('temp_id_for_query_builder', "make");
             // Y si se reinicia la instancia del Query Builder, también reiniciamos el Orchestrator.
             static::resetOrchestratorSingleton();
         }
@@ -288,6 +288,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
     public function addItem(FPEntityInterface $item): static
     {
         $item->setParentId($this->id);
+        $item->setLevel($this->level + 1); // Increment level for child items
         $this->items->put($item->getId(), $item);
         return $this;
     }

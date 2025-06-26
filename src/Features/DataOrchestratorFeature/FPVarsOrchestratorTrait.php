@@ -19,7 +19,7 @@ trait FPVarsOrchestratorTrait
     protected ?string $currentUserFilterId = null;
     protected array $currentExcludedContextKeys = [];
     protected array $currentIncludedContextKeys = [];
-    protected bool $forceEmptyGroups = false; 
+    protected bool $forceEmptyGroups = false;
 
     // //--- Filtered Result Cache (Per Query Chain) //---
     protected ?Collection $filteredEntitiesCache = null;
@@ -35,7 +35,7 @@ trait FPVarsOrchestratorTrait
     public function __construct()
     {
         $this->contextualCachedEntities = new Collection();
-        $this->resetQueryState(); 
+        $this->resetQueryState();
     }
 
     /**
@@ -306,16 +306,16 @@ trait FPVarsOrchestratorTrait
      */
     public function all(): Collection
     {
-         
+
         if (empty($this->currentIncludedContextKeys) && !empty($this->getContextKeys())) {
-           
+
             $this->setIncludedContextKeys($this->getContextKeys());
         }
 
         $flattenedEntities = $this->getFlattenedEntitiesByActiveContexts();
 
         $tree = $this->buildTreeFromFlattened($flattenedEntities);
-       
+
         return $tree;
     }
 
@@ -411,6 +411,7 @@ trait FPVarsOrchestratorTrait
 
             // Reconstruir la colección de items del nodo clonado
             $clonedNode->setItems(new Collection());
+            $clonedNode->setAcuntBageInt(0); // Resetear acuntBageInt a 0 para el nodo clonado
             foreach ($items as $item) {
                 $clonedNode->addItem($item);
             }
@@ -453,7 +454,7 @@ trait FPVarsOrchestratorTrait
      */
     protected function getFlattenedEntitiesByActiveContexts(): Collection
     {
-       
+
         $flattened = collect();
 
         foreach ($this->currentIncludedContextKeys as $key) {
@@ -568,11 +569,11 @@ trait FPVarsOrchestratorTrait
     }
 
     /**
-     * Builds a tree from a flattened collection of entities.
-     * Handles 'makeSelf' entities.
+     * Construye un árbol a partir de una colección aplanada de entidades.
+     * Maneja entidades 'makeSelf'.
      *
-     * @param Collection $flat A flattened collection of FPEntityInterface.
-     * @return Collection The built tree.
+     * @param Collection $flat Una colección aplanada de FPEntityInterface.
+     * @return Collection El árbol construido.
      */
     public function buildTreeFromFlattened(Collection $flat): Collection
     {
@@ -580,6 +581,8 @@ trait FPVarsOrchestratorTrait
 
         foreach ($flat as $entity) {
             $clonedEntity = clone $entity;
+            $clonedEntity->setAcuntBageInt(0);
+
             $clonedEntity->setItems(new Collection());
 
             if ($clonedEntity->getMakerMethod() === 'makeSelf') {
@@ -589,7 +592,11 @@ trait FPVarsOrchestratorTrait
                 if (!$sourceEntity) {
                     continue;
                 }
+
                 $clonedSource = clone $sourceEntity;
+                // Asegurarse de que acuntBageInt se resetee a 0 en la entidad fuente clonada
+                $clonedSource->acuntBageInt = 0; // <-- Aquí se resetea para makeSelf
+
                 $clonedSource->setId($originalId);
                 $clonedSource->setMakerMethod('makeSelf');
                 $clonedEntity = $clonedSource;
@@ -599,10 +606,12 @@ trait FPVarsOrchestratorTrait
         }
 
         $tree = collect();
+
         foreach ($entitiesById as $id => $entity) {
             $parentId = $entity->getParentId();
             if ($parentId !== null && $entitiesById->has($parentId)) {
                 $parent = $entitiesById->get($parentId);
+                
                 $parent->addItem($entity);
             } else {
                 $tree->push($entity);
@@ -612,17 +621,21 @@ trait FPVarsOrchestratorTrait
     }
 
     /**
-     * Recursive helper to build a sub-tree from a flattened collection.
+     * Ayudante recursivo para construir un sub-árbol a partir de una colección aplanada.
      *
-     * @param FPEntityInterface $currentNode The current node to build items for.
-     * @param Collection $allEntitiesFlattened All entities in flattened form (from the source tree).
+     * @param FPEntityInterface $currentNode El nodo actual para el que construir ítems.
+     * @param Collection $allEntitiesFlattened Todas las entidades en forma aplanada (del árbol fuente).
      */
     protected function buildSubTreeRecursive(FPEntityInterface $currentNode, Collection $allEntitiesFlattened): void
     {
+        $currentNode->setAcuntBageInt(0); // Asegurarse de que acuntBageInt se resetee a 0 en el nodo actual
         foreach ($allEntitiesFlattened as $entity) {
+
             if ($entity->getParentId() === $currentNode->getId()) {
                 $clonedChild = clone $entity;
                 $clonedChild->setItems(new Collection());
+                // Asegurarse de que acuntBageInt se resetee a 0 en la entidad hija clonada
+
                 $currentNode->addItem($clonedChild);
                 $this->buildSubTreeRecursive($clonedChild, $allEntitiesFlattened);
             }
@@ -712,6 +725,7 @@ trait FPVarsOrchestratorTrait
 
             // Reconstruir la colección de items del nodo clonado
             $clonedNode->setItems(new Collection());
+            $clonedNode->setAcuntBageInt(0); // Resetear acuntBageInt a 0 para el nodo clonado
             foreach ($items as $item) {
                 $clonedNode->addItem($item);
             }
@@ -856,7 +870,7 @@ trait FPVarsOrchestratorTrait
         return $flattened;
     }
 
-        /**
+    /**
      * Obtiene el nodo padre de una entidad dada por su ID (o nombre de ruta).
      * Aplica los filtros configurados en la cadena de consulta actual.
      *

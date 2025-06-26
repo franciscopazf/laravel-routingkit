@@ -18,7 +18,7 @@ class FPNavigation extends FPBaseEntity
      */
     public string $id;
 
-    public string $makerMethod = 'make';
+    public ?string $makerMethod = 'make';
 
     public ?string $instanceRouteId = null;
 
@@ -35,8 +35,10 @@ class FPNavigation extends FPBaseEntity
     public ?string $label = null;
 
     public ?int $bageInt = null;
-    
+
     public ?int $acuntBageInt = null;
+
+    public ?string $finalBage = null;
 
     public ?string $bageString = null;
 
@@ -136,7 +138,17 @@ class FPNavigation extends FPBaseEntity
     public function loadFromFpRoute(): self
     {
 
-        $route = FPRoute::findById($this->instanceRouteId);
+        $route = FPRoute::newQuery()
+            ->loadAllContexts()
+            ->getSubBranch($this->instanceRouteId)
+            ->first(); // busca en el arbol de urtas pero es ineficiente 
+        // no mapea por claves key by
+
+        //$route = FPRoute::findById($this->instanceRouteId);
+        // esto busca por id eficientemete con punteros el problema
+        // lo que se haga en procesar arbol o los cambios resultantes no se muestran
+        // se debe corregir y unifircar a uno solo, por ahora funciona bien pero
+        // ineficiente.
 
         if (!$route)
             throw new \InvalidArgumentException("Route not found for entity ID: {$this->instanceRouteId}");
@@ -165,25 +177,42 @@ class FPNavigation extends FPBaseEntity
     public function FPRoute(): ?FPEntityInterface
     {
         if (FPRoute::exists($this->instanceRouteId)) {
-            return FPRoute::findById($this->instanceRouteId);
+            return FPRoute::newQuery()
+            ->loadAllContexts()
+            ->getSubBranch($this->instanceRouteId)
+            ->first(); 
         }
         return null;
     }
 
+    public function setAcuntBageInt(int $value): ?int
+    {
+        return $this->acuntBageInt = $value;
+    }
+
     public function addItem(FPEntityInterface $item): static
     {
-        if($item instanceof FPNavigation) {
-            // si existe $bageInt entonces se suma al acuntBageInt
-            if ($item->bageInt) {
-                $this->acuntBageInt = ($this->acuntBageInt ?? 0) + $item->bageInt;
-            }
+        if ($item instanceof FPNavigation) {
+            
+            // Asegurarse de que el hijo tenga un valor de badge ya fijo
+            $badge =  $item->bageInt ?? 0;
 
+            // Sumar solo una vez al momento de agregar
+            $this->acuntBageInt = ($this->acuntBageInt ?? 0) + $badge;
         }
-        
+
         parent::addItem($item);
 
-        // 3. Devuelve $this para permitir el encadenamiento de métodos
         return $this;
+    }
+
+    public function getFinalBage(): ?string
+    {
+        $sum = ($this->acuntBageInt ?? 0) + ($this->bageInt ?? 0);
+        $bageString = $this->bageString ?? '';
+        $this->finalBage = $sum > 0 ? $sum . $bageString : $bageString;
+
+        return $this->finalBage;
     }
 
 
@@ -206,13 +235,13 @@ class FPNavigation extends FPBaseEntity
                 'rules' => [
                     'required',
                     'string',
-                    'expect_false' => function($value) {
+                    'expect_false' => function ($value) {
                         return FPNavigation::exists($value);
                     }
                 ],
-                'closure' => function($parametros){
+                'closure' => function ($parametros) {
                     if (!FPNavigation::exists($parametros['instanceRouteId'])) {
-                       return $parametros['instanceRouteId'];
+                        return $parametros['instanceRouteId'];
                     }
                 }
             ],
@@ -234,7 +263,7 @@ class FPNavigation extends FPBaseEntity
         return [
             'id' => ['omit'],
             'instanceRouteId' => ['omit'],
-            'url' => ['same:FPRoute().url', 'isTrue:isGroup'],
+            'url' => ['same:FPRoute().fullUrl', 'isTrue:isGroup'],
 
             'makerMethod' => ['omit'],
             'urlName' => ['same:instanceRouteId'],
@@ -244,9 +273,11 @@ class FPNavigation extends FPBaseEntity
             'isFpRoute' => ['omit'],
             'isGroup' => ['omit'],
             'isHidden' => ['omit:false'],
-            
+
 
             'acuntBageInt' => ['omit'],
+
+            'finalBage' => ['omit'],
             'isActive' => ['omit'],
             'items' => ['omit'],
             'endBlock' => ['omit'],
