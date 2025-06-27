@@ -113,12 +113,10 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getOrchestrator(): FPOrchestratorInterface
     {
+        // Se asegura que se obtiene una instancia base del Orchestrator.
+        // La lógica de newQuery() se manejará en getOrchestratorSingleton().
         return FPBaseOrchestrator::make(static::getOrchestratorConfig());
     }
-
-
-
-
 
     /**
      * Returns the configuration for the orchestrator.
@@ -131,8 +129,9 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
 
     /**
      * Returns the singleton instance of the Orchestrator for the specific derived class.
-     * If an instance doesn't exist, it creates one using `getOrchestrator()` and
-     * immediately calls `newQuery()` on it to ensure a fresh state for filtering.
+     * If an instance doesn't exist, it creates one using `getOrchestrator()`.
+     * **Importante:** Este método NO llama a `newQuery()`. `newQuery()` se maneja explícitamente
+     * cuando se inicia una nueva cadena de consulta desde la entidad.
      *
      * @return FPOrchestratorInterface
      */
@@ -148,13 +147,15 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
     /**
      * Reinicia la instancia del orquestador para la clase actual.
      * Esto es útil para forzar un nuevo estado de filtro para una nueva cadena de consulta.
+     * Llama a `newQuery()` en el orquestador para resetear sus filtros y caché.
      *
-     * @return FPOrchestratorInterface Una nueva instancia de orquestador limpia.
+     * @return FPOrchestratorInterface Una instancia de orquestador limpia.
      */
     protected static function resetOrchestratorSingleton(): FPOrchestratorInterface
     {
         $class = static::class;
-        static::$orchestratorInstances[$class] = static::getOrchestrator()->newQuery();
+        // Obtenemos la instancia singleton y luego llamamos a newQuery() en ella.
+        static::$orchestratorInstances[$class] = static::getOrchestratorSingleton()->newQuery();
         return static::$orchestratorInstances[$class];
     }
 
@@ -164,7 +165,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      * Obtiene y/o crea la única instancia de la entidad (Query Builder) para la clase derivada actual.
      * Este es el método central para obtener la instancia para encadenar filtros.
      *
-     * @param bool $reset Si es true, fuerza la creación de una nueva instancia y reinicia el orquestador.
+     * @param bool $reset Si es true, fuerza la creación de una nueva instancia de Query Builder y reinicia el orquestador asociado.
      * @return static La instancia Singleton de la entidad de Query Builder.
      */
     public static function getInstance(bool $reset = false): static
@@ -175,6 +176,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
             // Si no existe la instancia o si se solicita un reset, la creamos/reiniciamos.
             static::$queryBuilderInstances[$class] = new static('temp_id_for_query_builder', "make");
             // Y si se reinicia la instancia del Query Builder, también reiniciamos el Orchestrator.
+            // Esto asegura que cada nueva cadena de query comience con filtros limpios.
             static::resetOrchestratorSingleton();
         }
 
@@ -483,6 +485,8 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
             $this->parentId = $parent;
         }
 
+        // Al guardar, la operación es directa al orquestador singleton.
+        // No afecta el estado de la "query" actual del Query Builder.
         static::getOrchestratorSingleton()->save($this);
         return $this;
     }
@@ -494,20 +498,35 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public function getBrothers(): Collection
     {
+        // Este método recupera hermanos basados en el estado actual del Orchestrator
+        // Si no se llamó a newQuery(), usará el último caché.
         return static::getOrchestratorSingleton()->getBrothers($this);
     }
 
     /**
      * Find an entity by its ID, including its child items.
+     * This method leverages the orchestrator's internal flattened cache for fast lookup.
      *
      * @param string $id
      * @return FPEntityInterface|null
      */
     public static function findByIdWithItems(string $id): ?FPEntityInterface
     {
-        $entity = static::getOrchestratorSingleton()->findByIdWithItems($id);
-        return $entity instanceof FPEntityInterface ? $entity : null;
+        // Aseguramos que el orquestador ha construido y filtrado el árbol y su caché.
+        // La llamada a get() en el orquestador lo fuerza si es necesario.
+        static::getOrchestratorSingleton()->get();
+
+        // Accedemos directamente a la caché aplanada del orquestador, que contiene los
+        // clones finales de las entidades con sus relaciones de hijos ya establecidas.
+        $filteredEntitiesCache = static::getOrchestratorSingleton()->getFilteredEntitiesCache(); // Nuevo método en Orchestrator
+
+        // Si la entidad se encuentra, es el clon final que queremos. Se recomienda clonarla para la salida.
+        $entity = $filteredEntitiesCache->get($id);
+
+        // Devolvemos un clon si se encuentra, para evitar modificaciones directas al caché.
+        return $entity instanceof FPEntityInterface ? clone $entity : null;
     }
+
 
     /**
      * Delete the current entity from the orchestrator.
@@ -516,30 +535,46 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public function delete(): bool
     {
+        // Operación directa de eliminación, no afecta el estado de la query.
         return static::getOrchestratorSingleton()->delete($this);
     }
 
     /**
      * Find an entity by its ID.
+     * This method leverages the orchestrator's internal flattened cache for fast lookup.
      *
      * @param string $id
      * @return FPEntityInterface|null
      */
     public static function findById(string $id): ?FPEntityInterface
     {
-        $entity = static::getOrchestratorSingleton()->findById($id);
-        return $entity instanceof FPEntityInterface ? $entity : null;
+        // Aseguramos que el orquestador ha construido y filtrado el árbol y su caché.
+        static::getOrchestratorSingleton()->get();
+
+        // Accedemos directamente a la caché aplanada del orquestador.
+        $filteredEntitiesCache = static::getOrchestratorSingleton()->getFilteredEntitiesCache(); // Nuevo método en Orchestrator
+
+        // Devolvemos un clon si se encuentra, para evitar modificaciones directas al caché.
+        $entity = $filteredEntitiesCache->get($id);
+        return $entity instanceof FPEntityInterface ?  $entity : null;
     }
+
 
     /**
      * Check if an entity exists in the orchestrator.
+     * This method leverages the orchestrator's internal flattened cache for fast lookup.
      *
      * @param string $id The ID of the entity to check.
      * @return bool
      */
     public static function exists(string $id): bool
     {
-        return static::getOrchestratorSingleton()->exists($id);
+        // Aseguramos que el orquestador ha construido y filtrado el árbol y su caché.
+        static::getOrchestratorSingleton()->get();
+
+        // Accedemos directamente a la caché aplanada del orquestador.
+        $filteredEntitiesCache = static::getOrchestratorSingleton()->getFilteredEntitiesCache(); // Nuevo método en Orchestrator
+        return $filteredEntitiesCache->has($id);
     }
 
     /**
@@ -550,17 +585,21 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public function isChild(string|FPEntityInterface $entity): bool
     {
+        // Este método operará sobre el estado actual del Orchestrator.
         return static::getOrchestratorSingleton()->isChild($this, $entity);
     }
 
     /**
      * Get the parent entity of the current entity.
+     * This method leverages the orchestrator's internal flattened cache for fast lookup.
      *
      * @return FPEntityInterface|null
      */
     public function getParent(): ?FPEntityInterface
     {
-        return static::getOrchestratorSingleton()->getParent($this);
+        // Este método ahora usa el nuevo getParentNode en el Orchestrator,
+        // que aprovecha el caché del árbol ya filtrado.
+        return static::getOrchestratorSingleton()->getParentNode($this->getId());
     }
 
     /**
@@ -571,6 +610,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public function moveTo(string|FPEntityInterface $parent): static
     {
+        // Operación directa de movimiento, no afecta el estado de la query.
         static::getOrchestratorSingleton()->moveTo($this, $parent);
         return $this;
     }
@@ -754,6 +794,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function get(): Collection
     {
+        // El orquestador se encargará de construir o devolver el caché ya filtrado.
         return static::getOrchestratorSingleton()->get();
     }
 
@@ -764,6 +805,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function all(): Collection
     {
+        // El orquestador se encargará de construir o devolver el caché ya filtrado.
         return static::getOrchestratorSingleton()->all();
     }
 
@@ -774,6 +816,8 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function allFlattened(): Collection
     {
+        // Esto ahora devuelve la colección aplanada de entidades crudas basada en los contextos activos,
+        // no el árbol filtrado. Si necesitas el árbol filtrado aplanado, usa `static::get()` y luego `flatten()`.
         return static::getOrchestratorSingleton()->allFlattened();
     }
 
@@ -786,6 +830,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getSubBranch(string $rootEntityId): Collection
     {
+        // El orquestador se encargará de obtener la sub-rama del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getSubBranch($rootEntityId);
     }
 
@@ -800,6 +845,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getSubBranches(array $rootEntityIds): Collection
     {
+        // El orquestador se encargará de obtener las sub-ramas del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getSubBranches($rootEntityIds);
     }
 
@@ -812,6 +858,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getForCurrentUser(): Collection
     {
+        // El orquestador se encargará de esto internamente.
         return static::getOrchestratorSingleton()->getForCurrentUser();
     }
 
@@ -825,6 +872,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getBreadcrumbs(FPEntityInterface $entity): Collection
     {
+        // El orquestador se encargará de obtener las migas de pan del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getBreadcrumbs($entity);
     }
 
@@ -837,6 +885,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getActiveBranch(?string $activeRouteName = null): ?FPEntityInterface
     {
+        // El orquestador se encargará de obtener la rama activa del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getActiveBranch($activeRouteName);
     }
 
@@ -849,6 +898,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getBreadcrumbsForCurrentRoute(?string $activeRouteName = null): Collection
     {
+        // El orquestador se encargará de esto.
         return static::getOrchestratorSingleton()->getBreadcrumbsForCurrentRoute($activeRouteName);
     }
 
@@ -878,17 +928,11 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function rewriteAllContext(): void
     {
+        // Esta operación fuerza una relectura completa, así que invalida todos los cachés.
         static::getOrchestratorSingleton()->rewriteAllContext();
-    }
-
-    /**
-     * Returns the attributes that should be omitted when the entity is serialized (e.g., to JSON).
-     * Override this in child classes.
-     * @return array
-     */
-    public function getOmmittedAttributes(): array
-    {
-        return [];
+        // Además, reseteamos las instancias singleton para asegurar que la próxima "query" comience limpia.
+        static::$orchestratorInstances = [];
+        static::$queryBuilderInstances = [];
     }
 
 
@@ -898,6 +942,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
         bool $soloGrupos = false,
         bool $permitirSeleccionarRaiz = true
     ): ?string {
+        // static::all() ya se encarga de usar el orquestador con los filtros aplicados.
         return FPTreeNavigator::make(static::all(), static::class)
             ->soloGrupos($soloGrupos)
             ->permitirSeleccionarRaiz($permitirSeleccionarRaiz)
@@ -915,6 +960,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getCurrentActiveNode(?string $activeRouteName = null): ?FPEntityInterface
     {
+        // Este método se encargará de obtener el nodo activo del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getCurrentActiveNode($activeRouteName);
     }
 
@@ -927,6 +973,7 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      */
     public static function getParentOf(string $entityId): ?FPEntityInterface
     {
+        // Este método se encargará de obtener el padre del árbol ya filtrado.
         return static::getOrchestratorSingleton()->getParentNode($entityId);
     }
 
@@ -938,12 +985,10 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
      * @param string|null $activeRouteName El nombre de la ruta activa. Si es null, intenta obtenerlo de Laravel's request.
      * @return FPEntityInterface|null El nodo padre del activo actual con sus hijos, o null si no se encuentra.
      */
-    public static function getActiveNodeParent(?string $activeRouteName = null): ?FPEntityInterface
+    public static function getActiveNodeParentWithChildren(?string $activeRouteName = null): ?FPEntityInterface
     {
         return static::getOrchestratorSingleton()->getActiveNodeParentWithChildren($activeRouteName);
     }
-
-
 
 
     /**

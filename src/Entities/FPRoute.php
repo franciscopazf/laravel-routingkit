@@ -118,6 +118,8 @@ class FPRoute extends FPBaseEntity
             'permissions' => ['minElements:1'],
             'fullUrl' => ['omit'],
 
+            'acuntBageInt' => ['omit'],
+
             'prefix' => ['isblank'],
             'herePrefix' => ['omit'],
             'isGroup' => ['omit'],

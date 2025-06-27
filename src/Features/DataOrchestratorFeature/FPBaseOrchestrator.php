@@ -329,7 +329,7 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
     public function findByIdWithItems(string $id): ?FPEntityInterface
     {
         $tree = $this->getRawGlobalTree();
-        $flattened = $this->flattenTree($tree);
+        $flattened = $this->flattenTreeForCache($tree);
         return $flattened->get($id);
     }
 
@@ -378,7 +378,7 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
         $sourceTree = $this->get();
 
         // Aplanamos el árbol para una búsqueda eficiente por ID
-        $flattenedSource = $this->flattenTree($sourceTree);
+        $flattenedSource = $this->flattenTreeForCache($sourceTree);
 
         // Si la ruta activa no existe en el árbol aplanado, no hay nodo activo.
         if (!$flattenedSource->has($activeRouteName)) {

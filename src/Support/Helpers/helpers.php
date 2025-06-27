@@ -15,6 +15,6 @@ if (!function_exists('fp_navigation')) {
     function fp_navigation(): FPNavigation
     {
 
-        return FPNavigation::newQuery();
+        return FPNavigation::getInstance();
     }
 }
