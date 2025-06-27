@@ -198,7 +198,7 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
     public function getDefaultContext(bool $forceNew = false): ?FPContextEntitiesInterface
     {
         $defaultKey = $this->getDefaultContextKey();
-        
+
         if ($defaultKey) {
             try {
                 // Ahora usa el método getContextInstance con la opción forceNew
@@ -212,7 +212,7 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
     }
 
     public function getParent(FPEntityInterface $entity): ?FPEntityInterface
-    { 
+    {
         $parentId = $entity->getParentId();
         if ($parentId === null) {
             return null; // No tiene padre
@@ -247,10 +247,11 @@ class FPBaseOrchestrator implements FPOrchestratorInterface
         if (!($context instanceof FPContextEntitiesInterface) || !method_exists($context, 'addEntity')) {
             throw new RuntimeException("El contexto '{$contextKey}' no implementa el método 'addEntity' necesario para agregar entidades.");
         }
-
+        $entity->setContextKey($contextKey);
         $context->addEntity($entity, $entity->getParent() ?? null);
-        $this->invalidateOrchestratorCaches($contextKey);
-        
+        $this->filteredEntitiesCache->put($entity->getId(), $entity);
+        //   $this->invalidateOrchestratorCaches($contextKey);
+
         return true;
     }
 
