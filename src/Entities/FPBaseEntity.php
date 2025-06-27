@@ -599,7 +599,9 @@ abstract class FPBaseEntity implements FPEntityInterface, FPIsOrchestrableInterf
     {
         // Este método ahora usa el nuevo getParentNode en el Orchestrator,
         // que aprovecha el caché del árbol ya filtrado.
-        return static::getOrchestratorSingleton()->getParentNode($this->getId());
+        return static::getOrchestratorSingleton()
+                        ->getFilteredEntitiesCache()
+                        ->get($this->parentId) ?? null
     }
 
     /**
