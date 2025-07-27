@@ -25,21 +25,21 @@
     },
     "autoload": {
         "psr-4": {
-            "FP\\RoutingKit\\": "src/"
+            "Rk\\RoutingKit\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FP\\RoutingKit\\Tests\\": "tests/"
+            "Rk\\RoutingKit\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "FP\\RoutingKit\\RoutingKitServiceProvider"
+                "Rk\\RoutingKit\\RoutingKitServiceProvider"
             ],
             "aliases": {
-                "FPNavigation": "FP\\RoutingKit\\Support\\Facades\\FPNavigation"
+                "RkNavigation": "Rk\\RoutingKit\\Support\\Facades\\RkNavigation"
             }
         }
     },

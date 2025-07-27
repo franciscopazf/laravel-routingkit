@@ -1,3 +1,3 @@
 laravel-routingkit
 
-instalacion: composer require fp-laravel-routingkit
+instalacion: composer require rk-laravel-routingkit

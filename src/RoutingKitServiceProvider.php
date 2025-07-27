@@ -1,20 +1,20 @@
 <?php
 
-namespace FP\RoutingKit;
+namespace Rk\RoutingKit;
 
-use FP\RoutingKit\Commands\FPRouteCommand;
-use FP\RoutingKit\Commands\FPNavigationCommand;
-use FP\RoutingKit\Commands\FPAccess;
-use FP\RoutingKit\Commands\FPControllerCommand;
-use FP\RoutingKit\Entities\FPNavigation;
+use Rk\RoutingKit\Commands\RkRouteCommand;
+use Rk\RoutingKit\Commands\RkNavigationCommand;
+use Rk\RoutingKit\Commands\RkAccess;
+use Rk\RoutingKit\Commands\RkControllerCommand;
+use Rk\RoutingKit\Entities\RkNavigation;
 use Illuminate\Support\ServiceProvider;
 
 class RoutingKitServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        $this->app->singleton('fp.navigation', function ($app) {
-            return FPNavigation::newQuery();
+        $this->app->singleton('rk.navigation', function ($app) {
+            return RkNavigation::newQuery();
         });
     }
 
@@ -36,10 +36,10 @@ class RoutingKitServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                FPRouteCommand::class,
-                FPNavigationCommand::class,
-                FPAccess::class,
-                FPControllerCommand::class,
+                RkRouteCommand::class,
+                RkNavigationCommand::class,
+                RkAccess::class,
+                RkControllerCommand::class,
             ]);
         }
 

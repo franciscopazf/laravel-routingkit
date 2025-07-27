@@ -1,20 +1,20 @@
 <?php
 
-//namespace FP\RoutingKit\Support;
+//namespace Rk\RoutingKit\Support;
 
 // Importa la clase de tu entidad principal (tu Query Builder)
-use FP\RoutingKit\Entities\FPNavigation;
+use Rk\RoutingKit\Entities\RkNavigation;
 
-if (!function_exists('fp_navigation')) {
+if (!function_exists('rk_navigation')) {
    
     /**
-     * Obtiene una nueva instancia del Query Builder para FPNavigation.
+     * Obtiene una nueva instancia del Query Builder para RkNavigation.
      *
-     * @return \FP\RoutingKit\Entities\FPNavigation
+     * @return \Rk\RoutingKit\Entities\RkNavigation
      */
-    function fp_navigation(): FPNavigation
+    function rk_navigation(): RkNavigation
     {
 
-        return FPNavigation::getInstance();
+        return RkNavigation::getInstance();
     }
 }
