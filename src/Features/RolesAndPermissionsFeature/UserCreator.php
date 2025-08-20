@@ -24,11 +24,7 @@ class UserCreator
         foreach ($users as $username => $data) {
             User::updateOrCreate(
                 ['email' => $data['email']],
-                [
-                    'name' => ucfirst($username),
-                    'password' => Hash::make($data['password']),
-                    'email_verified_at' => now(),
-                ]
+                $data['user']
             );
         }
     }
