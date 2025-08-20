@@ -23,14 +23,20 @@ class RkViewResolver
         if (str_starts_with($relativePath, 'Livewire' . DIRECTORY_SEPARATOR)) {
             $targetViewFolder = 'livewire';
             $relativeViewPath = substr($relativePath, strlen('Livewire' . DIRECTORY_SEPARATOR));
+
+            // ✅ Convertir CamelCase a kebab-case (para carpetas y archivos)
+            $relativeViewPath = $this->convertCamelToKebabPath($relativeViewPath);
         } elseif (str_starts_with($relativePath, 'Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR)) {
             $targetViewFolder = 'controllers';
             $relativeViewPath = substr($relativePath, strlen('Http' . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR));
+
+            // ✅ Para controllers mantenemos normal en minúsculas
+            $relativeViewPath = strtolower($relativeViewPath);
         } else {
             return null;
         }
 
-        $relativeViewPath = strtolower($relativeViewPath);
+        // ✅ Reemplazar extensión .php por .blade.php
         $relativeViewPath = preg_replace('/\.php$/', '.blade.php', $relativeViewPath);
 
         return $viewBasePath . DIRECTORY_SEPARATOR . $targetViewFolder . DIRECTORY_SEPARATOR . $relativeViewPath;
@@ -53,7 +59,6 @@ class RkViewResolver
         return dirname($fullViewPath) . DIRECTORY_SEPARATOR;
     }
 
-
     public function getFileNameWithoutExtension(string $fullViewPath): ?string
     {
         if (!$fullViewPath) {
@@ -65,7 +70,6 @@ class RkViewResolver
 
         return $basename;
     }
-
 
     public function resolveViewObjectFromAnySource(string $fullPath): ?array
     {
@@ -81,5 +85,20 @@ class RkViewResolver
             'folder' => $viewFolder,
             'fileName' => $fileName,
         ];
+    }
+
+    /**
+     * ✅ Convierte un path con posibles carpetas y nombres en CamelCase a kebab-case
+     * Ejemplo: AdminPanel/AdminGeneral.php → admin-panel/admin-general.php
+     */
+    private function convertCamelToKebabPath(string $path): string
+    {
+        $segments = explode(DIRECTORY_SEPARATOR, $path);
+
+        $convertedSegments = array_map(function ($segment) {
+            return strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $segment));
+        }, $segments);
+
+        return implode(DIRECTORY_SEPARATOR, $convertedSegments);
     }
 }
