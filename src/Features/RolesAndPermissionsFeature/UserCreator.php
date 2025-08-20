@@ -23,7 +23,7 @@ class UserCreator
     {
         foreach ($users as $username => $data) {
             User::updateOrCreate(
-                ['email' => $data['email']],
+                ['email' => $data['user']['email']],
                 $data['user']
             );
         }
