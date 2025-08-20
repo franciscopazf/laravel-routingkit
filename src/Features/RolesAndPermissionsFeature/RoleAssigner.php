@@ -24,7 +24,7 @@ class RoleAssigner
     public function assign(array $users): self
     {
         foreach ($users as $data) {
-            $user = User::where('email', $data['email'])
+            $user = User::where('email', $data['user']['email'])
                 ->first();
 
             if ($user)
