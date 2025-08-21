@@ -19,11 +19,10 @@ class RoleCreator
 
     public function create(array $roles): void
     {
-        foreach ($roles as $role => $label)
-            Role::firstOrCreate(['name' => $role]);
+        foreach ($roles as $roleData) {
+            Role::firstOrCreate([
+                'name' => $roleData['name'],
+            ]);
+        }
     }
-
-
-    
-
 }
