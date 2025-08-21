@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Rk\RoutingKit\Features\RolesAndPermissionsFeature;
 
 use Rk\RoutingKit\Contracts\RkEntityInterface;
@@ -10,15 +9,6 @@ use Spatie\Permission\Models\Role;
 
 class PermissionCreator
 {
-
-    // crear a los usuarios en caso de que no existan 
-    // crear todos los roles 
-    // crear todos los permisos
-
-
-    // asginar los roles a los usuarios
-    // asginar los permisos a los roles
-
     public static function make(): self
     {
         return new self();
@@ -34,48 +24,46 @@ class PermissionCreator
 
         $routes = $rkEntityClass::allFlattened();
 
-        // dd($routes);
-
         foreach ($routes as $route) {
-            #echo "Processing route: {$route->getId()}\n";
-            // a. Crear permisos
-            foreach ($route->getAllPermissions() as $permissionName) {
-                #echo "Creating permission: {$permissionName}\n";
-                Permission::firstOrCreate(['name' => $permissionName]);
+            // Crear permisos
+            foreach ($route->getAllPermissions() as $permissionName => $options) {
+                $forTenant = $options['for_tenant'] ?? false;
+
+                // Si el permiso es for_tenant, solo crearlo si existe al menos un rol for_tenant
+                if ($forTenant) {
+                    $hasTenantRole = false;
+                    foreach ($route->getRoles() as $roleName => $perms) {
+                        $role = Role::where('name', $roleName)->first();
+                        if ($role && ($role->for_tenant ?? false)) {
+                            $hasTenantRole = true;
+                            break;
+                        }
+                    }
+                    if (!$hasTenantRole) {
+                        continue; // saltar este permiso
+                    }
+                }
+
+                Permission::firstOrCreate(['name' => $permissionName], ['for_tenant' => $forTenant]);
             }
-            // dd($route->getRoles());
-            // b. Asignar permisos a roles
-            $roleMap = $route->getRoles(); // ['admin' => ['perm1', 'perm2'], 'user']
+
+            // Asignar permisos a roles
+            $roleMap = $route->getRoles();
 
             foreach ($roleMap as $roleName => $permList) {
                 if (is_array($permList)) {
-                    #echo "Processing role: {$roleName} with permissions: " . implode(', ', $permList) . "\n";
-                    // formato: 'admin' => ['perm1', 'perm2']
-                    $role = Role::where('name', $roleName)
-                        ->first();
-                    $permissions = Permission::whereIn('name', $permList)
-                        ->get();
-                    // agregar a permissions el rol de acceso a la ruta o el permission individual
-                    $permissions->push(Permission::firstOrCreate(['name' => $route->getAccessPermission()]));
-
-                    ///dd($permissions);
-                } else {
-                    #echo "||| Processing role: {$permList} with permissions: " . implode(', ', $route->getAccessPermissions()) . "\n";
-                    // formato: 'user' (sin array)
-                    $role = Role::where('name', $permList)
-                        ->first();
-                    $permissions = Permission::whereIn('name', $route->getAllPermissions())
-                        ->get();
-                }
-
-                if (!$role) {
-                    #echo "Role {$roleName} does not exist, creating it.\n";
                     $role = Role::firstOrCreate(['name' => $roleName]);
+                    $permissions = Permission::whereIn('name', $permList)->get();
+                    $permissions->push(Permission::firstOrCreate(['name' => $route->getAccessPermission()]));
+                } else {
+                    $role = Role::firstOrCreate(['name' => $permList]);
+                    $permissions = Permission::whereIn('name', $route->getAllPermissions())->get();
                 }
-                #echo "Assigning permissions to role: {$role->name}\n";
+
                 $role->givePermissionTo($permissions);
             }
         }
+
         $this->printRolesWithPermissions();
     }
 

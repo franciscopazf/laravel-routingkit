@@ -96,9 +96,14 @@ class RkRoute extends RkBaseEntity
             ],
             'roles' => [
                 'type' => 'array_multiple',
-                'description' => 'A que roles permite el acceso a la ruta.',
-                'rules' => ['nullable', 'array', 'in:' . implode(',', config('routingkit.roles', []))],
-            ]
+                'description' => 'A qué roles permite el acceso a la ruta.',
+                'rules' => [
+                    'nullable',
+                    'array',
+                    // Obtener todos los names desde config('routingkit.roles')
+                    'in:' . implode(',', array_column(config('routingkit.roles', []), 'name'))
+                ]
+            ],
         ];
         return RkParameterOrchestrator::make()
             ->processParameters($data, $attributes);
@@ -162,7 +167,7 @@ class RkRoute extends RkBaseEntity
         $this->url = $url ? '/' . trim($url, '/') : null;
         return $this;
     }
-    
+
     public function addItem(RkEntityInterface $item): static
     {
         // 1. Asegura que la lógica base del padre se ejecute primero

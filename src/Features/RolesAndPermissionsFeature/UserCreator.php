@@ -13,7 +13,6 @@ class UserCreator
         return new self();
     }
 
-
     /**
      * Create users based on the provided array.
      *
@@ -21,8 +20,10 @@ class UserCreator
      */
     public function create(array $users): void
     {
+        $userModel = config('routingkit.user_model', User::class);
+
         foreach ($users as $username => $data) {
-            User::updateOrCreate(
+            $userModel::updateOrCreate(
                 ['email' => $data['user']['email']],
                 $data['user']
             );

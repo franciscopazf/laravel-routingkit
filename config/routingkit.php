@@ -14,6 +14,12 @@ return [
     */
     'livewire_support' => true,
 
+
+
+    'user_model' => \App\Models\User::class,
+
+
+
     /*
     |--------------------------------------------------------------------------
     | Controllers Paths
@@ -118,8 +124,12 @@ return [
     |
     */
     'roles' => [
-        'admin_general' => 'admin_general',
-        'guest'         => 'guest',
+        [
+            'id'   => 'admin_general',
+            'name' => 'Administrator (General)',
+            'for_tenant' => true
+        ],
+       
     ],
 
     /*
