@@ -329,6 +329,7 @@ abstract class RkBaseEntity implements RkEntityInterface, RkIsOrchestrableInterf
      */
     public function setUrl(?string $url): static
     {
+        
         $this->url = $url;
         return $this;
     }

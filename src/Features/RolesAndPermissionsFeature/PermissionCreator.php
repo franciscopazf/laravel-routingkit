@@ -19,9 +19,16 @@ class PermissionCreator
     // asginar los roles a los usuarios
     // asginar los permisos a los roles
 
-    public static function make(): self
+
+    public function __construct(
+        protected ?string $tenantId,
+        protected ?bool $tenants = false
+    ) {
+    }
+
+    public static function make(?string $tenantId, ?bool $tenants): self
     {
-        return new self();
+        return new self($tenantId, $tenants);
     }
 
     /**

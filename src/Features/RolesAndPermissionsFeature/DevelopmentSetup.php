@@ -11,6 +11,9 @@ use Rk\RoutingKit\Features\RolesAndPermissionsFeature\UserCreator;
 
 class DevelopmentSetup
 {
+    protected ?string $tenantId;
+    protected ?bool$tenants;
+
     protected RoleCreator $roleCreator;
     protected UserCreator $userCreator;
     protected RoleAssigner $roleAssigner;
@@ -20,7 +23,9 @@ class DevelopmentSetup
         RoleCreator $roleCreator,
         UserCreator $userCreator,
         RoleAssigner $roleAssigner,
-        PermissionCreator $permissionCreator
+        PermissionCreator $permissionCreator,
+        ?string $tenantId = null,
+        ?bool $tenants = null
     ) {
         $this->roleCreator = $roleCreator;
         $this->userCreator = $userCreator;
@@ -35,15 +40,23 @@ class DevelopmentSetup
      *
      * @return self
      */
-    public static function make(): self
-    {
+    public static function make(
+        ?string $tenantId,
+        ?bool $tenants
+    ): self {
+
+
         return new self(
-            RoleCreator::make(),
-            UserCreator::make(),
-            RoleAssigner::make(),
-            PermissionCreator::make()
+            RoleCreator::make($tenantId, $tenants),
+            UserCreator::make($tenantId, $tenants),
+            RoleAssigner::make($tenantId, $tenants),
+            PermissionCreator::make($tenantId, $tenants),
+            $tenantId,
+            $tenants    
         );
     }
+
+   
 
     /**
      * Run the development setup.

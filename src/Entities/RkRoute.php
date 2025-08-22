@@ -31,6 +31,8 @@ class RkRoute extends RkBaseEntity
     public ?string $prefix = null;
     public ?string $herePrefix = null;
 
+
+    public $domains = [];
     public $urlMiddleware = [];
     public $permissions = [];
     public $roles = [];

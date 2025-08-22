@@ -24,15 +24,24 @@ class RoleAssigner
     public function assign(array $users): self
     {
         foreach ($users as $data) {
-            $user = User::where('email', $data['user']['email'])
-                ->first();
+            $user = User::where('email', $data['user']['email'])->first();
 
-            if ($user)
-                $user->syncRoles($data['roles']);
+            if (!$user) {
+                continue; // si no existe el usuario, saltar
+            }
+
+            // Filtrar solo los roles que existen en la BD
+            $existingRoles = collect($data['roles'])->filter(function ($roleName) {
+                return \Spatie\Permission\Models\Role::where('name', $roleName)->exists();
+            });
+
+            if ($existingRoles->isNotEmpty()) {
+                $user->syncRoles($existingRoles->toArray());
+            }
         }
+
         return $this;
     }
-
 
     /**
      * Create roles based on the provided array.
@@ -66,5 +75,3 @@ class RoleAssigner
         return $this;
     }
 }
-
-

@@ -9,6 +9,8 @@ class RkAccess extends Command
 {
     // variables necesarias (opcionales)
     protected $signature = 'rk:access
+                            {--tenants : Sincroniza todos los inquilinos}
+                            {--tenant= : ID del inquilino}
                             {--force : Fuerza la sincronización de accesos sin confirmación}
                             {--dry-run : Simula los cambios sin aplicarlos}
                             {--only-permissions : Solo sincroniza permisos}
@@ -32,8 +34,10 @@ class RkAccess extends Command
                 return;
             }
         }
+        $tenantId = $this->option('tenant') ? $this->option('tenant') : null;
+        $tenants = $this->option('tenants') ? $this->option('tenants') : null;
 
-        DevelopmentSetup::make()
+        DevelopmentSetup::make($tenantId, $tenants)
             ->run();
     }
 }
