@@ -12,7 +12,7 @@ use Rk\RoutingKit\Features\RolesAndPermissionsFeature\UserCreator;
 class DevelopmentSetup
 {
     protected ?string $tenantId;
-    protected ?bool$tenants;
+    protected ?bool $tenants;
 
     protected RoleCreator $roleCreator;
     protected UserCreator $userCreator;
@@ -42,21 +42,22 @@ class DevelopmentSetup
      */
     public static function make(
         ?string $tenantId,
-        ?bool $tenants
+        ?bool $tenants,
+        bool $verbose = false
     ): self {
 
 
         return new self(
-            RoleCreator::make($tenantId, $tenants),
-            UserCreator::make($tenantId, $tenants),
-            RoleAssigner::make($tenantId, $tenants),
-            PermissionCreator::make($tenantId, $tenants),
+            RoleCreator::make($tenantId, $tenants, $verbose),
+            UserCreator::make($tenantId, $tenants, $verbose),
+            RoleAssigner::make($tenantId, $tenants, $verbose),
+            PermissionCreator::make($tenantId, $tenants, $verbose),
             $tenantId,
-            $tenants    
+            $tenants
         );
     }
 
-   
+
 
     /**
      * Run the development setup.

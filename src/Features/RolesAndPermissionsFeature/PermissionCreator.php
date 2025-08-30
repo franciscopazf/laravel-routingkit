@@ -22,13 +22,14 @@ class PermissionCreator
 
     public function __construct(
         protected ?string $tenantId,
-        protected ?bool $tenants = false
+        protected ?bool $tenants = false,
+        protected bool $verbose = false
     ) {
     }
 
-    public static function make(?string $tenantId, ?bool $tenants): self
+    public static function make(?string $tenantId, ?bool $tenants, bool $verbose = false): self
     {
-        return new self($tenantId, $tenants);
+        return new self($tenantId, $tenants, $verbose);
     }
 
     /**
@@ -90,9 +91,13 @@ class PermissionCreator
     {
         $roles = Role::with('permissions')->get();
         foreach ($roles as $role) {
-            echo "Role: {$role->name}\n";
+            if ($this->verbose) {
+                echo "Role: {$role->name}\n";
+            }
             foreach ($role->permissions as $permission) {
-                echo "- Permission: {$permission->name}\n";
+                if ($this->verbose) {
+                    echo "- Permission: {$permission->name}\n";
+                }
             }
         }
     }

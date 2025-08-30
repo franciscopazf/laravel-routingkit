@@ -108,8 +108,8 @@ trait RkBaseObjectTransformerTrait
         $pattern = $this->getBlockPattern($entity);
 
         if (!preg_match($pattern, $file, $matches)) {
-            echo "\n " . $pattern;
-            echo "\nNo se encontró el bloque para la entidad: " . $entity->getId();
+           # echo "\n " . $pattern;
+           # echo "\nNo se encontró el bloque para la entidad: " . $entity->getId();
             return $this->rebuildRouteContent($entity);
         }
 
