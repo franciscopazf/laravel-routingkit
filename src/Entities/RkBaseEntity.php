@@ -329,7 +329,7 @@ abstract class RkBaseEntity implements RkEntityInterface, RkIsOrchestrableInterf
      */
     public function setUrl(?string $url): static
     {
-        
+
         $this->url = $url;
         return $this;
     }
@@ -601,8 +601,8 @@ abstract class RkBaseEntity implements RkEntityInterface, RkIsOrchestrableInterf
         // Este método ahora usa el nuevo getParentNode en el Orchestrator,
         // que aprovecha el caché del árbol ya filtrado.
         return static::getOrchestratorSingleton()
-                        ->getFilteredEntitiesCache()
-                        ->get($this->parentId) ?? null;
+            ->getFilteredEntitiesCache()
+            ->get($this->parentId) ?? null;
     }
 
     /**
@@ -760,6 +760,20 @@ abstract class RkBaseEntity implements RkEntityInterface, RkIsOrchestrableInterf
         static::getOrchestratorSingleton()->filterForCurrentUser();
         return static::getInstance();
     }
+
+
+    public function filterForPermissions(array|Collection $permissions): static
+    {
+        static::getOrchestratorSingleton()->filterForPermissions($permissions);
+        return static::getInstance();
+    }
+
+    public function filterForRoles(Collection $roles): static
+    {
+        static::getOrchestratorSingleton()->filterForRoles($roles);
+        return static::getInstance();
+    }
+
 
     /**
      * Configura el filtro de profundidad.
@@ -967,7 +981,7 @@ abstract class RkBaseEntity implements RkEntityInterface, RkIsOrchestrableInterf
         return static::getOrchestratorSingleton()->getCurrentActiveNode($activeRouteName);
     }
 
-     /**
+    /**
      * Obtiene el nodo padre de una entidad específica por su ID.
      * Aplica todos los filtros configurados en la cadena de consulta actual.
      *

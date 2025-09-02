@@ -25,6 +25,8 @@ trait RkVarsOrchestratorTrait
     protected array $currentIncludedContextKeys = [];
     protected bool $forceEmptyGroups = false;
 
+    protected ?array $permissionsForFilter = null;
+
     /**
      * Constructor del Orchestrator.
      * Inicializa las cachés internas.
@@ -61,6 +63,7 @@ trait RkVarsOrchestratorTrait
         $this->currentExcludedContextKeys = []; // Esto se limpiará al establecer nuevos includedKeys
         $this->forceEmptyGroups = false; // Reinicia el estado de grupos vacíos
         $this->filteredEntitiesCache = null; // **CRUCIAL:** Invalida la caché del resultado final
+        // $this->permissionsForFilter = [];
     }
 
     /**
@@ -123,12 +126,36 @@ trait RkVarsOrchestratorTrait
      * @param string|null $userId El ID del usuario. `null` para no aplicar filtro de usuario.
      * @return static
      */
-    public function forUser(?string $userId): static
+    public function forUser(User $user): static
     {
-        $this->currentUserFilterId = $userId;
+        // $this->currentUserFilterId = $userId;
         $this->filteredEntitiesCache = null; // Invalida la caché del resultado final
+        $this->rolesForFilter = $user->roles;
+        $this->filterForRoles($this->rolesForFilter);
+
+        //  dd($this->permissionsForFilter);
         return $this;
     }
+
+    public function filterForPermissions(array|Collection $permissions): static
+    {
+        if ($permissions instanceof Collection) {
+            $permissions = $permissions->all();
+        }
+        $this->filteredEntitiesCache = null; // Invalida la caché del resultado final
+        $this->permissionsForFilter = $permissions;
+        return $this;
+    }
+
+    public function filterForRoles(Collection $roles): static
+    {
+        $this->filteredEntitiesCache = null; // Invalida la caché del resultado final
+        $permissionsForFilter = $roles->flatMap(fn($role) => $role->permissions->pluck('name'))
+            ->unique()->values()->all();
+        $this->filterForPermissions($permissionsForFilter);
+        return $this;
+    }
+
 
     /**
      * Carga y activa contextos específicos.
@@ -196,16 +223,15 @@ trait RkVarsOrchestratorTrait
      * @return static
      * @throws RuntimeException If no user ID can be determined.
      */
-    public function prepareForUser(?string $userId = null): static
+    public function prepareForUser(null|User $user = null): static
     {
-        if ($userId === null) {
+        if ($user === null) {
             $user = auth()->user();
             if (!$user) {
-                throw new RuntimeException("No authenticated user found to prepare filters for.");
+                throw new RuntimeException("Necesito un usuario autenticado para preparar los filtros.");
             }
-            $userId = $user->id;
         }
-        return $this->forUser($userId);
+        return $this->forUser($user);
     }
 
     //--- NUEVOS FILTROS SOLICITADOS ---
@@ -298,19 +324,14 @@ trait RkVarsOrchestratorTrait
 
             // Paso 3: Aplicar filtros de usuario/permisos, marcar nodos activos y decidir grupos vacíos.
             $processedTree = collect(); // Variable temporal para el resultado de los filtros
-
-            if ($this->currentUserFilterId !== null) {
-                $user = User::find($this->currentUserFilterId);
-                if ($user) {
-                    $permissions = $user->roles->flatMap(fn($role) => $role->permissions->pluck('name'))
-                        ->unique()->values()->all();
-                    $processedTree = $this->applyPermissionAndActiveFilter($treeOfReferences, $permissions, request()->route()?->getName(), $this->forceEmptyGroups);
-                } else {
-                    $processedTree = collect(); // Si el usuario no existe, no hay permisos, el árbol final es vacío.
-                }
+            // dd($this->permissionsForFilter);
+            if ($this->permissionsForFilter !== null) {
+                $permissions = $this->permissionsForFilter;
+                $processedTree = $this->applyPermissionAndActiveFilter($treeOfReferences, $permissions, request()->route()?->getName(), $this->forceEmptyGroups);
             } else {
                 $processedTree = $this->markActiveNodesAndSetGroupUrls($treeOfReferences, request()->route()?->getName(), $this->forceEmptyGroups);
             }
+
 
             // Paso 4: Aplicar filtro de profundidad.
             if ($this->currentDepthFilterLevel !== null) {
@@ -712,6 +733,7 @@ trait RkVarsOrchestratorTrait
      */
     protected function applyPermissionAndActiveFilter(array|Collection $nodes, array $allowedPermissions, ?string $activeRouteName = null, bool $forceEmptyGroups = false): Collection
     {
+        // dd(123);
         $filtered = collect();
 
         foreach ($nodes as $node) {
@@ -995,5 +1017,4 @@ trait RkVarsOrchestratorTrait
         }
         return $this->filteredEntitiesCache ?? new Collection();
     }
-
 }

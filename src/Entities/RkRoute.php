@@ -125,9 +125,11 @@ class RkRoute extends RkBaseEntity
             'permissions' => ['minElements:1'],
             'fullUrl' => ['omit'],
 
+
             'acuntBageInt' => ['omit'],
 
             'prefix' => ['isblank'],
+            'domains' => ['minElements:1'],
             'herePrefix' => ['omit'],
             'isGroup' => ['omit'],
             'isActive' => ['omit'],
