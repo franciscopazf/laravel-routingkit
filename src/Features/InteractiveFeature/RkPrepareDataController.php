@@ -14,18 +14,28 @@ class RkPrepareDataController
         return new self();
     }
 
-    public function run(?string $fullPath = null): array
-    {
+    public function run(
+        ?string $fullPath = null,
+        ?string $carpeta = null,
+        ?string $nombre = null,
+        bool $crearNombreModelo = false
+    ): array {
         if ($fullPath !== null) {
             // Resolver valores desde el path completo
             [$carpeta, $nombre] = $this->resolverDesdeFullPath($fullPath);
-        } else {
+        }
+
+        if ($carpeta == null) {
             // Flujo interactivo
             $carpeta = RkileBrowser::make()
-                ->browseMultipleFolders([
-                    base_path('app/Http/Controllers'),
-                    base_path('app/Livewire')
-                ]);
+                ->browseMultipleFolders(
+                    config('routingkit.controllers_path')
+                );
+        }
+
+
+
+        if ($nombre == null && !$crearNombreModelo) {
             do {
                 $nombre = text('Ingrese el nombre del controlador');
 
@@ -33,8 +43,17 @@ class RkPrepareDataController
                     echo "⚠️  El nombre del controlador es requerido. Por favor, ingréselo.\n";
                 }
             } while (empty(trim($nombre)));
-            $nombre = Str::studly($nombre);
-            $nombreArchivo = $nombre . '.php';
+        }
+
+        $nombre = Str::studly($nombre);
+        $nombreArchivo = $nombre . '.php';
+
+        $modelo = RkModelResolver::make()
+            ->run();
+
+        if ($crearNombreModelo) {
+            // reemplazar {modelo} por el nombre del modelo en la variable $nombre
+            $nombreArchivo = str_replace('{modelo}', $modelo['class'], $nombre);
         }
 
         $namespace = RkNamespaceResolver::make()
@@ -43,15 +62,23 @@ class RkPrepareDataController
         $rutaVista = RkViewResolver::make()
             ->resolveViewObjectFromAnySource($carpeta  . $nombreArchivo);
 
+
+
+        //  dd($modelo);
+
         return  [
             'controller' => [
                 'folder' => $carpeta,
-                'className' => $nombre,
+                'className' => $nombreArchivo,
                 'namespace' => $namespace,
+                'fullNamespace' => $namespace . '\\' . $nombreArchivo,
                 'path' => $carpeta  . $nombreArchivo,
                 'viewName' => $rutaVista['viewName'] ?? '',
             ],
-            'vista' => $rutaVista,
+            'view' => $rutaVista,
+            'model' => $modelo,
+            'carpeta' => $carpeta,
+            'nombre' => $nombreArchivo,
         ];
     }
 

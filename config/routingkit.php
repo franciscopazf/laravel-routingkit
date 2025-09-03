@@ -34,9 +34,37 @@ return [
     |
     */
     'controllers_path' => [
-        'app/Http/Controllers' => 'Controladores',
-        'app/Livewire'         => 'Livewire',
+        base_path('app/Http/Controllers'),
+        base_path('app/Livewire')
     ],
+
+    // data para los stubs
+
+    'stubs' => [
+        'identificador' => [
+            'controllers' => [
+                [
+                    'default_name' => '{modelo}ListController',
+                    'extension' => '.php',
+                    'stub_path' => base_path('routingkit/Stubs/carpeta1/simplecontroller.blade.php'),
+                    'stub_type' => 'blade',
+                    'rk_route' => true,
+                    'rk_navigation' => true,
+                    'views' => [
+                        [
+                            'extension' => '.blade.php',
+                            'stub_path' => base_path('routingkit/Stubs/carpeta1/simpleviewcontroller.blade.php'),
+                            'stub_type' => 'blade'
+                        ],
+
+                    ]
+                ]
+            ],
+
+
+        ]
+    ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -75,7 +103,7 @@ return [
                 'support_file'      => "object_file_tree",
                 'only_string_support' => true,
             ],
-            
+
             //...
         ]
     ],
@@ -129,7 +157,7 @@ return [
             'name' => 'Administrator (General)',
             'for_tenant' => true
         ],
-       
+
     ],
 
     /*
@@ -147,9 +175,12 @@ return [
     */
     'development_users' => [
         'admin_general' => [
-            'email'    => env('ADMIN_USER_EMAIL', 'admin@example.com'),
-            'password' => env('ADMIN_USER_PASSWORD', 'password'),
-            'roles'    => ['admin_general'],
+            'user' => [
+                'name' => "Administrador",
+                'email' => env('MAIL_ADMIN_ADDRESS'),
+                'is_central_user' => true
+            ],
+            'roles'    => ['admin_general', 'admin_comunidad'],
         ],
     ],
 

@@ -228,7 +228,7 @@ trait RkVarsOrchestratorTrait
         if ($user === null) {
             $user = auth()->user();
             if (!$user) {
-                throw new RuntimeException("Necesito un usuario autenticado para preparar los filtros.");
+                throw new RuntimeException("Necesito un usuario autenticado para preparar los filtros de usuario.");
             }
         }
         return $this->forUser($user);

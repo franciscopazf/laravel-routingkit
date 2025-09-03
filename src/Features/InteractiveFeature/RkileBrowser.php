@@ -484,4 +484,94 @@ class RkileBrowser
             }
         }
     }
+
+
+
+
+    /**
+     * Navega entre carpetas usando Laravel Prompts,
+     * permite elegir un archivo .php
+     * y retorna el namespace y nombre de la clase definida en ese archivo.
+     *
+     * @param string $directorioBase Ruta inicial desde donde empezar a navegar
+     * @return array|null ['namespace' => string|null, 'class' => string|null]
+     */
+    public function seleccionarClase(string $directorioBase): ?array
+    {
+        while (true) {
+            // Listar directorios y archivos PHP
+            $items = array_diff(scandir($directorioBase), ['.', '..']);
+            $dirs = [];
+            $files = [];
+
+            foreach ($items as $item) {
+                if (is_dir("$directorioBase/$item")) {
+                    $dirs[] = $item;
+                } elseif (str_ends_with($item, '.php')) {
+                    $files[] = $item;
+                }
+            }
+
+            // Construir opciones para el prompt
+            $options = [];
+
+            foreach ($dirs as $dir) {
+                $options["dir:$dir"] = "📂 $dir/";
+            }
+
+            foreach ($files as $file) {
+                $options["file:$file"] = "📄 $file";
+            }
+
+            $options['..'] = '⬅️ Volver atrás';
+            $options['cancel'] = '❌ Cancelar';
+
+            // Prompt de selección
+            $choice = \Laravel\Prompts\select(
+                label: "Carpeta actual: {$directorioBase}",
+                options: $options
+            );
+
+            if ($choice === 'cancel') {
+                return null;
+            }
+
+            if ($choice === '..') {
+                $parent = dirname($directorioBase);
+                if ($parent === $directorioBase) {
+                    return null; // ya no hay más arriba
+                }
+                $directorioBase = $parent;
+                continue;
+            }
+
+            if (str_starts_with($choice, 'dir:')) {
+                $dir = substr($choice, 4);
+                $directorioBase = "$directorioBase/$dir";
+                continue;
+            }
+
+            if (str_starts_with($choice, 'file:')) {
+                $file = substr($choice, 5);
+                $rutaArchivo = "$directorioBase/$file";
+                $contenido = file_get_contents($rutaArchivo);
+
+                $namespace = null;
+                $clase = null;
+
+                if (preg_match('/namespace\s+([^;]+);/', $contenido, $m)) {
+                    $namespace = trim($m[1]);
+                }
+                if (preg_match('/class\s+([a-zA-Z0-9_]+)/', $contenido, $m)) {
+                    $clase = trim($m[1]);
+                }
+
+                return [
+                    'namespace' => $namespace,
+                    'class' => $clase,
+                    'full' => $namespace ? "{$namespace}\\{$clase}" : $clase
+                ];
+            }
+        }
+    }
 }

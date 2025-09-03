@@ -12,9 +12,9 @@ use function Laravel\Prompts\comment;
 use function Laravel\Prompts\warning;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\progress;
+use \Rk\RoutingKit\Contracts\RkCreatorController;
 
-
-class RkCreateSimpleController
+class RkCreateSimpleController implements RkCreatorController
 {
     public static function make(): self
     {
@@ -27,7 +27,11 @@ class RkCreateSimpleController
 
         // Paso 1: Preparar datos y crear archivos
         info('Paso 1: Preparando datos y generando archivos...');
+        $infoControlador = config('routingkit.stubs');
+        dd($infoControlador);
+        
         $data = $this->prepararDatos();
+    
 
         $controllerStub = $this->getControllerStub($data['controller']['namespace']);
         $controllerContent = $this->renderStub($controllerStub, $data['controller']);
@@ -43,8 +47,8 @@ class RkCreateSimpleController
         );
 
         $this->crearArchivo(
-            $data['vista']['folder'],
-            $data['vista']['fileName'],
+            $data['view']['folder'],
+            $data['view']['fileName'],
             $viewContent,
             'blade.php'
         );

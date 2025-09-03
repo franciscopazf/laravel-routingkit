@@ -5,6 +5,8 @@ namespace Rk\RoutingKit\Commands;
 use Rk\RoutingKit\Features\FileCreatorFeature\RkFileCreator;
 use Rk\RoutingKit\Features\InteractiveFeature\RkCreateSimpleController;
 use Illuminate\Console\Command;
+use Rk\RoutingKit\Features\InteractiveFeature\RkContextCreateController;
+use Rk\RoutingKit\Features\InteractiveFeature\RkCreateGlobalController;
 
 class RkControllerCommand extends Command
 {
@@ -14,7 +16,12 @@ class RkControllerCommand extends Command
 
   public function handle()
   {
-    RkCreateSimpleController::make()
-      ->run();
+    RkContextCreateController::make(
+       RkCreateGlobalController::make()
+    )->run();
+   
+
+    // RkCreateSimpleController::make()
+    //   ->run();
   }
 }
