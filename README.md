@@ -85,7 +85,7 @@ composer show spatie/laravel-permission
 ## 🔗 Enlaces de Interés
 
 - Documentación oficial: [https://routingkit.isproyectos.com](https://routingkit.isproyectos.com)
-- Repositorio GitHub principal: [Laravel RoutingKit](https://github.com/francisco-paz/laravel-routingkit)
+- Repositorio GitHub principal: [Laravel RoutingKit](https://github.com/franciscopazf/laravel-routingkit)
 - Ejemplo completo de un sistema SAAS: [Laravel SaaS Starter](https://github.com/francisco-paz/laravel-saas-starter)
 
 ## Próximos Pasos
