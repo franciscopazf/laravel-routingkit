@@ -1,7 +1,6 @@
 {
     "name": "francisco-paz/laravel-routingkit",
     "description": "Beta release of Routing Kit: a modular Laravel toolkit for full-featured route management, middleware resolution, permission handling, and interactive CLI navigation.",
-    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "authors": [

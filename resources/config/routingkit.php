@@ -15,6 +15,16 @@ return [
     'livewire_support' => true,
 
 
+    /*    
+    |--------------------------------------------------------------------------
+    | User Model
+    |--------------------------------------------------------------------------
+    |
+    | Specify the fully qualified class name (FQCN) of your User model.
+    | This is used by the package to reference user-related data and
+    | functionalities, such as authentication and role management.
+    |  
+    */
 
     'user_model' => \App\Models\User::class,
 
@@ -33,27 +43,48 @@ return [
     | and its value is a user-friendly label for that path.
     |
     */
+
     'controllers_path' => [
         base_path('app/Http/Controllers'),
         base_path('app/Livewire')
     ],
 
-    // data para los stubs
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stubs Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Define templates (stubs) for generating controllers and views.    
+    | Each stub configuration includes details such as the default name,
+    | file extension, path to the stub file, and whether it should be
+    | included in routing and navigation generation.
+    |
+    | You can also specify associated views for each controller stub.
+    | This allows for a structured approach to generating both controllers
+    | and their corresponding views based on predefined templates.
+    |
+    */
 
     'stubs' => [
+
         'identificador' => [
+
             'controllers' => [
+
                 [
-                    'default_name' => '{modelo}ListController',
+
+                    'default_name' => '{modelo}Controller',
                     'extension' => '.php',
-                    'stub_path' => base_path('routingkit/Stubs/carpeta1/simplecontroller.blade.php'),
+                    'stub_path' => base_path('routingkit/Stubs/simple/simplecontroller.blade.php'),
                     'stub_type' => 'blade',
                     'rk_route' => true,
                     'rk_navigation' => true,
                     'views' => [
+
                         [
                             'extension' => '.blade.php',
-                            'stub_path' => base_path('routingkit/Stubs/carpeta1/simpleviewcontroller.blade.php'),
+                            'stub_path' => base_path('routingkit/Stubs/simple/simpleviewcontroller.blade.php'),
                             'stub_type' => 'blade'
                         ],
 
@@ -76,6 +107,7 @@ return [
     | and is used throughout the RoutingKit package for managing route data.
     |
     */
+    
     'model_ussage' => \Rk\RoutingKit\Entities\RkRoute::class,
 
     /*
@@ -95,9 +127,12 @@ return [
     |                            only string values for certain configurations.
     |
     */
+
     'routes_file_path' => [
+
         'default_file' => 'dashboard_routes',
         'items'        => [
+
             'dashboard_routes' => [
                 'path'              => base_path('routingkit/Routes/rkRoutes.php'),
                 'support_file'      => "object_file_tree",
@@ -125,14 +160,18 @@ return [
     |                            only string values for certain configurations.
     |
     */
+
     'navigators_file_path' => [
+
         'default_file' => 'dashboard_navigators',
         'items'        => [
+
             'dashboard_navigators' => [
                 'path'              => base_path('routingkit/Navigation/rkNavigation.php'),
                 'support_file'      => "object_file_plain",
                 'only_string_support' => true,
             ],
+
             // ...
         ]
     ],
@@ -151,11 +190,13 @@ return [
     | are often the same for simplicity or can be descriptive names.
     |
     */
+    
     'roles' => [
+
         [
             'id'   => 'admin_general',
-            'name' => 'Administrator (General)',
-            'for_tenant' => true
+            'name' => 'admin_general',
+            'for_tenant' => false,
         ],
 
     ],
@@ -173,14 +214,15 @@ return [
     | in your .env file and access them using the env() helper.
     |
     */
+
     'development_users' => [
         'admin_general' => [
             'user' => [
                 'name' => "Administrador",
-                'email' => env('MAIL_ADMIN_ADDRESS'),
+                'email' => env('MAIL_ADMIN_ADDRESS') ?? 'admin@example.com',
                 'is_central_user' => true
             ],
-            'roles'    => ['admin_general', 'admin_comunidad'],
+            'roles'    => ['admin_general'],
         ],
     ],
 
